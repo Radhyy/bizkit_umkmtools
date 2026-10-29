@@ -149,10 +149,10 @@ export default function Home() {
             
             {/* Left Content */}
             <motion.div 
-              initial={{ opacity: 0, x: -40 }} 
-              whileInView={{ opacity: 1, x: 0 }} 
-              transition={{ duration: 0.8, ease: "easeOut" }} 
-              viewport={{ once: true, margin: "-100px" }}
+              initial={{ opacity: 0, y: 20 }} 
+              whileInView={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.4, ease: "easeOut" }} 
+              viewport={{ once: true, margin: "50px" }}
               className="w-full lg:w-1/2 flex flex-col items-start text-left relative z-10"
             >
               <div className="inline-flex items-center gap-2.5 text-blue-600 font-bold text-[15px] mb-6 tracking-tight antialiased">
@@ -179,10 +179,10 @@ export default function Home() {
 
             {/* Right Content - Mockup */}
             <motion.div 
-              initial={{ opacity: 0, x: 40 }} 
-              whileInView={{ opacity: 1, x: 0 }} 
-              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }} 
-              viewport={{ once: true, margin: "-100px" }}
+              initial={{ opacity: 0, y: 20 }} 
+              whileInView={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }} 
+              viewport={{ once: true, margin: "50px" }}
               className="w-full lg:w-1/2 relative flex justify-center lg:justify-end"
             >
               {/* Blurred Shapes Background */}
@@ -211,10 +211,10 @@ export default function Home() {
 
           {/* Bottom Features Row */}
           <motion.div 
-            initial={{ opacity: 0, y: 30 }} 
+            initial={{ opacity: 0, y: 20 }} 
             whileInView={{ opacity: 1, y: 0 }} 
-            transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }} 
-            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }} 
+            viewport={{ once: true, margin: "50px" }}
             className="mt-16 border-t border-slate-200/60 pt-10 flex flex-col items-center gap-8 max-w-5xl mx-auto"
           >
             {/* Top 3 Features */}
@@ -282,7 +282,7 @@ export default function Home() {
             
             {/* Card 1: Akses Bisnis */}
             <motion.div 
-              initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} viewport={{ once: true }}
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} viewport={{ once: true, margin: "50px" }}
               className="col-span-1 md:col-span-2 bg-white/90 backdrop-blur-xl border border-white/60 rounded-[32px] p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] hover:-translate-y-2 hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] transition-all duration-300 flex flex-col items-start text-left"
             >
               <div className="flex items-center gap-3 mb-4">
@@ -294,76 +294,58 @@ export default function Home() {
               <div className="flex-1 w-full min-h-[260px] bg-slate-50/80 rounded-2xl border border-slate-100 flex flex-col p-4 gap-4 relative overflow-hidden">
                  
                  {/* Top Search Bar */}
-                 <motion.div 
-                    initial={{ opacity: 0, y: -10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} viewport={{ once: true }}
-                    className="w-full h-11 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center px-3 gap-2 shrink-0 cursor-text"
-                 >
+                 <div className="w-full h-11 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center px-3 gap-2 shrink-0 cursor-text">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
                     <span className={`text-[11px] text-slate-400 ${jakarta.className}`}>Cari menu atau data...</span>
                     <div className="ml-auto px-1.5 py-0.5 bg-slate-100 rounded text-[9px] text-slate-400 font-bold border border-slate-200">
                        ⌘K
                     </div>
-                 </motion.div>
+                 </div>
 
-                 <motion.span 
-                    initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: 0.5 }} viewport={{ once: true }}
-                    className={`text-[10px] font-bold text-slate-400 uppercase tracking-wider ${jakarta.className}`}
-                 >
+                 <span className={`text-[10px] font-bold text-slate-400 uppercase tracking-wider ${jakarta.className}`}>
                     Akses Cepat
-                 </motion.span>
+                 </span>
 
                  {/* 2x2 Grid */}
                  <div className="grid grid-cols-2 gap-3 w-full flex-1">
                     {/* Item 1 */}
-                    <motion.div 
-                       initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6, type: "spring", bounce: 0.4 }} viewport={{ once: true }}
-                       className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex flex-col justify-center hover:-translate-y-1 hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer"
-                    >
+                    <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex flex-col justify-center hover:-translate-y-1 hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer">
                        <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center mb-2 group-hover:bg-blue-500 transition-colors">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 group-hover:text-white transition-colors"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
                        </div>
                        <span className={`text-[11px] font-bold text-slate-700 ${poppins.className}`}>Laporan</span>
-                    </motion.div>
+                    </div>
 
                     {/* Item 2 */}
-                    <motion.div 
-                       initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: 0.7, type: "spring", bounce: 0.4 }} viewport={{ once: true }}
-                       className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex flex-col justify-center hover:-translate-y-1 hover:shadow-md hover:border-green-200 transition-all group cursor-pointer"
-                    >
+                    <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex flex-col justify-center hover:-translate-y-1 hover:shadow-md hover:border-green-200 transition-all group cursor-pointer">
                        <div className="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center mb-2 group-hover:bg-green-500 transition-colors">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 group-hover:text-white transition-colors"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                        </div>
                        <span className={`text-[11px] font-bold text-slate-700 ${poppins.className}`}>Lokasi</span>
-                    </motion.div>
+                    </div>
 
                     {/* Item 3 */}
-                    <motion.div 
-                       initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: 0.8, type: "spring", bounce: 0.4 }} viewport={{ once: true }}
-                       className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex flex-col justify-center hover:-translate-y-1 hover:shadow-md hover:border-orange-200 transition-all group cursor-pointer"
-                    >
+                    <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex flex-col justify-center hover:-translate-y-1 hover:shadow-md hover:border-orange-200 transition-all group cursor-pointer">
                        <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center mb-2 group-hover:bg-orange-500 transition-colors">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500 group-hover:text-white transition-colors"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
                        </div>
                        <span className={`text-[11px] font-bold text-slate-700 ${poppins.className}`}>Pelanggan</span>
-                    </motion.div>
+                    </div>
 
                     {/* Item 4 */}
-                    <motion.div 
-                       initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: 0.9, type: "spring", bounce: 0.4 }} viewport={{ once: true }}
-                       className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex flex-col justify-center hover:-translate-y-1 hover:shadow-md hover:border-purple-200 transition-all group cursor-pointer"
-                    >
+                    <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex flex-col justify-center hover:-translate-y-1 hover:shadow-md hover:border-purple-200 transition-all group cursor-pointer">
                        <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center mb-2 group-hover:bg-purple-500 transition-colors">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500 group-hover:text-white transition-colors"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
                        </div>
                        <span className={`text-[11px] font-bold text-slate-700 ${poppins.className}`}>Pengaturan</span>
-                    </motion.div>
+                    </div>
                  </div>
               </div>
             </motion.div>
 
             {/* Card 2: Asisten AI Pintar */}
             <motion.div 
-              initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} viewport={{ once: true }}
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }} viewport={{ once: true, margin: "50px" }}
               className="col-span-1 md:col-span-2 bg-white/90 backdrop-blur-xl border border-white/60 rounded-[32px] p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] hover:-translate-y-2 hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] transition-all duration-300 flex flex-col items-start text-left"
             >
               <div className="flex items-center gap-3 mb-4">
@@ -377,33 +359,24 @@ export default function Home() {
                  <div className="absolute top-0 left-0 w-full h-12 bg-gradient-to-b from-slate-50/90 to-transparent z-10 pointer-events-none"></div>
                  
                  {/* Previous Faded AI Chat */}
-                 <motion.div 
-                    initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 0.4, y: 0 }} transition={{ delay: 0.5, duration: 0.4 }} viewport={{ once: true }}
-                    className="flex justify-start items-end w-full gap-2 -mt-2"
-                 >
+                 <div className="flex justify-start items-end w-full gap-2 -mt-2">
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shrink-0 shadow-sm border border-white">
                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
                     </div>
                     <div className={`bg-white border border-slate-200/60 text-slate-500 text-[11px] py-2 px-3.5 rounded-t-xl rounded-r-xl rounded-bl-sm shadow-sm max-w-[85%] ${jakarta.className}`}>
                        Laporan penjualan bulan ini sudah siap. Ada yang bisa dibantu lagi?
                     </div>
-                 </motion.div>
+                 </div>
 
                  {/* User Chat */}
-                 <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.9, duration: 0.4 }} viewport={{ once: true }}
-                    className="flex justify-end w-full mt-auto"
-                 >
+                 <div className="flex justify-end w-full mt-auto">
                     <div className={`bg-blue-600 text-white text-[11px] py-2 px-3.5 rounded-t-xl rounded-l-xl rounded-br-sm shadow-sm max-w-[85%] ${jakarta.className}`}>
                        Tolong buatkan draf caption IG promo!
                     </div>
-                 </motion.div>
+                 </div>
 
                  {/* AI Chat */}
-                 <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 1.5, duration: 0.4 }} viewport={{ once: true }}
-                    className="flex justify-start items-end w-full gap-2 mb-1"
-                 >
+                 <div className="flex justify-start items-end w-full gap-2 mb-1">
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shrink-0 shadow-sm border border-white">
                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
                     </div>
@@ -411,23 +384,20 @@ export default function Home() {
                        <span className="font-semibold text-slate-700">Tentu! Ini drafnya:</span>
                        <span className="leading-snug">"🎉 Kejutan Akhir Tahun! Dapatkan diskon s.d 50% untuk semua produk..."</span>
                        <div className="flex gap-1 mt-1">
-                          <motion.div animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0 }} className="h-1.5 w-1.5 bg-blue-400 rounded-full"></motion.div>
-                          <motion.div animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="h-1.5 w-1.5 bg-blue-400 rounded-full"></motion.div>
-                          <motion.div animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="h-1.5 w-1.5 bg-blue-400 rounded-full"></motion.div>
+                          <span className="h-1.5 w-1.5 bg-blue-400 rounded-full animate-pulse"></span>
+                          <span className="h-1.5 w-1.5 bg-blue-400 rounded-full animate-pulse [animation-delay:200ms]"></span>
+                          <span className="h-1.5 w-1.5 bg-blue-400 rounded-full animate-pulse [animation-delay:400ms]"></span>
                        </div>
                     </div>
-                 </motion.div>
+                 </div>
 
                  {/* Input Bar */}
-                 <motion.div 
-                    initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.4 }} viewport={{ once: true }}
-                    className="w-full h-10 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center px-2.5 justify-between shrink-0"
-                 >
+                 <div className="w-full h-10 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center px-2.5 justify-between shrink-0">
                     <span className={`text-[11px] text-slate-400 ml-1 ${jakarta.className}`}>Ketik pesan ke AI...</span>
                     <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center shadow-[0_2px_5px_rgba(37,99,235,0.3)]">
                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white -ml-0.5"><path d="M22 2 11 13"></path><path d="m22 2-7 20-4-9-9-4Z"></path></svg>
                     </div>
-                 </motion.div>
+                 </div>
               </div>
             </motion.div>
 
@@ -516,7 +486,7 @@ export default function Home() {
 
             {/* Card 4: Laporan Digital */}
             <motion.div 
-              initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.4 }} viewport={{ once: true }}
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} viewport={{ once: true, margin: "50px" }}
               className="col-span-1 md:col-span-3 bg-white/90 backdrop-blur-xl border border-white/60 rounded-[32px] p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] hover:-translate-y-2 hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] transition-all duration-300 flex flex-col md:flex-row items-start md:items-center text-left gap-8"
             >
               <div className="flex-1">
@@ -530,12 +500,12 @@ export default function Home() {
                  {/* Stacked Cards Mockup */}
                  
                  {/* Back card 1 */}
-                 <motion.div initial={{ y: 20, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ delay: 0.5, duration: 0.5 }} viewport={{ once: true }} className="absolute top-4 w-[220px] h-10 bg-slate-100 rounded-t-2xl shadow-sm border border-slate-200"></motion.div>
+                 <div className="absolute top-4 w-[220px] h-10 bg-slate-100 rounded-t-2xl shadow-sm border border-slate-200"></div>
                  {/* Back card 2 */}
-                 <motion.div initial={{ y: 20, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ delay: 0.6, duration: 0.5 }} viewport={{ once: true }} className="absolute top-8 w-[250px] h-10 bg-[#f8fafc] rounded-t-2xl shadow-sm border border-slate-200 z-10"></motion.div>
+                 <div className="absolute top-8 w-[250px] h-10 bg-[#f8fafc] rounded-t-2xl shadow-sm border border-slate-200 z-10"></div>
                  
                  {/* Main Front Card */}
-                 <motion.div whileHover={{ y: -8, scale: 1.02 }} initial={{ y: 30, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ delay: 0.7, duration: 0.5, type: "spring", bounce: 0.4 }} viewport={{ once: true }} className="absolute top-12 w-[280px] h-[172px] bg-white rounded-t-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-slate-100 z-20 flex flex-col overflow-hidden cursor-pointer">
+                 <div className="absolute top-12 w-[280px] h-[172px] bg-white rounded-t-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-slate-100 z-20 flex flex-col overflow-hidden cursor-pointer hover:-translate-y-1 transition-transform">
                     {/* Header */}
                     <div className="w-full bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-4 flex items-center justify-between">
                        <div className="flex items-center gap-3">
@@ -572,13 +542,13 @@ export default function Home() {
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-slate-400 shrink-0"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
                        </div>
                     </div>
-                 </motion.div>
+                 </div>
               </div>
             </motion.div>
 
             {/* Card 5: Info Influencer */}
             <motion.div 
-              initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.5 }} viewport={{ once: true }}
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }} viewport={{ once: true, margin: "50px" }}
               className="col-span-1 md:col-span-3 bg-white/90 backdrop-blur-xl border border-white/60 rounded-[32px] p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] hover:-translate-y-2 hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] transition-all duration-300 flex flex-col md:flex-row items-start md:items-center text-left gap-8"
             >
               <div className="flex-1">
@@ -595,13 +565,7 @@ export default function Home() {
                     <div className="absolute top-3 left-1/2 -translate-x-1/2 w-14 h-4 bg-slate-800 rounded-full"></div>
                     
                     {/* Floating Pop-Up 1 */}
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.9, x: -10 }}
-                      whileInView={{ opacity: 1, scale: 1, x: 0 }}
-                      transition={{ delay: 0.6, duration: 0.5, type: "spring", bounce: 0.4 }}
-                      viewport={{ once: true }}
-                      className="absolute top-12 -left-16 w-[260px] bg-white rounded-2xl shadow-[0_15px_35px_-5px_rgba(0,0,0,0.08)] p-3 border border-slate-100 flex gap-3 items-center z-10"
-                    >
+                    <div className="absolute top-12 -left-16 w-[260px] bg-white rounded-2xl shadow-[0_15px_35px_-5px_rgba(0,0,0,0.08)] p-3 border border-slate-100 flex gap-3 items-center z-10 transition-transform hover:scale-105">
                        <img src="/InfluencerFoto/Sarah(FoodVlogger).png" alt="Sarah" className="w-10 h-10 rounded-xl object-cover shadow-sm" />
                        <div className="flex flex-col text-left w-full">
                           <div className="flex justify-between items-center w-full">
@@ -612,16 +576,10 @@ export default function Home() {
                              Influencer yang mungkin sesuai dengan bisnis Anda.
                           </span>
                        </div>
-                    </motion.div>
+                    </div>
 
                     {/* Floating Pop-Up 2 */}
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.9, x: 10 }}
-                      whileInView={{ opacity: 1, scale: 1, x: 0 }}
-                      transition={{ delay: 0.8, duration: 0.5, type: "spring", bounce: 0.4 }}
-                      viewport={{ once: true }}
-                      className="absolute top-32 -right-10 w-[240px] bg-white rounded-2xl shadow-[0_15px_35px_-5px_rgba(0,0,0,0.08)] p-3 border border-slate-100 flex gap-3 items-center z-10"
-                    >
+                    <div className="absolute top-32 -right-10 w-[240px] bg-white rounded-2xl shadow-[0_15px_35px_-5px_rgba(0,0,0,0.08)] p-3 border border-slate-100 flex gap-3 items-center z-10 transition-transform hover:scale-105">
                        <img src="/InfluencerFoto/Budi(TechReview).png" alt="Budi" className="w-10 h-10 rounded-xl object-cover shadow-sm" />
                        <div className="flex flex-col text-left w-full">
                           <div className="flex justify-between items-center w-full">
@@ -632,7 +590,7 @@ export default function Home() {
                              Siap bantu promosi!
                           </span>
                        </div>
-                    </motion.div>
+                    </div>
                  </div>
               </div>
             </motion.div>
@@ -674,7 +632,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            viewport={{ once: true, margin: "-100px" }}
+            viewport={{ once: true, margin: "50px" }}
             className="flex flex-col items-start text-left w-full max-w-[1050px] mb-16 relative z-10"
          >
             <div className="inline-flex items-center gap-2.5 text-blue-600 font-bold text-[15px] mb-6 tracking-tight antialiased">
