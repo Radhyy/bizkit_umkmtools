@@ -153,7 +153,7 @@ export default function Home() {
               whileInView={{ opacity: 1, x: 0 }} 
               transition={{ duration: 0.8, ease: "easeOut" }} 
               viewport={{ once: true, margin: "-100px" }}
-              className="w-full lg:w-1/2 flex flex-col items-start text-left"
+              className="w-full lg:w-1/2 flex flex-col items-start text-left relative z-10"
             >
               <div className="inline-flex items-center gap-2.5 text-blue-600 font-bold text-[15px] mb-6 tracking-tight antialiased">
                 <Image src="/IconDiamond.png" alt="Diamond" width={28} height={28} unoptimized={true} className="w-7 h-7 object-contain translate-y-[-1px]" />
@@ -190,7 +190,7 @@ export default function Home() {
               <div className="absolute top-1/2 left-[55%] -translate-x-1/2 -translate-y-1/2 w-[75%] h-[75%] bg-blue-500/80 blur-[90px] rounded-full pointer-events-none z-0" />
               
               {/* Dotted Grid Pattern */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] opacity-[0.9] pointer-events-none z-0" style={{
+              <div className="absolute top-0 lg:top-1/2 left-1/2 -translate-x-1/2 translate-y-0 lg:-translate-y-1/2 w-[115%] sm:w-[125%] lg:w-[140%] h-[105%] lg:h-[140%] opacity-[0.9] pointer-events-none z-0" style={{
                 backgroundImage: 'radial-gradient(circle at center, rgba(255,255,255,0.9) 1.5px, transparent 1.5px)',
                 backgroundSize: '24px 24px'
               }} />
