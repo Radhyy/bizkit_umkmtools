@@ -53,7 +53,7 @@ export default function LoginPage() {
       // Login berhasil, arahkan ke landing page atau dashboard
       if (data.user?.role === 'admin') {
         router.push("/admin");
-      } else if (data.user?.role === 'premium') {
+      } else if (data.user?.role === 'premium' || data.user?.role === 'trial') {
         router.push("/dashboard");
       } else {
         router.push("/");
@@ -88,7 +88,7 @@ export default function LoginPage() {
       setTimeout(() => {
         if (data.user?.role === 'admin') {
           router.push("/admin");
-        } else if (data.user?.role === 'premium') {
+        } else if (data.user?.role === 'premium' || data.user?.role === 'trial') {
           router.push("/dashboard");
         } else {
           router.push("/");

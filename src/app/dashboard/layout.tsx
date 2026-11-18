@@ -27,6 +27,8 @@ import {
   IconLayout,
   IconHome,
   IconX,
+  IconClock,
+  IconShieldLock,
 } from '@tabler/icons-react';
 
 export default function DashboardLayout({
@@ -37,8 +39,10 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ id?: string; name: string; email: string; role?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id?: string; name: string; email: string; role?: string; daysLeft?: number; trialEndsAt?: string } | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [lockReason, setLockReason] = useState<'free_plan' | 'trial_expired' | 'locked' | null>(null);
+  const [lockMessage, setLockMessage] = useState<string>('');
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -61,7 +65,7 @@ export default function DashboardLayout({
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  // Role validation
+  // Role & Trial validation dari database realtime
   useEffect(() => {
     const raw = localStorage.getItem("user");
     if (!raw) {
@@ -70,17 +74,41 @@ export default function DashboardLayout({
     }
     try {
       const u = JSON.parse(raw);
-      const email = u.email?.toLowerCase();
-      const role = email === 'radiaakbarradia@gmail.com' ? 'admin' : (email === 'raaakb87@gmail.com' ? (u.role || 'premium') : (u.role || 'free'));
-      if (role === 'free') {
-        setIsAuthorized(false);
-      } else {
-        setCurrentUser({ ...u, role });
-        setIsAuthorized(true);
-        if (u.id) {
-          fetchUnreadCount(u.id);
-        }
-      }
+      
+      // Validasi status akun dan trial ke database
+      fetch(`/api/auth/check-status?userId=${encodeURIComponent(u.id || '')}&email=${encodeURIComponent(u.email || '')}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.authorized) {
+            setCurrentUser({ 
+              ...u, 
+              role: data.role, 
+              daysLeft: data.daysLeft, 
+              trialEndsAt: data.trialEndsAt 
+            });
+            setIsAuthorized(true);
+            setLockReason(null);
+            if (u.id) {
+              fetchUnreadCount(u.id);
+            }
+          } else {
+            setIsAuthorized(false);
+            setLockReason(data.reason || 'free_plan');
+            setLockMessage(data.message || '');
+          }
+        })
+        .catch(() => {
+          // Fallback lokal jika jaringan offline
+          const email = u.email?.toLowerCase();
+          const role = email === 'radiaakbarradia@gmail.com' ? 'admin' : (email === 'raaakb87@gmail.com' ? (u.role || 'premium') : (u.role || 'free'));
+          if (role === 'free') {
+            setIsAuthorized(false);
+            setLockReason('free_plan');
+          } else {
+            setCurrentUser({ ...u, role });
+            setIsAuthorized(true);
+          }
+        });
     } catch {
       router.push("/login");
     }
@@ -104,8 +132,75 @@ export default function DashboardLayout({
     );
   }
 
-  // Jika Free Plan mencoba akses dashboard langsung
+  // Jika Akses Dashboard Dikunci (Free Plan, Trial Habis, atau Dikunci Admin)
   if (isAuthorized === false) {
+    if (lockReason === 'trial_expired') {
+      return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-jakarta">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-100 shadow-xl text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <IconClock className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Masa Trial Telah Berakhir</h2>
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              Masa percobaan gratis (trial) untuk akun Anda telah selesai. Akses dashboard Anda otomatis dikunci oleh sistem. Silakan upgrade ke paket Premium atau hubungi Super Administrator untuk memperpanjang trial.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <Link 
+                href="/#harga"
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-md shadow-blue-500/20"
+              >
+                <IconSparkles className="w-4 h-4" /> Upgrade ke Paket Premium
+              </Link>
+              <Link 
+                href="/#kontak"
+                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium transition-colors"
+              >
+                Hubungi Administrator
+              </Link>
+              <Link 
+                href="/"
+                className="w-full py-2.5 px-4 text-slate-400 hover:text-slate-600 text-xs font-medium transition-colors"
+              >
+                Kembali ke Beranda
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (lockReason === 'locked') {
+      return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-jakarta">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-red-100 shadow-xl text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center">
+              <IconLock className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Akses Dashboard Dikunci</h2>
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              {lockMessage || 'Akses dashboard akun Anda dinonaktifkan sementara oleh Super Administrator. Hubungi administrator untuk informasi lebih lanjut.'}
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <Link 
+                href="/#kontak"
+                className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                Hubungi Super Administrator
+              </Link>
+              <Link 
+                href="/"
+                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium transition-colors"
+              >
+                Kembali ke Beranda
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default: Free Plan
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-jakarta">
         <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-100 shadow-xl text-center">
@@ -114,7 +209,7 @@ export default function DashboardLayout({
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Akses Khusus Pelanggan Paket</h2>
           <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-            Akun Anda saat ini menggunakan <strong>Free Plan</strong>. Dashboard dan tools manajemen UMKM hanya dapat diakses setelah berlangganan paket kami.
+            Akun Anda saat ini menggunakan <strong>Free Plan</strong>. Dashboard dan tools manajemen UMKM hanya dapat diakses melalui masa trial atau setelah berlangganan paket kami.
           </p>
           <div className="flex flex-col gap-2.5">
             <Link 
@@ -250,6 +345,19 @@ export default function DashboardLayout({
                 ⌘K
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Trial Countdown Alert for Active Trial Users */}
+        {!isCollapsed && currentUser?.role === 'trial' && typeof currentUser.daysLeft === 'number' && (
+          <div className="mb-3 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-2xl flex items-center justify-between shadow-2xs">
+            <div className="flex items-center gap-1.5 text-amber-900">
+              <IconClock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span className="text-[11px] font-semibold">Masa Trial</span>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-950">
+              {currentUser.daysLeft} Hari Lagi
+            </span>
           </div>
         )}
 

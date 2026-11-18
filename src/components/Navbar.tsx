@@ -8,7 +8,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<{ name: string; email: string; role?: 'free' | 'premium' | 'admin' } | null>(null);
+  const [user, setUser] = useState<{ 
+    id?: string; 
+    name: string; 
+    email: string; 
+    role?: 'free' | 'trial' | 'premium' | 'admin'; 
+    daysLeft?: number; 
+    isTrialActive?: boolean; 
+    trialEndsAt?: string 
+  } | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [activeNav, setActiveNav] = useState("beranda");
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -40,22 +48,35 @@ export default function Navbar() {
     if (userData) {
       try {
         const parsed = JSON.parse(userData);
-        // Sinkronisasi role spesifik akun
-        if (parsed.email?.toLowerCase() === "radiaakbarradia@gmail.com") {
-          if (parsed.role !== "admin") {
-            parsed.role = "admin";
-            localStorage.setItem("user", JSON.stringify(parsed));
-          }
-        } else if (parsed.email?.toLowerCase() === "raaakb87@gmail.com") {
-          if (parsed.role !== "premium") {
-            parsed.role = "premium";
-            localStorage.setItem("user", JSON.stringify(parsed));
-          }
-        } else if (!parsed.role) {
-          parsed.role = "free";
-          localStorage.setItem("user", JSON.stringify(parsed));
-        }
         setUser(parsed);
+
+        // Sinkronisasi status role & masa trial secara realtime dari database
+        fetch(`/api/auth/check-status?userId=${encodeURIComponent(parsed.id || '')}&email=${encodeURIComponent(parsed.email || '')}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.authorized) {
+              const updated = {
+                ...parsed,
+                role: data.role,
+                daysLeft: data.daysLeft,
+                isTrialActive: data.role === 'trial',
+                trialEndsAt: data.trialEndsAt
+              };
+              setUser(updated);
+              localStorage.setItem("user", JSON.stringify(updated));
+            } else {
+              // Jika trial habis atau free plan
+              const updated = {
+                ...parsed,
+                role: 'free',
+                isTrialActive: false,
+                daysLeft: 0
+              };
+              setUser(updated);
+              localStorage.setItem("user", JSON.stringify(updated));
+            }
+          })
+          .catch(() => {});
       } catch (e) {
         console.error("Gagal membaca session:", e);
       }
@@ -115,8 +136,12 @@ export default function Navbar() {
             className="flex items-center gap-2.5 px-4 py-2 bg-white/80 backdrop-blur-md border border-gray-200/80 rounded-full shadow-sm hover:bg-white transition-all text-slate-800"
           >
             <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
-              user.role === 'premium' 
+              user.role === 'trial'
+                ? 'bg-emerald-100 text-emerald-700'
+                : user.role === 'premium' 
                 ? 'bg-amber-100 text-amber-700' 
+                : user.role === 'admin'
+                ? 'bg-purple-100 text-purple-700'
                 : 'bg-blue-100 text-blue-600'
             }`}>
               {user.name ? user.name.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : "U")}
@@ -130,9 +155,11 @@ export default function Navbar() {
                   ? 'text-blue-600' 
                   : user.role === 'premium' 
                   ? 'text-amber-600' 
+                  : user.role === 'trial'
+                  ? 'text-emerald-600'
                   : 'text-slate-400'
               }`}>
-                {user.role === 'admin' ? 'Admin' : user.role === 'premium' ? 'Premium' : 'Free Plan'}
+                {user.role === 'admin' ? 'Admin' : user.role === 'premium' ? 'Premium' : user.role === 'trial' ? 'Trial Plan' : 'Free Plan'}
               </span>
             </div>
             <svg className={`w-4 h-4 text-slate-500 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,6 +190,11 @@ export default function Navbar() {
                         Premium
                       </span>
                     )}
+                    {user.role === 'trial' && (
+                      <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200">
+                        Trial Plan {typeof user.daysLeft === 'number' ? `(${user.daysLeft} Hari)` : ''}
+                      </span>
+                    )}
                     {(user.role === 'free' || !user.role) && (
                       <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-slate-200 text-slate-600 rounded-full">
                         Free Plan
@@ -187,8 +219,8 @@ export default function Navbar() {
                     </Link>
                   )}
 
-                  {/* Menu Khusus Premium: Buka Dashboard yang ada sekarang */}
-                  {user.role === 'premium' && (
+                  {/* Menu Khusus Premium & Trial: Buka Dashboard */}
+                  {(user.role === 'premium' || user.role === 'trial') && (
                     <Link 
                       href="/dashboard"
                       onClick={() => setDropdownOpen(false)}
@@ -197,12 +229,12 @@ export default function Navbar() {
                       <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                       </svg>
-                      Buka Dashboard
+                      Dashboard
                     </Link>
                   )}
 
-                  {/* Free Plan: Tidak ada menu Dashboard, diarahkan untuk langganan paket */}
-                  {(user.role === 'free' || !user.role) && (
+                  {/* Free Plan (Bukan Trial / Trial Habis): Diarahkan untuk langganan paket */}
+                  {user.role === 'free' && (
                     <Link 
                       href="/#harga"
                       onClick={() => setDropdownOpen(false)}

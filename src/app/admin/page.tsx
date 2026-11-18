@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -487,12 +488,20 @@ export default function AdminDashboardPage() {
         </div>
 
         {activeTab === 'users' && (
-          <button 
-            onClick={fetchUsers}
-            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 font-medium px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 transition-colors"
-          >
-            <IconRefresh className="w-3.5 h-3.5" /> Refresh Database
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/pengguna"
+              className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
+            >
+              Kelola Pengguna Penuh & Trial →
+            </Link>
+            <button 
+              onClick={fetchUsers}
+              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 font-medium px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 transition-colors"
+            >
+              <IconRefresh className="w-3.5 h-3.5" /> Refresh Database
+            </button>
+          </div>
         )}
       </div>
 

@@ -43,8 +43,27 @@ export async function POST(req: Request) {
       }, { status: 403 });
     }
 
-    // Ambil role dari database (default: 'free')
-    const userRole = user.role || 'free';
+    // Hitung status trial secara akurat
+    let userRole = user.role || 'free';
+    let isTrialActive = false;
+    let daysLeft = 0;
+
+    if (user.trialEndsAt) {
+      const now = new Date();
+      const trialEnds = new Date(user.trialEndsAt);
+      const diffMs = trialEnds.getTime() - now.getTime();
+      daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      if (diffMs > 0 && !user.isLocked) {
+        isTrialActive = true;
+        if (userRole !== 'admin' && userRole !== 'premium') {
+          userRole = 'trial';
+        }
+      }
+    }
+
+    if (user.email?.toLowerCase() === 'radiaakbarradia@gmail.com') {
+      userRole = 'admin';
+    }
 
     // Login sukses
     return NextResponse.json({ 
@@ -53,7 +72,10 @@ export async function POST(req: Request) {
         id: user.id, 
         name: user.name, 
         email: user.email, 
-        role: userRole 
+        role: userRole,
+        isTrialActive,
+        daysLeft: Math.max(0, daysLeft),
+        trialEndsAt: user.trialEndsAt
       } 
     }, { status: 200 });
 

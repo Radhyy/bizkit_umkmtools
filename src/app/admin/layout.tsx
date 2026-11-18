@@ -107,7 +107,7 @@ export default function AdminLayout({
 
   const adminNavItems = [
     { href: '/admin', icon: IconGridDots, label: 'Overview' },
-    { href: '/admin#pengguna', icon: IconUsers, label: 'Pengguna' },
+    { href: '/admin/pengguna', icon: IconUsers, label: 'Pengguna' },
     { href: '/admin#paket', icon: IconSparkles, label: 'Paket & MRR' },
     { href: '/admin#laporan', icon: IconChartBar, label: 'Laporan Finansial' },
   ];
@@ -219,7 +219,7 @@ export default function AdminLayout({
         <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar -mx-1 px-1">
           {adminNavItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
             return (
               <Link
                 key={item.href}
