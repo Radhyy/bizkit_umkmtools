@@ -245,25 +245,21 @@ export default function HargaPage() {
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-white rounded-3xl p-8 border-2 border-blue-500 shadow-[0_20px_50px_rgba(37,99,235,0.14)] flex flex-col justify-between hover:shadow-[0_24px_60px_rgba(37,99,235,0.22)] transition-all relative overflow-hidden"
+            className="bg-white rounded-3xl p-8 border border-slate-200 shadow-md flex flex-col justify-between hover:shadow-lg transition-all relative"
           >
-            {/* Top decorative gradient bar */}
-            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600" />
-            
             <div>
               <div className="flex items-center justify-between mb-4">
-                <span className="px-3.5 py-1 text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-sm flex items-center gap-1.5">
+                <span className="px-3.5 py-1 text-xs font-bold uppercase tracking-wider bg-blue-600 text-white rounded-full shadow-sm flex items-center gap-1.5">
                   <IconCrown className="w-3.5 h-3.5 text-amber-300" />
                   Paling Populer
                 </span>
-                <span className="text-xs text-blue-600 font-bold bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+                <span className="text-xs text-blue-700 font-bold bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
                   Akses Penuh Tanpa Batas
                 </span>
               </div>
 
-              <h2 className="text-2xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">
                 Premium Plan
-                <span className="text-amber-500 text-xl">★</span>
               </h2>
               <p className="text-sm text-slate-600 mb-6 leading-relaxed">
                 Membuka seluruh dasbor dan fitur pintar Bizkit untuk mengelola, menganalisis, dan melipatgandakan keuntungan UMKM Anda.
@@ -519,3 +515,4 @@ export default function HargaPage() {
     </div>
   );
 }
+
