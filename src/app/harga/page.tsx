@@ -257,7 +257,7 @@ export default function HargaPage() {
 
             <Link
               href="/register"
-              className="w-full py-3.5 px-4 text-center rounded-2xl font-bold text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors border border-slate-200 block"
+              className="w-full py-3.5 px-6 text-center rounded-full font-bold text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors border border-slate-200 block shadow-sm"
             >
               Mulai dengan Free Plan
             </Link>
@@ -365,10 +365,15 @@ export default function HargaPage() {
             <div>
               <Link
                 href="/login?redirect=/harga"
-                className="w-full py-4 px-6 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all shadow-[0_10px_25px_rgba(37,99,235,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-center"
+                className="w-full bg-gradient-to-b from-[#0066FF] to-[#0047FF] hover:from-[#1a75ff] hover:to-[#003be6] text-white font-bold py-2 pl-6 pr-2 rounded-full flex items-center justify-between transition-all shadow-[0_8px_20px_rgba(0,71,255,0.25),inset_0_2px_0_rgba(255,255,255,0.25),inset_0_-4px_0_rgba(0,0,0,0.18)] hover:-translate-y-0.5 active:translate-y-1 active:shadow-[0_0px_0px_rgba(0,71,255,0),inset_0_4px_8px_rgba(0,0,0,0.2)] cursor-pointer"
               >
-                <span>Upgrade ke Premium Sekarang</span>
-                <IconArrowRight className="w-4 h-4" />
+                <span className="text-[14px] md:text-[15px] font-bold">Upgrade ke Premium Sekarang</span>
+                <div className="bg-white text-[#0047FF] w-9 h-9 rounded-full flex items-center justify-center shadow-sm shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="7" y1="17" x2="17" y2="7"></line>
+                    <polyline points="7 7 17 7 17 17"></polyline>
+                  </svg>
+                </div>
               </Link>
               <div className="flex items-center justify-center gap-2 text-xs text-slate-500 mt-3 font-medium">
                 <IconShieldCheck className="w-4 h-4 text-emerald-600" />
