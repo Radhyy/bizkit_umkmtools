@@ -478,35 +478,30 @@ export default function HargaPage() {
           </div>
         </div>
 
-        {/* Bottom CTA Banner */}
-        <div className="max-w-5xl mx-auto mb-12">
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 rounded-3xl p-8 md:p-12 text-white text-center relative overflow-hidden shadow-xl shadow-blue-600/20">
-            <div className="relative z-10 max-w-2xl mx-auto">
-              <h3 className="text-2xl md:text-3xl font-extrabold mb-4 tracking-tight">
-                Mulai Kelola Bisnis Anda Lebih Cerdas Hari Ini
-              </h3>
-              <p className="text-blue-100 text-sm md:text-base leading-relaxed mb-8">
-                Tingkatkan efisiensi pembukuan, manfaatkan teknologi AI untuk promosi, dan pantau kesehatan bisnis UMKM Anda dalam satu ketukan.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/register"
-                  className="w-full sm:w-auto px-8 py-3.5 bg-white text-blue-700 rounded-2xl font-bold text-sm hover:bg-blue-50 transition-all shadow-md hover:-translate-y-0.5 active:translate-y-0"
-                >
-                  Daftar Sekarang
-                </Link>
-                <Link
-                  href="/fitur"
-                  className="w-full sm:w-auto px-8 py-3.5 bg-white/10 text-white border border-white/20 rounded-2xl font-bold text-sm hover:bg-white/20 transition-all"
-                >
-                  Pelajari Semua Fitur
-                </Link>
-              </div>
-            </div>
+        {/* Bottom CTA Banner (Style matched to SS 1 in Blue) */}
+        <div className="max-w-5xl mx-auto mb-16">
+          <div className="relative overflow-hidden rounded-[36px] bg-gradient-to-b from-[#3b82f6] via-[#1d4ed8] to-[#1e40af] py-16 md:py-20 px-6 md:px-12 text-center text-white shadow-[0_24px_50px_-12px_rgba(29,78,216,0.35)] border border-blue-400/30">
+            {/* Top Soft White Glow Ambient Diffuser */}
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[550px] h-[220px] bg-white/45 blur-[70px] rounded-full pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/30 via-transparent to-transparent pointer-events-none" />
 
-            {/* Ambient Background Circles */}
-            <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-400/20 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative z-10 max-w-xl mx-auto flex flex-col items-center">
+              <h3 className="text-2xl md:text-[32px] font-bold tracking-tight text-white leading-snug md:leading-tight mb-3">
+                Mulai Kelola dan Kembangkan <br className="hidden sm:inline" />
+                Bisnis UMKM Anda Sekarang.
+              </h3>
+              <p className="text-white/85 text-sm md:text-base leading-relaxed max-w-md mx-auto mb-8 font-normal">
+                Daftar sekarang untuk kemudahan pencatatan kas, asisten AI 24/7, dan otomatisasi laporan keuangan.
+              </p>
+              
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center gap-2.5 px-7 py-3 bg-white text-slate-900 rounded-full font-bold text-sm shadow-md hover:bg-slate-50 hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <span>Daftar Sekarang</span>
+                <IconArrowRight className="w-4 h-4 stroke-[2.5]" />
+              </Link>
+            </div>
           </div>
         </div>
       </main>
