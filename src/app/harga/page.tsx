@@ -478,25 +478,24 @@ export default function HargaPage() {
           </div>
         </div>
 
-        {/* Bottom CTA Banner (Style matched to SS 1 in Blue) */}
-        <div className="max-w-5xl mx-auto mb-16">
-          <div className="relative overflow-hidden rounded-[36px] bg-gradient-to-b from-[#3b82f6] via-[#1d4ed8] to-[#1e40af] py-16 md:py-20 px-6 md:px-12 text-center text-white shadow-[0_24px_50px_-12px_rgba(29,78,216,0.35)] border border-blue-400/30">
+        {/* Bottom CTA Banner (Style matched to SS 1 in Blue - Wider & Sleeker) */}
+        <div className="w-full max-w-6xl mx-auto mb-20">
+          <div className="relative overflow-hidden rounded-[32px] md:rounded-[36px] bg-gradient-to-b from-[#3b82f6] via-[#1d4ed8] to-[#1e40af] py-10 md:py-12 px-8 md:px-16 text-center text-white shadow-[0_20px_50px_-15px_rgba(29,78,216,0.3)] border border-blue-400/30">
             {/* Top Soft White Glow Ambient Diffuser */}
-            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[550px] h-[220px] bg-white/45 blur-[70px] rounded-full pointer-events-none" />
+            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[750px] h-[180px] bg-white/40 blur-[75px] rounded-full pointer-events-none" />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/30 via-transparent to-transparent pointer-events-none" />
 
-            <div className="relative z-10 max-w-xl mx-auto flex flex-col items-center">
-              <h3 className="text-2xl md:text-[32px] font-bold tracking-tight text-white leading-snug md:leading-tight mb-3">
-                Mulai Kelola dan Kembangkan <br className="hidden sm:inline" />
-                Bisnis UMKM Anda Sekarang.
+            <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
+              <h3 className="text-2xl md:text-[30px] font-bold tracking-tight text-white leading-tight mb-2.5">
+                Mulai Kelola dan Kembangkan Bisnis UMKM Anda Sekarang.
               </h3>
-              <p className="text-white/85 text-sm md:text-base leading-relaxed max-w-md mx-auto mb-8 font-normal">
+              <p className="text-white/85 text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-6 font-normal">
                 Daftar sekarang untuk kemudahan pencatatan kas, asisten AI 24/7, dan otomatisasi laporan keuangan.
               </p>
               
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center gap-2.5 px-7 py-3 bg-white text-slate-900 rounded-full font-bold text-sm shadow-md hover:bg-slate-50 hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="inline-flex items-center justify-center gap-2.5 px-7 py-2.5 bg-white text-slate-900 rounded-full font-bold text-sm shadow-md hover:bg-slate-50 hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <span>Daftar Sekarang</span>
                 <IconArrowRight className="w-4 h-4 stroke-[2.5]" />
