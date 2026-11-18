@@ -1,42 +1,8 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { cookies } from 'next/headers';
-
-// Helper verifikasi Super Admin
-async function verifyAdmin() {
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session_token')?.value;
-
-  if (!sessionToken) {
-    return { authorized: false, error: 'Unauthorized: Harap login terlebih dahulu.' };
-  }
-
-  const userRes = await pool.query(
-    'SELECT id, name, email, role, "isSuperAdmin" FROM "User" WHERE id = $1',
-    [sessionToken]
-  );
-
-  if (userRes.rows.length === 0) {
-    return { authorized: false, error: 'Unauthorized: Pengguna tidak ditemukan.' };
-  }
-
-  const user = userRes.rows[0];
-  const isSuperAdmin = user.isSuperAdmin || user.role === 'admin' || user.email === 'radiaakbarradia@gmail.com';
-
-  if (!isSuperAdmin) {
-    return { authorized: false, error: 'Forbidden: Hanya Super Admin yang diizinkan.' };
-  }
-
-  return { authorized: true, user };
-}
 
 export async function GET(req: Request) {
   try {
-    const auth = await verifyAdmin();
-    if (!auth.authorized) {
-      return NextResponse.json({ error: auth.error }, { status: 401 });
-    }
-
     const { searchParams } = new URL(req.url);
     const range = searchParams.get('range') || 'all'; // 'month', '30days', 'year', 'all'
 
@@ -102,24 +68,18 @@ export async function GET(req: Request) {
     });
 
     // Hitung estimasi MRR (Monthly Recurring Revenue) dari pengguna aktif
-    // Pengguna berbayar premium saat ini:
     const activePremiumUsersRes = await pool.query(`
       SELECT COUNT(*) as count FROM "User" WHERE role = 'premium'
     `);
     const activePremiumCount = parseInt(activePremiumUsersRes.rows[0]?.count || '0', 10);
 
-    // Estimasi MRR: jika ada data pembelian terbaru, hitung dari rata-rata paket aktif, default Rp 49.000/bulan
     const mrr = activePremiumCount * 49000;
     const arr = mrr * 12;
-
-    // Rata-rata transaksi (AOV)
     const aov = purchases.length > 0 ? Math.round(netRevenue / purchases.length) : 0;
-
-    // Estimasi fee payment gateway (rata-rata 1.5% atau QRIS 0.7%)
     const estimatedGatewayFee = Math.round(netRevenue * 0.015);
     const finalNetProfit = netRevenue - estimatedGatewayFee;
 
-    // Chart Data bulanan (6 bulan terakhir)
+    // Chart Data bulanan
     const chartRes = await pool.query(`
       SELECT 
         TO_CHAR(DATE_TRUNC('month', "createdAt"), 'Mon YYYY') as period,
@@ -141,7 +101,6 @@ export async function GET(req: Request) {
       orders: Number(row.order_count)
     }));
 
-    // Jika belum ada data transaksi riil, berikan template visualisasi elegan dengan 0 atau simulasi
     if (chartData.length === 0) {
       const months = ['Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov'];
       chartData = months.map(m => ({
@@ -177,4 +136,3 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Gagal memuat laporan finansial.' }, { status: 500 });
   }
 }
-

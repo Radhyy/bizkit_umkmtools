@@ -1,44 +1,10 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { cookies } from 'next/headers';
 import { v4 as uuidv4 } from 'uuid';
 
-// Helper verifikasi Super Admin
-async function verifyAdmin() {
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session_token')?.value;
-
-  if (!sessionToken) {
-    return { authorized: false, error: 'Unauthorized: Harap login terlebih dahulu.' };
-  }
-
-  const userRes = await pool.query(
-    'SELECT id, name, email, role, "isSuperAdmin" FROM "User" WHERE id = $1',
-    [sessionToken]
-  );
-
-  if (userRes.rows.length === 0) {
-    return { authorized: false, error: 'Unauthorized: Pengguna tidak ditemukan.' };
-  }
-
-  const user = userRes.rows[0];
-  const isSuperAdmin = user.isSuperAdmin || user.role === 'admin' || user.email === 'radiaakbarradia@gmail.com';
-
-  if (!isSuperAdmin) {
-    return { authorized: false, error: 'Forbidden: Hanya Super Admin yang diizinkan.' };
-  }
-
-  return { authorized: true, user };
-}
-
 // GET: Ambil daftar kode diskon dan statistik kupon
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    const auth = await verifyAdmin();
-    if (!auth.authorized) {
-      return NextResponse.json({ error: auth.error }, { status: 401 });
-    }
-
     const couponsRes = await pool.query(`
       SELECT 
         id,
@@ -101,11 +67,6 @@ export async function GET(req: Request) {
 // POST: Buat kode diskon baru
 export async function POST(req: Request) {
   try {
-    const auth = await verifyAdmin();
-    if (!auth.authorized) {
-      return NextResponse.json({ error: auth.error }, { status: 401 });
-    }
-
     const body = await req.json();
     const {
       code,
@@ -181,11 +142,6 @@ export async function POST(req: Request) {
 // PATCH: Perbarui kode diskon atau ubah status aktif
 export async function PATCH(req: Request) {
   try {
-    const auth = await verifyAdmin();
-    if (!auth.authorized) {
-      return NextResponse.json({ error: auth.error }, { status: 401 });
-    }
-
     const body = await req.json();
     const { id, action, ...fields } = body;
 
@@ -271,11 +227,6 @@ export async function PATCH(req: Request) {
 // DELETE: Hapus kode diskon
 export async function DELETE(req: Request) {
   try {
-    const auth = await verifyAdmin();
-    if (!auth.authorized) {
-      return NextResponse.json({ error: auth.error }, { status: 401 });
-    }
-
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -298,4 +249,3 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: error.message || 'Gagal menghapus kupon' }, { status: 500 });
   }
 }
-
