@@ -19,7 +19,8 @@ import {
   IconBuildingStore, 
   IconShieldCheck,
   IconArrowUpRight,
-  IconArrowDownRight
+  IconArrowDownRight,
+  IconPlus
 } from '@tabler/icons-react';
 
 interface UserItem {
@@ -317,36 +318,32 @@ export default function PenggunaAdminPage() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">
-              Manajemen Pengguna
-            </h1>
-            <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 rounded-md border border-blue-200">
-              Super Admin
-            </span>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">
+            Manajemen Pengguna
+          </h1>
           <p className="text-xs text-zinc-400 mt-1">
             Kelola akun, berikan akses trial, atur status paket, dan pantau pengguna platform secara realtime.
           </p>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2">
-          <button
+        <div className="flex items-center gap-2 sm:gap-3 text-xs">
+          {/* Refresh Data */}
+          <button 
             onClick={fetchUsers}
+            title="Sinkronkan data"
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 font-medium hover:bg-zinc-50 transition-colors shadow-2xs text-xs disabled:opacity-50"
-            title="Sinkronkan data dengan Neon DB"
+            className="p-2 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs disabled:opacity-50"
           >
-            <IconRefresh className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : 'text-zinc-400'}`} />
-            <span>Sinkronkan</span>
+            <IconRefresh className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : 'text-zinc-500'}`} />
           </button>
 
+          {/* Tambah Pengguna Baru (Black rounded-xl matching screenshot) */}
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl text-xs transition-colors shadow-2xs"
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#18181b] hover:bg-zinc-800 text-white rounded-xl font-semibold shadow-xs transition-all text-xs"
           >
-            <IconUserPlus className="w-3.5 h-3.5" />
+            <IconPlus className="w-3.5 h-3.5" stroke={2.5} />
             <span>Tambah Pengguna</span>
           </button>
         </div>
