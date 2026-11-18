@@ -94,11 +94,34 @@ export default function HargaPage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.18] mb-6"
+            className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.3] mb-6"
           >
             Investasi Cerdas untuk <br className="hidden sm:inline" />
-            <span className="text-blue-600">
-              Pertumbuhan Bisnis UMKM Anda
+            <span className="text-blue-600 inline-block">
+              Pertumbuhan{" "}
+              <span className="relative inline-block mx-1.5 -rotate-2 select-none align-baseline">
+                {/* Figma Selection Bounding Box */}
+                <span className="absolute -inset-1 border-[1.5px] border-blue-600 rounded-[2px] pointer-events-none" />
+                
+                {/* 4 Corner Square Handles */}
+                <span className="absolute -top-2 -left-2 w-2.5 h-2.5 bg-white border-[1.5px] border-blue-600 pointer-events-none z-20" />
+                <span className="absolute -top-2 -right-2 w-2.5 h-2.5 bg-white border-[1.5px] border-blue-600 pointer-events-none z-20" />
+                <span className="absolute -bottom-2 -left-2 w-2.5 h-2.5 bg-white border-[1.5px] border-blue-600 pointer-events-none z-20" />
+                <span className="absolute -bottom-2 -right-2 w-2.5 h-2.5 bg-white border-[1.5px] border-blue-600 pointer-events-none z-20" />
+                
+                {/* Figma Collaborator Cursor Tag at bottom-right */}
+                <span className="absolute -bottom-5 -right-7 z-30 flex items-center gap-1 bg-blue-600 text-white rounded-full pl-1.5 pr-2 py-0.5 text-[10px] font-bold shadow-md pointer-events-none">
+                  <svg className="w-2.5 h-2.5 fill-current rotate-[-15deg]" viewBox="0 0 24 24">
+                    <path d="M3 3l7 18 3-7 7-3L3 3z" />
+                  </svg>
+                  <span>Bizkit</span>
+                </span>
+
+                <span className="relative z-10 px-1 text-blue-600">
+                  Bisnis
+                </span>
+              </span>{" "}
+              UMKM Anda
             </span>
           </motion.h1>
 
