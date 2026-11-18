@@ -79,7 +79,7 @@ export default function HargaPage() {
 
       <main className="max-w-7xl mx-auto px-6 md:px-8">
         {/* Header Hero Section */}
-        <div className="text-center max-w-3xl mx-auto pt-6 pb-14 flex flex-col items-center">
+        <div className="text-center max-w-4xl mx-auto pt-6 pb-14 flex flex-col items-center">
           <motion.div
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -94,10 +94,10 @@ export default function HargaPage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-5"
+            className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.18] mb-6"
           >
             Investasi Cerdas untuk <br className="hidden sm:inline" />
-            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="text-blue-600">
               Pertumbuhan Bisnis UMKM Anda
             </span>
           </motion.h1>
