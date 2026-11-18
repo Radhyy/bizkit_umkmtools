@@ -6,19 +6,20 @@ import {
   IconSearch, 
   IconBrandTiktok, 
   IconBrandInstagram, 
-  IconBrandWhatsapp,
-  IconMail,
+  IconBrandWhatsapp, 
+  IconMail, 
   IconTrendingUp, 
   IconMessageCircle, 
-  IconSparkles,
-  IconUsers,
-  IconCheck,
-  IconX,
-  IconExternalLink,
-  IconRefresh,
-  IconFlame,
-  IconBuildingStore,
-  IconArrowUpRight
+  IconSparkles, 
+  IconUsers, 
+  IconCheck, 
+  IconX, 
+  IconExternalLink, 
+  IconRefresh, 
+  IconFlame, 
+  IconBuildingStore, 
+  IconTarget,
+  IconChevronDown
 } from '@tabler/icons-react';
 
 interface InfluencerContact {
@@ -33,11 +34,13 @@ interface Influencer {
   name: string;
   handle: string;
   platform: 'instagram' | 'tiktok';
+  tier?: 'nano' | 'micro' | 'mid' | 'macro' | 'mega';
   niche: string;
   cityRegion?: string;
   followers: string;
   followersCount: number;
   engagement: string;
+  estimatedStoreEngagement?: string;
   matchScore: number;
   tags: string[];
   initials: string;
@@ -46,6 +49,10 @@ interface Influencer {
   rateEstimate: string;
   contact: InfluencerContact;
   isHype?: boolean;
+  isSmallCreator?: boolean;
+  contactCount?: number;
+  recommendationReason?: string;
+  collaborationTip?: string;
 }
 
 export default function InfluencerPage() {
@@ -63,9 +70,12 @@ export default function InfluencerPage() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [dateKey, setDateKey] = useState<string>('');
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalAvailable, setTotalAvailable] = useState(0);
 
-  // 1. Ambil Data User & Rekomendasi AI
+  // 1. Ambil Data User & Rekomendasi 9 Influencer Pertama
   useEffect(() => {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
     if (!raw) {
@@ -80,30 +90,51 @@ export default function InfluencerPage() {
         return;
       }
       setCurrentUser(u);
-      loadInfluencerRecommendations(u.id, false);
+      loadInfluencerRecommendations(u.id, 1, false, false);
     } catch {
       router.push('/login');
     }
   }, [router]);
 
-  const loadInfluencerRecommendations = async (userId: string, forceRefresh = false) => {
-    if (forceRefresh) {
+  const loadInfluencerRecommendations = async (
+    userId: string, 
+    pageToLoad = 1, 
+    append = false, 
+    forceRefresh = false
+  ) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else if (forceRefresh) {
       setIsRefreshing(true);
     } else {
       setIsLoading(true);
     }
 
     try {
-      const res = await fetch(`/api/ai/influencer?userId=${userId}${forceRefresh ? '&force=true' : ''}`);
+      const res = await fetch(`/api/ai/influencer?userId=${userId}&page=${pageToLoad}&limit=9${forceRefresh ? '&force=true' : ''}`);
       if (res.ok) {
         const data = await res.json();
         setProfileFilled(Boolean(data.profileFilled));
         setBusinessProfile(data.profile || null);
-        setInfluencers(data.influencers || []);
-        if (data.dateKey) setDateKey(data.dateKey);
+        
+        const newBatch: Influencer[] = data.influencers || [];
+        if (append) {
+          setInfluencers((prev) => {
+            // Hindari duplikasi handle jika ada
+            const existingHandles = new Set(prev.map(p => p.handle.toLowerCase()));
+            const filteredNew = newBatch.filter(n => !existingHandles.has(n.handle.toLowerCase()));
+            return [...prev, ...filteredNew];
+          });
+        } else {
+          setInfluencers(newBatch);
+        }
+
+        setCurrentPage(data.page || pageToLoad);
+        setHasMore(Boolean(data.hasMore));
+        setTotalAvailable(data.totalAvailable || newBatch.length);
 
         if (forceRefresh) {
-          setToastMessage('Rekomendasi 6 influencer berhasil diperbarui oleh AI!');
+          setToastMessage('Rekomendasi influencer berhasil dianalisis ulang oleh AI!');
           setTimeout(() => setToastMessage(null), 3500);
         }
       }
@@ -112,16 +143,25 @@ export default function InfluencerPage() {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+      setIsLoadingMore(false);
     }
   };
 
   const handleRefresh = () => {
     if (currentUser?.id) {
-      loadInfluencerRecommendations(currentUser.id, true);
+      setCurrentPage(1);
+      loadInfluencerRecommendations(currentUser.id, 1, false, true);
     }
   };
 
-  // 2. Filter & Sort Data Influencer
+  const handleLoadMore = () => {
+    if (currentUser?.id && !isLoadingMore && hasMore) {
+      const nextPage = currentPage + 1;
+      loadInfluencerRecommendations(currentUser.id, nextPage, true, false);
+    }
+  };
+
+  // 2. Filter & Sort Data Influencer yang telah dimuat
   const filteredInfluencers = useMemo(() => {
     if (!profileFilled) return [];
 
@@ -146,12 +186,41 @@ export default function InfluencerPage() {
   const generatePitchText = (inf: Influencer) => {
     const usaha = businessProfile?.namaUsaha || 'Bizkit UMKM';
     const kategori = businessProfile?.kategoriBisnis ? `bidang ${businessProfile.kategoriBisnis}` : 'UMKM lokal';
-    return `Halo Kak ${inf.name}! Saya dari ${usaha} (${kategori}). Kami sangat menyukai konten Kakak di ${inf.handle} dan tertarik untuk mengajukan kerjasama endorsement / promosi produk kami ke audiens Kakak. Apakah kami boleh meminta rate card dan info jadwal kolaborasi terbaru? Terima kasih banyak Kak!`;
+    const kota = businessProfile?.kotaLokasi ? `di ${businessProfile.kotaLokasi}` : '';
+    return `Halo Kak ${inf.name}! Saya dari ${usaha} (${kategori} ${kota}). Kami sangat menyukai konten review Kakak di ${inf.handle} dan berminat mengajukan kolaborasi promosi/endorsement produk kami ke audiens setia Kakak. Apakah kami boleh meminta rate card dan info jadwal kolaborasi terbaru? Terima kasih banyak Kak!`;
+  };
+
+  // 4. Catat Log Kontak ke Database (Across All Dashboard)
+  const recordContactAction = async (inf: Influencer, actionType: string) => {
+    try {
+      await fetch('/api/ai/influencer/contact-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser?.id,
+          influencerHandle: inf.handle,
+          influencerName: inf.name,
+          actionType,
+        }),
+      });
+
+      // Update counter lokal secara responsif
+      setInfluencers((prev) => 
+        prev.map((item) => 
+          item.handle.toLowerCase() === inf.handle.toLowerCase() 
+            ? { ...item, contactCount: (item.contactCount || 0) + 1 } 
+            : item
+        )
+      );
+    } catch (e) {
+      console.warn('Gagal mencatat log kontak:', e);
+    }
   };
 
   const handleCopyPitch = (inf: Influencer) => {
     const text = generatePitchText(inf);
     navigator.clipboard.writeText(text);
+    recordContactAction(inf, 'copy_pitch');
     setToastMessage(`Template pesan untuk ${inf.name} berhasil disalin!`);
     setTimeout(() => setToastMessage(null), 3000);
   };
@@ -163,6 +232,20 @@ export default function InfluencerPage() {
       cleaned = '62' + cleaned.substring(1);
     }
     return cleaned;
+  };
+
+  const cleanHandle = (handle: string) => {
+    return (handle || '').replace(/^@/, '').trim();
+  };
+
+  const getInstagramUrl = (inf: Influencer) => {
+    if (inf.contact?.instagramUrl) return inf.contact.instagramUrl;
+    return `https://www.instagram.com/${cleanHandle(inf.handle)}/`;
+  };
+
+  const getTiktokUrl = (inf: Influencer) => {
+    if (inf.contact?.tiktokUrl) return inf.contact.tiktokUrl;
+    return `https://www.tiktok.com/@${cleanHandle(inf.handle)}`;
   };
 
   return (
@@ -179,12 +262,12 @@ export default function InfluencerPage() {
         </div>
       )}
 
-      {/* Header Section (Tanpa Icon di samping H1) */}
+      {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Info Influencer</h1>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Temukan dan kolaborasi dengan kreator yang paling relevan untuk memperluas jangkauan promosi produk Anda.
+            Riset AI dan kurasi food vlogger asli yang paling relevan dengan lokasi toko Anda untuk memperluas jangkauan promosi.
           </p>
         </div>
 
@@ -197,22 +280,18 @@ export default function InfluencerPage() {
               className="flex items-center gap-1.5 px-3 py-2 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 text-xs font-semibold hover:bg-zinc-50 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
             >
               <IconRefresh className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-600' : 'text-zinc-500'}`} />
-              <span>{isRefreshing ? 'Mencari...' : 'Perbarui AI'}</span>
+              <span>{isRefreshing ? 'Menganalisis...' : 'Perbarui AI'}</span>
             </button>
           )}
 
           <div className="flex items-center gap-1.5 px-3 py-2 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 text-xs font-semibold shadow-2xs">
             <IconUsers className="w-3.5 h-3.5 text-zinc-400" />
-            <span>{profileFilled ? `${filteredInfluencers.length} Kreator Tersedia` : '0 Kreator Tersedia'}</span>
+            <span>{profileFilled ? `${filteredInfluencers.length} Kreator Ditampilkan` : '0 Kreator Tersedia'}</span>
           </div>
         </div>
       </div>
 
-      {/* ======================================================== */}
-      {/* BANNER KONDISIONAL:                                      */}
-      {/* Jika BELUM mengisi profil UMKM: TAMPILKAN                */}
-      {/* Jika SUDAH mengisi profil UMKM: HAPUS / HIDE             */}
-      {/* ======================================================== */}
+      {/* BANNER KONDISIONAL JIKA BELUM MENGISI PROFIL */}
       {!profileFilled && profileFilled !== null && (
         <div className="bg-amber-50/80 border border-amber-200/80 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
           <div className="flex items-center gap-3">
@@ -221,7 +300,7 @@ export default function InfluencerPage() {
             </div>
             <div>
               <p className="text-xs font-bold text-amber-900">Belum Mengisi Profil Bisnis UMKM?</p>
-              <p className="text-[11px] text-amber-700">Lengkapi survei bisnis singkat agar AI dapat memberikan rekomendasi influencer yang 100% tepat sasaran.</p>
+              <p className="text-[11px] text-amber-700">Lengkapi data toko singkat agar AI dapat meriset dan mencocokkan influencer lokal terdekat.</p>
             </div>
           </div>
           <Link
@@ -241,7 +320,7 @@ export default function InfluencerPage() {
           <IconSearch className="absolute left-3.5 top-2.5 h-4 w-4 text-zinc-400" />
           <input
             type="text"
-            placeholder="Cari nama, username, atau tag kategori..."
+            placeholder="Cari nama, handle, kota, atau tag kategori..."
             value={searchTerm}
             disabled={!profileFilled}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -306,11 +385,11 @@ export default function InfluencerPage() {
       </div>
 
       {/* ======================================================== */}
-      {/* CONTENT AREA                                             */}
+      {/* GRID CONTENT AREA (9 INFLUENCER PER BATCH)               */}
       {/* ======================================================== */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
             <div key={i} className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-2xs animate-pulse space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-zinc-100 rounded-2xl" />
@@ -325,7 +404,6 @@ export default function InfluencerPage() {
           ))}
         </div>
       ) : !profileFilled ? (
-        /* KONDISI BELUM MENGISI PROFIL: TAMPILKAN BELUM TERSEDIA */
         <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs p-10 sm:p-14 text-center max-w-xl mx-auto space-y-4">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200/60 shadow-2xs">
             <IconBuildingStore className="w-7 h-7" />
@@ -333,7 +411,7 @@ export default function InfluencerPage() {
           <div>
             <h3 className="text-base sm:text-lg font-bold text-zinc-900">Rekomendasi Influencer Belum Tersedia</h3>
             <p className="text-xs text-zinc-500 mt-1.5 leading-relaxed">
-              AI kami memerlukan informasi mengenai jenis usaha, target audiens, dan produk Anda untuk mencarikan 6 rekomendasi influencer yang tepat sasaran dan sedang hype.
+              AI kami memerlukan lokasi toko dan jenis usaha Anda untuk meriset food vlogger dan kreator lokal yang tepat sasaran.
             </p>
           </div>
           <div className="pt-2">
@@ -346,113 +424,155 @@ export default function InfluencerPage() {
           </div>
         </div>
       ) : (
-        /* KONDISI SUDAH MENGISI PROFIL: TAMPILKAN 6 INFLUENCER REKOMENDASI AI */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredInfluencers.map((inf) => (
-            <div 
-              key={inf.id} 
-              className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs p-5 hover:border-zinc-300 transition-all flex flex-col justify-between group"
-            >
-              <div>
-                {/* Top Row: Avatar + Info + Badges */}
-                <div className="flex items-start gap-3.5">
-                  {/* Initials Avatar */}
-                  <div className={`w-12 h-12 rounded-2xl ${inf.avatarBg} font-bold text-sm flex items-center justify-center shrink-0 border border-zinc-200/60 shadow-2xs`}>
-                    {inf.initials}
-                  </div>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredInfluencers.map((inf) => {
+              const profileLink = inf.platform === 'instagram' ? getInstagramUrl(inf) : getTiktokUrl(inf);
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1.5">
-                      <h3 className="text-sm font-bold text-zinc-900 truncate" title={inf.name}>
-                        {inf.name}
-                      </h3>
-                      
-                      {/* Match Score Badge */}
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 bg-emerald-50/80 px-1.5 py-0.5 rounded border border-emerald-100/60 shrink-0">
-                        <IconSparkles className="w-2.5 h-2.5" />
-                        {inf.matchScore}% Cocok
-                      </span>
+              return (
+                <div 
+                  key={inf.id} 
+                  className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs p-5 hover:border-zinc-300 transition-all flex flex-col justify-between group"
+                >
+                  <div>
+                    {/* Top Row: Avatar + Info + Badges */}
+                    <div className="flex items-start gap-3.5">
+                      <div className={`w-12 h-12 rounded-2xl ${inf.avatarBg} font-bold text-sm flex items-center justify-center shrink-0 border border-zinc-200/60 shadow-2xs`}>
+                        {inf.initials}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <h3 className="text-sm font-bold text-zinc-900 truncate" title={inf.name}>
+                            {inf.name}
+                          </h3>
+                          
+                          {/* Match Score Badge (Tanpa Emoji) */}
+                          <span className="inline-flex items-center text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/70 shrink-0">
+                            {inf.matchScore}% Cocok
+                          </span>
+                        </div>
+
+                        {/* Handle & Platform Icon */}
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-0.5">
+                          {inf.platform === 'instagram' ? (
+                            <IconBrandInstagram className="w-3.5 h-3.5 text-pink-600 shrink-0" />
+                          ) : (
+                            <IconBrandTiktok className="w-3.5 h-3.5 text-zinc-900 shrink-0" />
+                          )}
+                          <a
+                            href={profileLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => recordContactAction(inf, 'profile_visit')}
+                            className="truncate hover:text-blue-600 hover:underline inline-flex items-center gap-0.5 font-medium text-zinc-600"
+                            title={`Buka akun asli ${inf.handle}`}
+                          >
+                            <span>{inf.handle}</span>
+                            <IconExternalLink className="w-3 h-3 text-zinc-400" />
+                          </a>
+
+                          {/* Hype / Trending Badge */}
+                          {inf.isHype && (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-orange-700 bg-orange-100/80 px-1.5 py-0.2 rounded-sm ml-auto shrink-0">
+                              <IconFlame className="w-3 h-3 text-orange-600" />
+                              Hype
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Handle & Platform Icon */}
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-0.5">
-                      {inf.platform === 'instagram' ? (
-                        <IconBrandInstagram className="w-3.5 h-3.5 text-pink-600 shrink-0" />
-                      ) : (
-                        <IconBrandTiktok className="w-3.5 h-3.5 text-zinc-900 shrink-0" />
-                      )}
-                      <a
-                        href={inf.platform === 'instagram' ? inf.contact.instagramUrl : inf.contact.tiktokUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="truncate hover:text-blue-600 hover:underline inline-flex items-center gap-0.5 font-medium text-zinc-600"
-                        title={`Buka profil asli ${inf.handle}`}
-                      >
-                        <span>{inf.handle}</span>
-                        <IconExternalLink className="w-3 h-3 text-zinc-400" />
-                      </a>
-
-                      {/* Hype / Trending Badge */}
-                      {inf.isHype && (
-                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-orange-700 bg-orange-100/80 px-1.5 py-0.2 rounded-sm ml-auto shrink-0">
-                          <IconFlame className="w-3 h-3 text-orange-600" />
-                          Hype
+                    {/* Compact Tags dengan Separasi Jelas (Berwarna vs Tidak Berwarna) */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                      {inf.cityRegion && (
+                        <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 px-2 py-0.5 rounded-md shrink-0">
+                          {inf.cityRegion}
                         </span>
                       )}
+
+                      {inf.cityRegion && inf.tags.length > 0 && (
+                        <span className="w-px h-3 bg-zinc-200 shrink-0" />
+                      )}
+
+                      {inf.tags.slice(0, 3).map((tag) => (
+                        <span 
+                          key={tag} 
+                          className="text-[10px] font-medium bg-zinc-100/90 text-zinc-600 border border-zinc-200/60 px-2 py-0.5 rounded-md shrink-0"
+                        >
+                          {tag}
+                        </span>
+                      ))}
                     </div>
+
+                    {/* Description & AI Rationale */}
+                    <p className="text-xs text-zinc-500 mt-3 line-clamp-2 leading-relaxed">
+                      "{inf.description}"
+                    </p>
                   </div>
-                </div>
 
-                {/* Location & Tags */}
-                <div className="flex flex-wrap gap-1.5 mt-3.5">
-                  {inf.cityRegion && (
-                    <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100/80">
-                      📍 {inf.cityRegion}
-                    </span>
-                  )}
-                  {inf.tags.map((tag) => (
-                    <span 
-                      key={tag} 
-                      className="text-[10px] font-medium bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded-md"
+                  {/* Bottom Row: Stats & Action Button */}
+                  <div className="pt-4 border-t border-zinc-100 mt-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4 text-xs tabular-nums">
+                      <div>
+                        <div className="text-[10px] text-zinc-400 font-medium">Pengikut</div>
+                        <div className="font-bold text-zinc-900">{inf.followers}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-zinc-400 font-medium">Engagement</div>
+                        <div className="font-bold text-zinc-900 flex items-center gap-0.5">
+                          <IconTrendingUp className="w-3 h-3 text-emerald-600" />
+                          {inf.engagement}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setActiveContactModal(inf);
+                        recordContactAction(inf, 'contact_modal');
+                      }}
+                      className="flex items-center gap-1 px-3.5 py-1.5 bg-[#18181b] hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
                     >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                      <IconMessageCircle className="w-3.5 h-3.5" />
+                      <span>Hubungi</span>
+                    </button>
+                  </div>
 
-                {/* Description */}
-                <p className="text-xs text-zinc-500 mt-3 line-clamp-2 leading-relaxed">
-                  "{inf.description}"
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ======================================================== */}
+          {/* TOMBOL "TAMPILKAN LEBIH BANYAK" (BG PUTIH, OUTLINE ITEM) */}
+          {/* ======================================================== */}
+          {hasMore ? (
+            <div className="w-full pt-2 pb-4">
+              <button
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                className="w-full py-3 px-4 bg-white hover:bg-zinc-50 active:bg-zinc-100 text-zinc-900 border border-zinc-900 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <IconRefresh className="w-4 h-4 animate-spin text-zinc-700" />
+                    <span>Memuat...</span>
+                  </>
+                ) : (
+                  <span>Tampilkan Lebih Banyak</span>
+                )}
+              </button>
+            </div>
+          ) : (
+            filteredInfluencers.length > 0 && (
+              <div className="py-4 text-center">
+                <p className="text-xs text-zinc-400 font-medium">
+                  Semua rekomendasi telah ditampilkan.
                 </p>
               </div>
-
-              {/* Bottom Row: Stats & Action Button */}
-              <div className="pt-4 border-t border-zinc-100 mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-4 text-xs tabular-nums">
-                  <div>
-                    <div className="text-[10px] text-zinc-400 font-medium">Pengikut</div>
-                    <div className="font-bold text-zinc-900">{inf.followers}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-zinc-400 font-medium">Engagement</div>
-                    <div className="font-bold text-zinc-900 flex items-center gap-0.5">
-                      <IconTrendingUp className="w-3 h-3 text-emerald-600" />
-                      {inf.engagement}
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setActiveContactModal(inf)}
-                  className="flex items-center gap-1 px-3.5 py-1.5 bg-[#18181b] hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
-                >
-                  <IconMessageCircle className="w-3.5 h-3.5" />
-                  <span>Hubungi</span>
-                </button>
-              </div>
-
-            </div>
-          ))}
+            )
+          )}
         </div>
       )}
 
@@ -464,7 +584,7 @@ export default function InfluencerPage() {
       )}
 
       {/* ======================================================== */}
-      {/* MODAL HUBUNGI INFLUENCER & DETAIL KONTAK LENGKAP         */}
+      {/* MODAL HUBUNGI INFLUENCER & SALURAN RESMI                 */}
       {/* ======================================================== */}
       {activeContactModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in font-jakarta">
@@ -481,9 +601,9 @@ export default function InfluencerPage() {
                     <h3 className="text-sm font-bold text-zinc-900 leading-tight">
                       {activeContactModal.name}
                     </h3>
-                    {activeContactModal.isHype && (
-                      <span className="text-[9px] font-bold text-orange-700 bg-orange-100 px-1 py-0.2 rounded">
-                        Hype
+                    {activeContactModal.isSmallCreator && (
+                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1 py-0.2 rounded">
+                        Food Vlogger Lokal
                       </span>
                     )}
                   </div>
@@ -500,18 +620,21 @@ export default function InfluencerPage() {
               </button>
             </div>
 
-            {/* Modal Body: Rate Card & Kontak Langsung */}
+            {/* Modal Body: Rate Card, Dampak Toko & Kontak Langsung */}
             <div className="space-y-4 text-xs">
               
-              {/* Rate Card & ER */}
+              {/* Rate Card & Estimasi Dampak Toko */}
               <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200/70 flex items-center justify-between">
                 <div>
                   <div className="text-[10px] text-zinc-400 font-medium">Estimasi Rate Card</div>
                   <div className="font-bold text-zinc-900 mt-0.5">{activeContactModal.rateEstimate}</div>
                 </div>
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md font-semibold border border-emerald-200/60">
-                  {activeContactModal.engagement} Engagement
-                </span>
+                <div className="text-right">
+                  <div className="text-[10px] text-zinc-400 font-medium">Potensi Dampak Toko</div>
+                  <span className="text-[11px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md font-bold border border-indigo-100 mt-0.5 inline-block">
+                    {activeContactModal.estimatedStoreEngagement || '+12.0%'}
+                  </span>
+                </div>
               </div>
 
               {/* Saluran Kontak Resmi (WhatsApp & Email) */}
@@ -525,15 +648,17 @@ export default function InfluencerPage() {
                     href={`https://wa.me/${cleanWhatsappNumber(activeContactModal.contact.whatsapp)}?text=${encodeURIComponent(generatePitchText(activeContactModal))}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => recordContactAction(activeContactModal, 'whatsapp')}
                     className="flex items-center justify-center gap-1.5 p-2.5 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-800 border border-emerald-200/70 rounded-xl font-semibold transition-colors"
                   >
                     <IconBrandWhatsapp className="w-4 h-4 text-emerald-600" />
-                    <span>WhatsApp</span>
+                    <span>WhatsApp Resmi</span>
                   </a>
 
                   {/* Tombol Email Langsung */}
                   <a
                     href={`mailto:${activeContactModal.contact.email}?subject=${encodeURIComponent('Pengajuan Endorsement & Kolaborasi: ' + (businessProfile?.namaUsaha || 'Bizkit UMKM'))}&body=${encodeURIComponent(generatePitchText(activeContactModal))}`}
+                    onClick={() => recordContactAction(activeContactModal, 'email')}
                     className="flex items-center justify-center gap-1.5 p-2.5 bg-blue-50 hover:bg-blue-100/80 text-blue-800 border border-blue-200/70 rounded-xl font-semibold transition-colors"
                   >
                     <IconMail className="w-4 h-4 text-blue-600" />
@@ -542,24 +667,38 @@ export default function InfluencerPage() {
                 </div>
 
                 {/* Tombol Langsung Kunjungi Akun Resmi Instagram/TikTok */}
-                <a
-                  href={activeContactModal.platform === 'instagram' ? activeContactModal.contact.instagramUrl : activeContactModal.contact.tiktokUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-zinc-100 hover:bg-zinc-200/80 text-zinc-800 rounded-xl text-xs font-semibold transition-colors mt-2"
-                >
-                  {activeContactModal.platform === 'instagram' ? (
-                    <IconBrandInstagram className="w-4 h-4 text-pink-600" />
-                  ) : (
-                    <IconBrandTiktok className="w-4 h-4 text-zinc-900" />
-                  )}
-                  <span>Buka Akun Resmi ({activeContactModal.handle})</span>
-                  <IconExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-                </a>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <a
+                    href={getInstagramUrl(activeContactModal)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => recordContactAction(activeContactModal, 'instagram_profile')}
+                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-pink-50 hover:bg-pink-100/80 text-pink-700 border border-pink-200/60 rounded-xl text-[11px] font-semibold transition-colors"
+                  >
+                    <IconBrandInstagram className="w-3.5 h-3.5 text-pink-600 shrink-0" />
+                    <span className="truncate">Instagram Resmi</span>
+                    <IconExternalLink className="w-3 h-3 text-pink-400 shrink-0" />
+                  </a>
 
-                <div className="mt-2 text-[10px] text-zinc-400 space-y-0.5">
-                  <div>• No. WhatsApp: <span className="font-medium text-zinc-700">{activeContactModal.contact.whatsapp}</span></div>
-                  <div>• Email Endorse: <span className="font-medium text-zinc-700">{activeContactModal.contact.email}</span></div>
+                  <a
+                    href={getTiktokUrl(activeContactModal)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => recordContactAction(activeContactModal, 'tiktok_profile')}
+                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-zinc-100 hover:bg-zinc-200/80 text-zinc-800 rounded-xl text-[11px] font-semibold transition-colors"
+                  >
+                    <IconBrandTiktok className="w-3.5 h-3.5 text-zinc-900 shrink-0" />
+                    <span className="truncate">TikTok Resmi</span>
+                    <IconExternalLink className="w-3 h-3 text-zinc-400 shrink-0" />
+                  </a>
+                </div>
+
+                <div className="mt-2.5 text-[10px] text-zinc-400 space-y-0.5">
+                  <div>• No. WhatsApp Admin / CP: <span className="font-medium text-zinc-700">{activeContactModal.contact.whatsapp}</span></div>
+                  <div>• Email Endorse / Business: <span className="font-medium text-zinc-700">{activeContactModal.contact.email}</span></div>
+                  {activeContactModal.contactCount !== undefined && activeContactModal.contactCount > 0 && (
+                    <div className="text-zinc-500">• Total dihubungi UMKM: <span className="font-semibold text-zinc-800">{activeContactModal.contactCount} kali</span></div>
+                  )}
                 </div>
               </div>
 

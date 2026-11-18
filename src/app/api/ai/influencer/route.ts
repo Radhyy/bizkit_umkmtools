@@ -11,16 +11,18 @@ interface InfluencerContact {
   tiktokUrl: string;
 }
 
-interface InfluencerItem {
+export interface InfluencerItem {
   id: number;
   name: string;
   handle: string;
   platform: 'instagram' | 'tiktok';
+  tier: 'nano' | 'micro' | 'mid' | 'macro' | 'mega';
   niche: string;
   cityRegion: string;
   followers: string;
   followersCount: number;
-  engagement: string;
+  engagement: string; // Public ER
+  estimatedStoreEngagement: string; // % Potensi interaksi/engagement langsung ke toko UMKM
   matchScore: number;
   tags: string[];
   initials: string;
@@ -29,6 +31,10 @@ interface InfluencerItem {
   rateEstimate: string;
   contact: InfluencerContact;
   isHype?: boolean;
+  isSmallCreator: boolean; // Flag food vlogger kecil (nano/micro)
+  contactCount: number; // Log kontak across all dashboard
+  recommendationReason?: string;
+  collaborationTip?: string;
 }
 
 function getTodayKey(): string {
@@ -39,53 +45,212 @@ function getTodayKey(): string {
   return `${year}-${month}-${day}`;
 }
 
-// Filter dan prioritaskan kandidat kreator berdasarkan Niche & KOTA/WILAYAH UMKM
-function getCandidateCreators(category: string, userCity: string = ''): VerifiedCreator[] {
-  const cat = (category || '').toLowerCase();
-  const city = (userCity || '').toLowerCase().trim();
+async function ensureTables() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS "InfluencerContactLog" (
+      "id" TEXT PRIMARY KEY,
+      "userId" TEXT,
+      "influencerHandle" TEXT NOT NULL,
+      "influencerName" TEXT,
+      "actionType" TEXT NOT NULL,
+      "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS "idx_inf_contact_log_handle" ON "InfluencerContactLog" ("influencerHandle");
+    CREATE INDEX IF NOT EXISTS "idx_inf_contact_log_created_at" ON "InfluencerContactLog" ("createdAt");
 
-  // 1. Filter kategori niche
-  let byNiche = VERIFIED_INFLUENCERS.filter((c) => {
-    if (cat.includes('kuliner') || cat.includes('makanan') || cat.includes('minuman')) {
-      return c.nicheCategory === 'kuliner' || c.nicheCategory === 'retail';
-    }
-    if (cat.includes('fashion') || cat.includes('busana') || cat.includes('hijab') || cat.includes('pakaian')) {
-      return c.nicheCategory === 'fashion' || c.nicheCategory === 'retail';
-    }
-    if (cat.includes('kecantikan') || cat.includes('skincare') || cat.includes('bodycare') || cat.includes('kosmetik')) {
-      return c.nicheCategory === 'beauty' || c.nicheCategory === 'fashion';
-    }
-    return true;
+    CREATE TABLE IF NOT EXISTS "AiInfluencerCache" (
+      "id" TEXT PRIMARY KEY,
+      "userId" TEXT NOT NULL,
+      "dateKey" TEXT NOT NULL,
+      "influencers" JSONB NOT NULL,
+      "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      CONSTRAINT "AiInfluencerCache_userId_dateKey_key" UNIQUE ("userId", "dateKey")
+    );
+  `);
+}
+
+// ========================================================
+// RAG RETRIEVAL & DYNAMIC RANKING MECHANISM
+// Termasuk Mekanisme Notice Food Vlogger Kecil & Log Kontak
+// ========================================================
+function rankInfluencersRAG(
+  creators: VerifiedCreator[],
+  businessProfile: any,
+  contactCounts: Record<string, number>
+): InfluencerItem[] {
+  const userCity = (businessProfile?.kotaLokasi || 'Sidoarjo').toLowerCase().trim();
+  const userCategory = (businessProfile?.kategoriBisnis || 'kuliner').toLowerCase().trim();
+  const storeName = businessProfile?.namaUsaha || 'Toko UMKM';
+
+  // Hitung total kontak di sistem
+  let totalPlatformContacts = 0;
+  Object.values(contactCounts).forEach((c) => {
+    totalPlatformContacts += c;
   });
 
-  if (byNiche.length === 0) byNiche = VERIFIED_INFLUENCERS;
+  const scoredList = creators.map((creator) => {
+    const handleClean = creator.handle.toLowerCase().trim();
+    const contactsForThisCreator = contactCounts[handleClean] || 0;
+    const isSmallCreator = creator.tier === 'nano' || creator.tier === 'micro' || creator.followersCount <= 75000;
 
-  // 2. Sort berdasarkan kedekatan lokasi: jika kreator meliput kota user (misal Sidoarjo / Surabaya), letakkan di PALING ATAS!
-  if (city) {
-    byNiche.sort((a, b) => {
-      const aMatchesCity = a.citiesSupported.some((c) => city.includes(c) || c.includes(city));
-      const bMatchesCity = b.citiesSupported.some((c) => city.includes(c) || c.includes(city));
+    // 1. SKOR GEOGRAFIS / LOKASI (Bobot Tinggi: 50 poin)
+    let locScore = 15;
+    const directCityMatch = creator.citiesSupported.some((c) => userCity.includes(c) || c.includes(userCity));
+    const regionalMatch = 
+      (userCity.includes('sidoarjo') || userCity.includes('surabaya') || userCity.includes('malang')) &&
+      creator.citiesSupported.some(c => ['sidoarjo', 'surabaya', 'jatim', 'jawa timur', 'malang'].includes(c));
 
-      if (aMatchesCity && !bMatchesCity) return -1;
-      if (!aMatchesCity && bMatchesCity) return 1;
-      return 0;
-    });
-  }
+    if (directCityMatch) {
+      locScore = 50; // Langsung di kota toko!
+    } else if (regionalMatch) {
+      locScore = 38; // Kawasan aglomerasi / provinsi terdekat
+    } else if (creator.citiesSupported.includes('nasional') || creator.citiesSupported.includes('indonesia')) {
+      locScore = 22;
+    }
 
-  return byNiche;
+    // 2. SKOR NICHE / KATEGORI (Bobot: 30 poin)
+    let nicheScore = 15;
+    if (userCategory.includes('kuliner') || userCategory.includes('makan') || userCategory.includes('minum')) {
+      nicheScore = creator.nicheCategory === 'kuliner' ? 30 : 18;
+    } else if (userCategory.includes('fashion') || userCategory.includes('baju') || userCategory.includes('hijab')) {
+      nicheScore = (creator.nicheCategory === 'fashion' || creator.nicheCategory === 'retail') ? 30 : 14;
+    } else {
+      nicheScore = 20;
+    }
+
+    // 3. MEKANISME LOG KONTAK ACROSS ALL DASHBOARD & NOTICE FOOD VLOGGER KECIL
+    // Requirement:
+    // "catat seluruh log (across all dashboard) yang menghubungi influencer, nanti kalau udah terlalu banyak, 
+    //  influencer itu jangan ditaruh rekomendasi atas, sebaliknya, taruh influencer yang kecil keatas rekomendasi."
+    
+    // a) Penalti Saturasi: Semakin sering dihubungi di dashboard, skornya diturunkan
+    const saturationPenalty = Math.min(contactsForThisCreator * 8, 42);
+
+    // b) Boost Khusus Food Vlogger Kecil (Nano & Micro):
+    // Food vlogger kecil diberikan dorongan skor agar naik ke atas
+    let smallCreatorBoost = 0;
+    if (isSmallCreator) {
+      // Baseline prioritas untuk kreator kecil agar mudah ternotice
+      smallCreatorBoost += 24;
+
+      // Jika belum banyak atau belum pernah dihubungi sama sekali, beri bonus eksplorasi
+      if (contactsForThisCreator === 0) {
+        smallCreatorBoost += 12;
+      }
+
+      // Jika platform memiliki influencer besar yang sering dihubungi, otomatis angkat kreator kecil lebih tinggi lagi
+      if (totalPlatformContacts > 0) {
+        smallCreatorBoost += 8;
+      }
+    }
+
+    // 4. ESTIMASI ENGAGEMENT / DAMPAK YANG BISA DIBERIKAN KE TOKO (PERSENTASE)
+    // Requirement: "engagement yang bisa diberikan oleh influencer ke toko (persentase)"
+    const publicErNumber = parseFloat(creator.engagement) || 6.0;
+    let storeEngagementNum = publicErNumber;
+
+    // Lokasi satu kota memberikan konversi kunjungan fisik / order lokal lebih tinggi
+    if (directCityMatch) {
+      storeEngagementNum += 4.5;
+    } else if (regionalMatch) {
+      storeEngagementNum += 2.8;
+    }
+
+    // Niche yang relevan meningkatkan konversi interaksi langsung
+    if (nicheScore >= 25) {
+      storeEngagementNum += 2.0;
+    }
+
+    // Kreator mikro/nano memiliki kedekatan audiens lokal & rasio interaksi per tayang lebih tinggi
+    if (isSmallCreator) {
+      storeEngagementNum += 3.2;
+    }
+
+    // Format persentase estimasi dampak ke toko
+    const estimatedStoreEngagement = `+${storeEngagementNum.toFixed(1)}%`;
+
+    // 5. TOTAL PERHITUNGAN SKOR AKHIR KANDIDAT
+    let rawScore = locScore + nicheScore - saturationPenalty + smallCreatorBoost;
+
+    // Normalisasi skor kecocokan dalam rentang 82% - 99%
+    let matchScore = Math.min(Math.max(Math.round(75 + (rawScore / 115) * 24), 82), 99);
+
+    // Default Rationale berbasis RAG Lokasi & Profil Toko
+    let personalizedReason = creator.description;
+    let collaborationTip = 'Kirim sampel produk terbaik Anda atau ajukan review santai di tempat.';
+
+    if (directCityMatch && isSmallCreator) {
+      personalizedReason = `Food vlogger lokal asli ${creator.cityRegion} dengan audiens warga sekitar yang sangat loyal. Sangat efektif mendatangkan pembeli lokal ke ${storeName} dengan biaya terjangkau.`;
+      collaborationTip = `Ajak food vlogger ini mencoba menu andalan ${storeName}. Kreator lokal seperti ${creator.handle} sangat cepat merespons dan antusias mengulas kuliner sekitar!`;
+    } else if (directCityMatch) {
+      personalizedReason = `Kreator kuliner utama di ${creator.cityRegion}. Kontennya sering jadi rujukan kuliner warga lokal dan memiliki eksposur tinggi untuk ${storeName}.`;
+      collaborationTip = `Ajukan promosi paket menu spesial atau promo diskon khusus followers ${creator.handle}.`;
+    } else if (regionalMatch && isSmallCreator) {
+      personalizedReason = `Kreator potensial kawasan sekitar ${creator.cityRegion} yang aktif menjelajahi kuliner terdekat. Berpeluang besar memperluas jangkauan ${storeName}.`;
+      collaborationTip = `Kirimkan menu makanan kemasan atau undang saat kreator mengadakan agenda hunting kuliner di kota Anda.`;
+    } else if (contactsForThisCreator > 2) {
+      personalizedReason = `${creator.name} saat ini sedang banyak diminati UMKM lain di platform (${contactsForThisCreator}x dihubungi). Jadwalkan kolaborasi dari jauh hari.`;
+      collaborationTip = `Gunakan template pesan profesional dan cantumkan ketersediaan jadwal serta detail produk dengan jelas.`;
+    }
+
+    return {
+      creator,
+      rawScore,
+      matchScore,
+      estimatedStoreEngagement,
+      isSmallCreator,
+      contactCount: contactsForThisCreator,
+      personalizedReason,
+      collaborationTip,
+    };
+  });
+
+  // Urutkan kandidat berdasarkan skor tertinggi ke terendah
+  scoredList.sort((a, b) => b.rawScore - a.rawScore);
+
+  // Petakan ke antarmuka InfluencerItem
+  return scoredList.map((item, idx) => ({
+    id: idx + 1,
+    name: item.creator.name,
+    handle: item.creator.handle,
+    platform: item.creator.platform,
+    tier: item.creator.tier,
+    niche: item.creator.nicheLabel,
+    cityRegion: item.creator.cityRegion,
+    followers: item.creator.followers,
+    followersCount: item.creator.followersCount,
+    engagement: item.creator.engagement,
+    estimatedStoreEngagement: item.estimatedStoreEngagement,
+    matchScore: item.matchScore,
+    tags: item.creator.tags,
+    initials: item.creator.initials,
+    avatarBg: item.creator.avatarBg,
+    description: item.personalizedReason,
+    rateEstimate: item.creator.rateEstimate,
+    contact: item.creator.contact,
+    isHype: item.creator.isHype,
+    isSmallCreator: item.isSmallCreator,
+    contactCount: item.contactCount,
+    recommendationReason: item.personalizedReason,
+    collaborationTip: item.collaborationTip,
+  }));
 }
 
 export async function GET(req: Request) {
   try {
+    await ensureTables();
+
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId') || req.headers.get('x-user-id');
     const force = searchParams.get('force') === 'true';
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
+    const limit = Math.max(parseInt(searchParams.get('limit') || '9', 10), 1); // Default 9 influencer per batch
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID wajib disertakan.' }, { status: 400 });
     }
 
-    // 1. Cek Profil Bisnis UMKM pengguna
+    // 1. Cek Profil Bisnis UMKM Pengguna
     const profileRes = await pool.query(
       `SELECT "namaUsaha", "kategoriBisnis", "deskripsiBisnis", "targetAudiens", "platformFokus", "gayaPromosi", "budgetPromosi", "kotaLokasi"
        FROM "BusinessProfile"
@@ -93,12 +258,13 @@ export async function GET(req: Request) {
       [userId]
     );
 
-    // Jika pengguna belum mengisi survei profil bisnis UMKM
     if (profileRes.rows.length === 0) {
       return NextResponse.json({
         profileFilled: false,
         profile: null,
         influencers: [],
+        totalAvailable: 0,
+        hasMore: false,
         message: 'Pengguna belum mengisi profil bisnis UMKM.',
       });
     }
@@ -107,7 +273,21 @@ export async function GET(req: Request) {
     const userCity = profile.kotaLokasi || 'Sidoarjo';
     const dateKey = getTodayKey();
 
-    // 2. Cek Cache Harian di Database (Kecuali jika tombol force refresh ditekan)
+    // 2. Ambil statistik log kontak across all dashboard
+    const contactStatsRes = await pool.query(`
+      SELECT "influencerHandle", COUNT(*)::int AS "contactCount"
+      FROM "InfluencerContactLog"
+      GROUP BY "influencerHandle"
+    `);
+
+    const contactCounts: Record<string, number> = {};
+    contactStatsRes.rows.forEach((r) => {
+      contactCounts[r.influencerHandle.toLowerCase().trim()] = r.contactCount;
+    });
+
+    let allRankedInfluencers: InfluencerItem[] = [];
+
+    // 3. Cek Cache di Database (Jika tidak force refresh)
     if (!force) {
       const cacheRes = await pool.query(
         `SELECT influencers, "updatedAt"
@@ -116,166 +296,115 @@ export async function GET(req: Request) {
         [userId, dateKey]
       );
 
-      if (cacheRes.rows.length > 0) {
-        return NextResponse.json({
-          profileFilled: true,
-          profile,
-          influencers: cacheRes.rows[0].influencers,
-          cached: true,
-          dateKey,
-          updatedAt: cacheRes.rows[0].updatedAt,
+      if (cacheRes.rows.length > 0 && Array.isArray(cacheRes.rows[0].influencers) && cacheRes.rows[0].influencers.length > 0) {
+        allRankedInfluencers = cacheRes.rows[0].influencers;
+        // Perbarui contactCount terbaru pada data cache
+        allRankedInfluencers.forEach((inf) => {
+          inf.contactCount = contactCounts[inf.handle.toLowerCase().trim()] || 0;
         });
       }
     }
 
-    // 3. Ambil calon kandidat kreator ASLI dengan memprioritaskan KOTA / WILAYAH UMKM
-    const candidateCreators = getCandidateCreators(profile.kategoriBisnis, userCity);
+    // 4. Jika cache kosong atau force=true, jalankan RAG ranking baru
+    if (allRankedInfluencers.length === 0) {
+      allRankedInfluencers = rankInfluencersRAG(VERIFIED_INFLUENCERS, profile, contactCounts);
 
-    let selectedInfluencers: InfluencerItem[] = [];
+      // Jalankan AI LLM enhancement secara asinkron/opsional untuk memperkaya deskripsi batch teratas
+      try {
+        const topBatch = allRankedInfluencers.slice(0, 9);
+        const topSummary = topBatch.map((c) => 
+          `- Handle: ${c.handle} | Name: ${c.name} | Wilayah: ${c.cityRegion} | Niche: ${c.niche} | Tier: ${c.tier} | Followers: ${c.followers}`
+        ).join('\n');
 
-    // 4. Minta AI (Groq Load Balancer) untuk menilai, memilih 6 terbaik yang sesuai wilayah & niche
-    try {
-      const promptSystem = `
+        const promptSystem = `
 Kamu adalah AI Matchmaker Influencer & Pakar Marketing UMKM Indonesia.
-Tugasmu: Dari daftar KREATOR ASLI & TERVERIFIKASI Indonesia berikut, pilih TEPAT 6 kreator yang paling cocok untuk mempromosikan bisnis UMKM pengguna.
-SANGAT PENTING: Perhatikan Lokasi Kota UMKM (${userCity})! Prioritaskan kreator yang berdomisili atau fokus meliput wilayah ${userCity} dan sekitarnya agar relevan secara geografis!
-JANGAN membuat akun fiktif atau mengubah username (@handle) mereka! Gunakan nama dan handle asli persis seperti di daftar.
-Berikan skor kecocokan (85-99%) dan alasan personalisasi yang menghubungkan produk UMKM dengan wilayah/audiens kreator.
-
-KEMBALIKAN HANYA JSON MURNI TANPA MARKDOWN (tanpa \`\`\`json, tanpa tanda pagar #, tanpa tanda bintang *).
-Format JSON persis:
+Tugasmu: Berikan analisa 1 kalimat tajam dan 1 tips kolaborasi praktis untuk toko UMKM "${profile.namaUsaha}" (Bidang: ${profile.kategoriBisnis}, Lokasi: ${userCity}).
+Fokuskan pada alasan mengapa kreator lokal ini cocok dan persentase dampak yang bisa diberikan ke toko.
+KEMBALIKAN HANYA JSON MURNI TANPA MARKDOWN (\`\`\`json). Format:
 {
-  "selectedHandles": [
+  "enhancements": [
     {
-      "handle": "@handle_dari_daftar",
-      "matchScore": 98,
-      "personalizedReason": "Alasan singkat 1-2 kalimat kenapa kreator ini tepat untuk produk UMKM ini di wilayah ${userCity}.",
-      "isHype": true
+      "handle": "@handle",
+      "reason": "Alasan singkat 1 kalimat keterkaitan produk dengan audiens kreator di ${userCity}.",
+      "tip": "Tips kolaborasi ringkas 1 kalimat."
     }
   ]
 }
-      `.trim();
+        `.trim();
 
-      const candidateSummary = candidateCreators.map((c) => 
-        `- Name: ${c.name} | Handle: ${c.handle} | Wilayah: ${c.cityRegion} | Niche: ${c.nicheLabel} | Followers: ${c.followers} | ER: ${c.engagement} | Deskripsi: ${c.description}`
-      ).join('\n');
+        const promptUser = `
+Toko: ${profile.namaUsaha} (${profile.kategoriBisnis}) di ${userCity}.
+Deskripsi: ${profile.deskripsiBisnis || 'Produk unggulan lokal'}. Target: ${profile.targetAudiens}.
+Kandidat Teratas:
+${topSummary}
+        `.trim();
 
-      const promptUser = `
-Profil Bisnis UMKM:
-- Nama Usaha: ${profile.namaUsaha}
-- Kategori Usaha: ${profile.kategoriBisnis}
-- Lokasi Kota UMKM: ${userCity} (Prioritaskan kreator lokal di ${userCity} / sekitarnya!)
-- Deskripsi Produk: ${profile.deskripsiBisnis || 'Produk unggulan UMKM lokal berkualitas'}
-- Target Audiens: ${profile.targetAudiens}
-- Platform Utama: ${profile.platformFokus}
-- Gaya Promosi: ${profile.gayaPromosi}
-- Estimasi Budget: ${profile.budgetPromosi || 'Standar UMKM'}
+        const aiResponse = await groqChatCompletion(
+          [
+            { role: 'system', content: promptSystem },
+            { role: 'user', content: promptUser },
+          ],
+          { temperature: 0.3, max_tokens: 1000 }
+        );
 
-Daftar Kandidat Kreator Nyata (diurutkan berdasarkan wilayah terdekat):
-${candidateSummary}
-
-Pilih TEPAT 6 handle dari daftar di atas yang paling relevan dengan wilayah ${userCity} dan bidang bisnis ini.
-      `.trim();
-
-      const aiResponse = await groqChatCompletion(
-        [
-          { role: 'system', content: promptSystem },
-          { role: 'user', content: promptUser }
-        ],
-        {
-          temperature: 0.4,
-          max_tokens: 1200,
+        let rawText = aiResponse.text.trim();
+        if (rawText.startsWith('```')) {
+          rawText = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
         }
+
+        const parsed = JSON.parse(rawText);
+        if (Array.isArray(parsed.enhancements)) {
+          const enhMap = new Map<string, { reason: string; tip: string }>();
+          parsed.enhancements.forEach((e: any) => {
+            if (e.handle) {
+              enhMap.set(e.handle.toLowerCase().trim(), {
+                reason: String(e.reason || '').replace(/[#*]/g, ''),
+                tip: String(e.tip || '').replace(/[#*]/g, ''),
+              });
+            }
+          });
+
+          allRankedInfluencers.forEach((inf) => {
+            const enh = enhMap.get(inf.handle.toLowerCase().trim());
+            if (enh) {
+              if (enh.reason) inf.description = enh.reason;
+              if (enh.reason) inf.recommendationReason = enh.reason;
+              if (enh.tip) inf.collaborationTip = enh.tip;
+            }
+          });
+        }
+      } catch (aiErr) {
+        // Fallback RAG lokal sudah sangat akurat, tetap lanjutkan
+        console.warn('[AI Influencer] Menggunakan deskripsi RAG bawaan:', aiErr);
+      }
+
+      // Simpan seluruh kandidat terurut ke dalam cache harian PostgreSQL
+      const cacheId = 'inf_cache_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+      await pool.query(
+        `INSERT INTO "AiInfluencerCache" ("id", "userId", "dateKey", "influencers", "updatedAt")
+         VALUES ($1, $2, $3, $4::jsonb, NOW())
+         ON CONFLICT ("userId", "dateKey")
+         DO UPDATE SET "influencers" = EXCLUDED."influencers", "updatedAt" = NOW()`,
+        [cacheId, userId, dateKey, JSON.stringify(allRankedInfluencers)]
       );
-
-      let rawText = aiResponse.text.trim();
-      if (rawText.startsWith('```')) {
-        rawText = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
-      }
-
-      const parsed = JSON.parse(rawText);
-      if (Array.isArray(parsed.selectedHandles) && parsed.selectedHandles.length > 0) {
-        const handleMap = new Map<string, { matchScore: number; reason: string; isHype: boolean }>();
-        parsed.selectedHandles.forEach((item: any) => {
-          if (item.handle) {
-            handleMap.set(item.handle.toLowerCase().trim(), {
-              matchScore: Number(item.matchScore) || 92,
-              reason: String(item.personalizedReason || '').replace(/[#*]/g, ''),
-              isHype: Boolean(item.isHype),
-            });
-          }
-        });
-
-        // Petakan kandidat asli ke dalam hasil akhir
-        const matched = candidateCreators.filter((c) => handleMap.has(c.handle.toLowerCase().trim()));
-        const remaining = candidateCreators.filter((c) => !handleMap.has(c.handle.toLowerCase().trim()));
-        const combined = [...matched, ...remaining].slice(0, 6);
-
-        selectedInfluencers = combined.map((creator, idx) => {
-          const aiData = handleMap.get(creator.handle.toLowerCase().trim());
-          return {
-            id: idx + 1,
-            name: creator.name,
-            handle: creator.handle,
-            platform: creator.platform,
-            niche: creator.nicheLabel,
-            cityRegion: creator.cityRegion,
-            followers: creator.followers,
-            followersCount: creator.followersCount,
-            engagement: creator.engagement,
-            matchScore: aiData?.matchScore || (98 - idx * 2),
-            tags: creator.tags,
-            initials: creator.initials,
-            avatarBg: creator.avatarBg,
-            description: aiData?.reason || creator.description,
-            rateEstimate: creator.rateEstimate,
-            contact: creator.contact,
-            isHype: aiData?.isHype ?? creator.isHype,
-          };
-        });
-      }
-    } catch (aiErr) {
-      console.warn('[AI Influencer] Gagal memanggil AI, menggunakan kurasi kandidat asli terdekat:', aiErr);
     }
 
-    // Jika AI tidak mengembalikan 6, gunakan 6 kandidat asli terdekat
-    if (selectedInfluencers.length < 6) {
-      selectedInfluencers = candidateCreators.slice(0, 6).map((creator, idx) => ({
-        id: idx + 1,
-        name: creator.name,
-        handle: creator.handle,
-        platform: creator.platform,
-        niche: creator.nicheLabel,
-        cityRegion: creator.cityRegion,
-        followers: creator.followers,
-        followersCount: creator.followersCount,
-        engagement: creator.engagement,
-        matchScore: 98 - idx * 2,
-        tags: creator.tags,
-        initials: creator.initials,
-        avatarBg: creator.avatarBg,
-        description: creator.description,
-        rateEstimate: creator.rateEstimate,
-        contact: creator.contact,
-        isHype: creator.isHype,
-      }));
-    }
-
-    // 5. Simpan ke Cache Harian di PostgreSQL
-    const cacheId = 'inf_cache_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
-    await pool.query(
-      `INSERT INTO "AiInfluencerCache" ("id", "userId", "dateKey", "influencers", "updatedAt")
-       VALUES ($1, $2, $3, $4::jsonb, NOW())
-       ON CONFLICT ("userId", "dateKey")
-       DO UPDATE SET "influencers" = EXCLUDED."influencers", "updatedAt" = NOW()`,
-      [cacheId, userId, dateKey, JSON.stringify(selectedInfluencers)]
-    );
+    // 5. Paginate 9 Influencer per Batch
+    const totalAvailable = allRankedInfluencers.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedItems = allRankedInfluencers.slice(startIndex, endIndex);
+    const hasMore = endIndex < totalAvailable;
 
     return NextResponse.json({
       profileFilled: true,
       profile,
-      influencers: selectedInfluencers,
-      cached: false,
+      influencers: paginatedItems,
+      page,
+      limit,
+      totalAvailable,
+      hasMore,
+      cached: !force,
       dateKey,
       updatedAt: new Date().toISOString(),
     });
