@@ -60,6 +60,8 @@ export async function POST(req: Request) {
       SET 
         role = 'premium',
         "isLocked" = false,
+        "trialEndsAt" = NULL,
+        "trialGrantedDays" = 0,
         "updatedAt" = NOW()
       WHERE id = $1
       RETURNING id, name, email, role, "isLocked", "updatedAt"

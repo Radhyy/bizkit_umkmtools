@@ -91,14 +91,6 @@ const PAYMENT_METHODS = [
   }
 ];
 
-const PROMO_CODES: Record<string, { type: 'percent' | 'fixed'; value: number; label: string }> = {
-  'BIZKITHEMAT': { type: 'percent', value: 20, label: 'Diskon 20%' },
-  'UMKMMAJU': { type: 'fixed', value: 15000, label: 'Potongan Rp 15.000' },
-  'SUPERADMIN': { type: 'percent', value: 50, label: 'Diskon Spesial 50%' },
-  'LAUNCHING': { type: 'fixed', value: 10000, label: 'Potongan Rp 10.000' },
-  'BIZKITPROMO': { type: 'percent', value: 10, label: 'Diskon 10%' },
-};
-
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -116,7 +108,13 @@ function CheckoutContent() {
   // Coupon state
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
-  const [dynamicCoupon, setDynamicCoupon] = useState<{ code: string; label: string; discountAmount: number } | null>(null);
+  const [dynamicCoupon, setDynamicCoupon] = useState<{
+    code: string;
+    label: string;
+    discountType: 'percent' | 'fixed';
+    discountValue: number;
+    maxDiscount?: number | null;
+  } | null>(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
 
@@ -159,22 +157,22 @@ function CheckoutContent() {
     }
   }, [router]);
 
-  // Kalkulasi harga
+  // Kalkulasi harga berdasarkan database kupon
   const basePrice = plan === 'yearly' ? 468000 : 49000;
   let discountAmount = 0;
   if (dynamicCoupon && dynamicCoupon.code === appliedCoupon) {
-    discountAmount = dynamicCoupon.discountAmount;
-  } else if (appliedCoupon && PROMO_CODES[appliedCoupon]) {
-    const c = PROMO_CODES[appliedCoupon];
-    if (c.type === 'percent') {
-      discountAmount = Math.round((basePrice * c.value) / 100);
+    if (dynamicCoupon.discountType === 'percent') {
+      discountAmount = Math.round((basePrice * dynamicCoupon.discountValue) / 100);
+      if (dynamicCoupon.maxDiscount && discountAmount > dynamicCoupon.maxDiscount) {
+        discountAmount = dynamicCoupon.maxDiscount;
+      }
     } else {
-      discountAmount = c.value;
+      discountAmount = dynamicCoupon.discountValue;
     }
   }
   const finalPrice = Math.max(10000, basePrice - discountAmount);
 
-  // Terapkan kupon
+  // Terapkan kupon langsung validasi ke database Neon PostgreSQL
   const handleApplyCoupon = async (codeToApply?: string) => {
     const code = (codeToApply || couponInput).trim().toUpperCase();
     setCouponError(null);
@@ -192,44 +190,22 @@ function CheckoutContent() {
         body: JSON.stringify({ code, amount: basePrice })
       });
       const data = await res.json();
-      if (res.ok && data.valid) {
+      if (res.ok && data.valid && data.coupon) {
         setAppliedCoupon(data.coupon.code);
         setCouponInput(data.coupon.code);
         setDynamicCoupon({
           code: data.coupon.code,
           label: data.coupon.label,
-          discountAmount: data.coupon.discountAmount
-        });
-        setCouponError(null);
-      } else if (PROMO_CODES[code]) {
-        const c = PROMO_CODES[code];
-        const disc = c.type === 'percent' ? Math.round((basePrice * c.value) / 100) : c.value;
-        setAppliedCoupon(code);
-        setCouponInput(code);
-        setDynamicCoupon({
-          code: code,
-          label: c.label,
-          discountAmount: disc
+          discountType: data.coupon.discountType,
+          discountValue: data.coupon.discountValue,
+          maxDiscount: data.coupon.maxDiscount
         });
         setCouponError(null);
       } else {
-        setCouponError(data.message || 'Kode kupon tidak valid atau sudah kedaluwarsa.');
+        setCouponError(data.message || 'Kode kupon tidak ditemukan atau sudah tidak aktif.');
       }
     } catch {
-      if (PROMO_CODES[code]) {
-        const c = PROMO_CODES[code];
-        const disc = c.type === 'percent' ? Math.round((basePrice * c.value) / 100) : c.value;
-        setAppliedCoupon(code);
-        setCouponInput(code);
-        setDynamicCoupon({
-          code: code,
-          label: c.label,
-          discountAmount: disc
-        });
-        setCouponError(null);
-      } else {
-        setCouponError('Gagal memeriksa kode kupon.');
-      }
+      setCouponError('Gagal memeriksa kode kupon ke server database.');
     } finally {
       setIsValidatingCoupon(false);
     }
@@ -646,25 +622,6 @@ function CheckoutContent() {
                         <IconCheck className="w-3.5 h-3.5" />
                         Kupon <strong>{appliedCoupon}</strong> berhasil digunakan!
                       </p>
-                    )}
-
-                    {/* Kupon Rekomendasi Cepat */}
-                    {!appliedCoupon && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        <span className="text-[11px] text-slate-500 mr-1 self-center font-medium">Coba:</span>
-                        <button
-                          onClick={() => handleApplyCoupon('BIZKITHEMAT')}
-                          className="px-2 py-0.5 text-[11px] font-bold bg-blue-50 text-blue-700 rounded-md border border-blue-100 hover:bg-blue-100 transition-colors"
-                        >
-                          BIZKITHEMAT (20%)
-                        </button>
-                        <button
-                          onClick={() => handleApplyCoupon('UMKMMAJU')}
-                          className="px-2 py-0.5 text-[11px] font-bold bg-amber-50 text-amber-700 rounded-md border border-amber-100 hover:bg-amber-100 transition-colors"
-                        >
-                          UMKMMAJU (15K)
-                        </button>
-                      </div>
                     )}
                   </div>
 

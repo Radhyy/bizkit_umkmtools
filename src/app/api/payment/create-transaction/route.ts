@@ -2,14 +2,6 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
-const VALID_COUPONS: Record<string, { type: 'percent' | 'fixed'; value: number; label: string }> = {
-  'BIZKITHEMAT': { type: 'percent', value: 20, label: 'Diskon 20%' },
-  'UMKMMAJU': { type: 'fixed', value: 15000, label: 'Potongan Rp 15.000' },
-  'SUPERADMIN': { type: 'percent', value: 50, label: 'Diskon Spesial 50%' },
-  'LAUNCHING': { type: 'fixed', value: 10000, label: 'Potongan Rp 10.000' },
-  'BIZKITPROMO': { type: 'percent', value: 10, label: 'Diskon 10%' },
-};
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -19,20 +11,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Pengguna tidak teridentifikasi. Silakan login terlebih dahulu.' }, { status: 401 });
     }
 
-    // 1. Ambil data user dari database
-    let userQuery = '';
-    let userParams: any[] = [];
+    // 1. Ambil data user dari database (cek id, fallback ke email)
+    let userResult: any = null;
     if (userId) {
-      userQuery = 'SELECT id, name, email, role, "isLocked" FROM "User" WHERE id = $1 LIMIT 1';
-      userParams = [userId];
-    } else {
-      userQuery = 'SELECT id, name, email, role, "isLocked" FROM "User" WHERE LOWER(email) = LOWER($1) LIMIT 1';
-      userParams = [email];
+      userResult = await pool.query('SELECT id, name, email, role, "isLocked" FROM "User" WHERE id = $1 LIMIT 1', [userId]);
+    }
+    if ((!userResult || userResult.rows.length === 0) && email) {
+      userResult = await pool.query('SELECT id, name, email, role, "isLocked" FROM "User" WHERE LOWER(email) = LOWER($1) LIMIT 1', [email]);
     }
 
-    const userResult = await pool.query(userQuery, userParams);
-    if (userResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Data pengguna tidak ditemukan.' }, { status: 404 });
+    if (!userResult || userResult.rows.length === 0) {
+      return NextResponse.json({ error: 'Data pengguna tidak ditemukan di database.' }, { status: 404 });
     }
 
     const user = userResult.rows[0];
@@ -58,6 +47,7 @@ export async function POST(req: Request) {
     let discountAmount = 0;
     let appliedCoupon: string | null = null;
 
+    // Ambil data kupon diskon langsung dari tabel DiscountCoupon di Neon PostgreSQL
     if (couponCode && typeof couponCode === 'string') {
       const cleanCode = couponCode.trim().toUpperCase();
       try {
@@ -81,21 +71,9 @@ export async function POST(req: Request) {
             discountAmount = val;
           }
           appliedCoupon = cleanCode;
-        } else if (VALID_COUPONS[cleanCode]) {
-          const coupon = VALID_COUPONS[cleanCode];
-          if (coupon.type === 'percent') {
-            discountAmount = Math.round((basePrice * coupon.value) / 100);
-          } else {
-            discountAmount = coupon.value;
-          }
-          appliedCoupon = cleanCode;
         }
       } catch (cErr) {
-        if (VALID_COUPONS[cleanCode]) {
-          const coupon = VALID_COUPONS[cleanCode];
-          discountAmount = coupon.type === 'percent' ? Math.round((basePrice * coupon.value) / 100) : coupon.value;
-          appliedCoupon = cleanCode;
-        }
+        console.error('Error fetching coupon from database:', cErr);
       }
     }
 

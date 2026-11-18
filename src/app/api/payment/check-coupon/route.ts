@@ -84,6 +84,7 @@ export async function POST(req: Request) {
         name: coupon.name,
         discountType: coupon.discountType,
         discountValue: discountValue,
+        maxDiscount: coupon.maxDiscount ? Number(coupon.maxDiscount) : null,
         discountAmount: discountAmount,
         label: coupon.discountType === 'percent' 
           ? `Diskon ${discountValue}%` 
