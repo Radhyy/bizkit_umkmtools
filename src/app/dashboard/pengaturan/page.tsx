@@ -204,136 +204,6 @@ export default function PengaturanPage() {
       {/* Full-Width Clean Form Layout (Sidebar Menu Lama Telah Dihapus) */}
       <form onSubmit={handleSave} className="space-y-6">
         
-        {/* Card 0: Paket & Status Langganan (Sleek, Modern, Non-Slop) */}
-        <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs p-5 sm:p-6 overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-zinc-100">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-base font-bold text-zinc-900">Paket & Status Langganan</h2>
-                {planInfo.role === 'premium' || planInfo.role === 'admin' ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                    <IconCrown className="w-3.5 h-3.5 text-amber-600" />
-                    <span>PREMIUM</span>
-                  </span>
-                ) : planInfo.role === 'trial' && planInfo.isTrialActive ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <IconClock className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>TRIAL AKTIF</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-zinc-100 text-zinc-600 border border-zinc-200">
-                    <IconLock className="w-3 h-3 text-zinc-500" />
-                    <span>FREE PLAN</span>
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-zinc-400">
-                Informasi tingkatan paket akun Bizkit dan aksesibilitas fitur operasional toko Anda
-              </p>
-            </div>
-
-            {/* Tombol Akses Cepat */}
-            <div>
-              {planInfo.role === 'premium' || planInfo.role === 'admin' ? (
-                <Link
-                  href="/harga"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-zinc-200/90 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 transition-colors shadow-2xs"
-                >
-                  <IconSparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Rincian Fitur Paket</span>
-                </Link>
-              ) : (
-                <Link
-                  href="/checkout"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs"
-                >
-                  <IconCrown className="w-3.5 h-3.5" />
-                  <span>Upgrade ke Premium</span>
-                  <IconArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              )}
-            </div>
-          </div>
-
-          {/* Banner Content */}
-          <div className="pt-5">
-            {planInfo.role === 'premium' || planInfo.role === 'admin' ? (
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-purple-50/40 border border-blue-100/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-bold text-zinc-900">Akses Penuh Tanpa Batas Aktif</span>
-                  </div>
-                  <p className="text-xs text-zinc-600 max-w-xl leading-relaxed">
-                    Akun Anda memiliki lisensi <strong>Bizkit Premium Plan</strong>. Seluruh dashboard keuangan realtime, asisten bisnis AI 24/7, AI content builder, dan fitur matchmaking influencer dapat Anda gunakan sepuasnya tanpa batas.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2 shrink-0">
-                  <span className="px-2.5 py-1 rounded-lg bg-white/90 border border-blue-200/70 text-[11px] font-semibold text-blue-700 shadow-2xs flex items-center gap-1">
-                    <IconCheck className="w-3.5 h-3.5 text-blue-600" />
-                    Unlimited Kas & Laporan
-                  </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-white/90 border border-blue-200/70 text-[11px] font-semibold text-indigo-700 shadow-2xs flex items-center gap-1">
-                    <IconCheck className="w-3.5 h-3.5 text-indigo-600" />
-                    Asisten AI & Influencer
-                  </span>
-                </div>
-              </div>
-            ) : planInfo.role === 'trial' && planInfo.isTrialActive ? (
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-50/80 via-teal-50/40 to-blue-50/40 border border-emerald-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-bold text-emerald-950">
-                      Masa Percobaan Trial Sedang Berjalan: Tersisa {planInfo.daysLeft} Hari Lagi
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-600 max-w-xl leading-relaxed">
-                    Anda sedang menikmati uji coba gratis fitur Bizkit.
-                    {planInfo.trialEndsAt && (
-                      <> Masa trial berlaku sampai tanggal <strong>{new Date(planInfo.trialEndsAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.</>
-                    )}
-                    {' '}Tingkatkan ke paket Premium sebelum masa trial berakhir agar pencatatan usaha Anda tidak terkunci.
-                  </p>
-                </div>
-
-                <div className="shrink-0">
-                  <Link
-                    href="/checkout"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold transition-all shadow-xs"
-                  >
-                    <span>Ambil Premium Sekarang</span>
-                    <IconArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-50 border border-zinc-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-zinc-400" />
-                    <span className="text-xs font-bold text-zinc-800">Paket Free (Akses Fitur Terkunci)</span>
-                  </div>
-                  <p className="text-xs text-zinc-500 max-w-xl leading-relaxed">
-                    Akun Anda saat ini berada pada paket dasar gratis. Fitur dasbor keuangan, laporan bisnis, dan asisten AI memerlukan paket Premium aktif untuk dapat digunakan.
-                  </p>
-                </div>
-
-                <div className="shrink-0">
-                  <Link
-                    href="/checkout"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs"
-                  >
-                    <span>Mulai Berlangganan (Rp 49.000/bln)</span>
-                    <IconArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Card 1: Profil Toko & Brand */}
         <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs p-5 sm:p-6">
           <div className="mb-5 pb-4 border-b border-zinc-100">
@@ -521,6 +391,136 @@ export default function PengaturanPage() {
               <IconDeviceFloppy className="w-4 h-4" />
               <span>Simpan Pengaturan</span>
             </button>
+          </div>
+        </div>
+
+        {/* Card 4: Paket & Status Langganan (Diletakkan di bagian paling bawah) */}
+        <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs p-5 sm:p-6 overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-zinc-100">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-base font-bold text-zinc-900">Paket & Status Langganan</h2>
+                {planInfo.role === 'premium' || planInfo.role === 'admin' ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    <IconCrown className="w-3.5 h-3.5 text-amber-600" />
+                    <span>PREMIUM</span>
+                  </span>
+                ) : planInfo.role === 'trial' && planInfo.isTrialActive ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <IconClock className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>TRIAL AKTIF</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-zinc-100 text-zinc-600 border border-zinc-200">
+                    <IconLock className="w-3 h-3 text-zinc-500" />
+                    <span>FREE PLAN</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-zinc-400">
+                Informasi tingkatan paket akun Bizkit dan aksesibilitas fitur operasional toko Anda
+              </p>
+            </div>
+
+            {/* Quick Action */}
+            <div>
+              {planInfo.role === 'premium' || planInfo.role === 'admin' ? (
+                <Link
+                  href="/harga"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-zinc-200/90 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 transition-colors shadow-2xs"
+                >
+                  <IconSparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Rincian Fitur Paket</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/checkout"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs"
+                >
+                  <IconCrown className="w-3.5 h-3.5" />
+                  <span>Upgrade ke Premium</span>
+                  <IconArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Banner Content */}
+          <div className="pt-5">
+            {planInfo.role === 'premium' || planInfo.role === 'admin' ? (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-purple-50/40 border border-blue-100/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-xs font-bold text-zinc-900">Akses Penuh Tanpa Batas Aktif</span>
+                  </div>
+                  <p className="text-xs text-zinc-600 max-w-xl leading-relaxed">
+                    Akun Anda memiliki lisensi <strong>Bizkit Premium Plan</strong>. Seluruh dashboard keuangan realtime, asisten bisnis AI 24/7, AI content builder, dan fitur matchmaking influencer dapat Anda gunakan sepuasnya tanpa batas.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <span className="px-2.5 py-1 rounded-lg bg-white/90 border border-blue-200/70 text-[11px] font-semibold text-blue-700 shadow-2xs flex items-center gap-1">
+                    <IconCheck className="w-3.5 h-3.5 text-blue-600" />
+                    Unlimited Kas & Laporan
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-white/90 border border-blue-200/70 text-[11px] font-semibold text-indigo-700 shadow-2xs flex items-center gap-1">
+                    <IconCheck className="w-3.5 h-3.5 text-indigo-600" />
+                    Asisten AI & Influencer
+                  </span>
+                </div>
+              </div>
+            ) : planInfo.role === 'trial' && planInfo.isTrialActive ? (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-50/80 via-teal-50/40 to-blue-50/40 border border-emerald-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-emerald-950">
+                      Masa Percobaan Trial Sedang Berjalan: Tersisa {planInfo.daysLeft} Hari Lagi
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-600 max-w-xl leading-relaxed">
+                    Anda sedang menikmati uji coba gratis fitur Bizkit.
+                    {planInfo.trialEndsAt && (
+                      <> Masa trial berlaku sampai tanggal <strong>{new Date(planInfo.trialEndsAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.</>
+                    )}
+                    {' '}Tingkatkan ke paket Premium sebelum masa trial berakhir agar pencatatan usaha Anda tidak terkunci.
+                  </p>
+                </div>
+
+                <div className="shrink-0">
+                  <Link
+                    href="/checkout"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold transition-all shadow-xs"
+                  >
+                    <span>Ambil Premium Sekarang</span>
+                    <IconArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-50 border border-zinc-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-zinc-400" />
+                    <span className="text-xs font-bold text-zinc-800">Paket Free (Akses Fitur Terkunci)</span>
+                  </div>
+                  <p className="text-xs text-zinc-500 max-w-xl leading-relaxed">
+                    Akun Anda saat ini berada pada paket dasar gratis. Fitur dasbor keuangan, laporan bisnis, dan asisten AI memerlukan paket Premium aktif untuk dapat digunakan.
+                  </p>
+                </div>
+
+                <div className="shrink-0">
+                  <Link
+                    href="/checkout"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs"
+                  >
+                    <span>Mulai Berlangganan (Rp 49.000/bln)</span>
+                    <IconArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
