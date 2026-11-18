@@ -34,10 +34,9 @@ export default function Footer() {
           {/* Column 2: Quick Links */}
           <div className={`flex flex-col gap-4 ${jakarta.className}`}>
             <h4 className="text-sm font-semibold text-slate-900 mb-2">Quick Links</h4>
-            <Link href="#" className="text-[15px] text-slate-600 hover:text-blue-600 transition-colors font-medium">Beranda</Link>
-            <Link href="#" className="text-[15px] text-slate-600 hover:text-blue-600 transition-colors font-medium">Tentang Kami</Link>
-            <Link href="#" className="text-[15px] text-slate-600 hover:text-blue-600 transition-colors font-medium">Fitur</Link>
-            <Link href="#" className="text-[15px] text-slate-600 hover:text-blue-600 transition-colors font-medium">Harga</Link>
+            <Link href="/" className="text-[15px] text-slate-600 hover:text-blue-600 transition-colors font-medium">Beranda</Link>
+            <Link href="/fitur" className="text-[15px] text-slate-600 hover:text-blue-600 transition-colors font-medium">Fitur</Link>
+            <Link href="/harga" className="text-[15px] text-slate-600 hover:text-blue-600 transition-colors font-medium">Harga</Link>
             <Link href="#" className="text-[15px] text-slate-600 hover:text-blue-600 transition-colors font-medium">Kontak</Link>
           </div>
 

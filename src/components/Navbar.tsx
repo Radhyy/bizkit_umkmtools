@@ -118,9 +118,9 @@ export default function Navbar() {
         <Link href="/fitur" className={`px-5 py-2 text-sm rounded-full transition-colors ${pathname === "/fitur" ? "bg-blue-50 text-blue-600 font-semibold" : "font-medium text-slate-600 hover:text-slate-900 hover:bg-white/50"}`}>
           Fitur
         </Link>
-        <a href="/#harga" className="px-5 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-full transition-colors">
+        <Link href="/harga" className={`px-5 py-2 text-sm rounded-full transition-colors ${pathname === "/harga" ? "bg-blue-50 text-blue-600 font-semibold" : "font-medium text-slate-600 hover:text-slate-900 hover:bg-white/50"}`}>
           Harga
-        </a>
+        </Link>
         <a href="#" className="px-5 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-full transition-colors">
           Tentang
         </a>
@@ -236,7 +236,7 @@ export default function Navbar() {
                   {/* Free Plan (Bukan Trial / Trial Habis): Diarahkan untuk langganan paket */}
                   {user.role === 'free' && (
                     <Link 
-                      href="/#harga"
+                      href="/harga"
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-amber-700 hover:bg-amber-50 rounded-xl transition-colors"
                     >
