@@ -14,14 +14,11 @@ import {
   IconBuildingStore,
   IconReceipt,
   IconCreditCard,
-  IconQrcode,
-  IconBuildingBank,
   IconTag,
-  IconExternalLink,
   IconCopy,
-  IconWallet,
   IconCash,
-  IconShieldCheck
+  IconShieldCheck,
+  IconEye
 } from '@tabler/icons-react';
 
 interface PurchaseItem {
@@ -55,7 +52,7 @@ interface Stats {
   totalOrders: number;
 }
 
-const PAYMENT_ICON_MAP: Record<string, { label: string; image?: string; fallbackIcon?: React.ReactNode }> = {
+const PAYMENT_ICON_MAP: Record<string, { label: string; image?: string }> = {
   'qris': { label: 'QRIS & E-Wallet', image: '/iconpembayaran/qris.png' },
   'bca_va': { label: 'BCA Virtual Account', image: '/iconpembayaran/bca.png' },
   'mandiri_va': { label: 'Mandiri Virtual Account', image: '/iconpembayaran/mandiri.png' },
@@ -85,7 +82,7 @@ export default function AdminPembelianPage() {
   const [isSyncingId, setIsSyncingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // Toast / feedback message
+  // Toast notification
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const showToast = (type: 'success' | 'error', text: string) => {
@@ -120,30 +117,32 @@ export default function AdminPembelianPage() {
     fetchPurchases();
   }, []);
 
-  // Filter purchases
+  // Filter daftar pembelian
   const filteredPurchases = useMemo(() => {
     return purchases.filter((item) => {
-      // 1. Filter status
-      const st = (item.status || '').toLowerCase();
-      if (statusFilter === 'settlement' && !['settlement', 'capture', 'success'].includes(st)) return false;
-      if (statusFilter === 'pending' && st !== 'pending') return false;
-      if (statusFilter === 'failed' && !['expire', 'failed', 'cancel'].includes(st)) return false;
-
-      // 2. Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchOrderId = item.orderId.toLowerCase().includes(q);
-        const matchName = (item.userName || '').toLowerCase().includes(q);
-        const matchEmail = item.userEmail.toLowerCase().includes(q);
-        const matchBiz = (item.namaUsaha || '').toLowerCase().includes(q);
-        const matchMethod = (item.paymentMethod || '').toLowerCase().includes(q);
-        const matchCoupon = (item.couponCode || '').toLowerCase().includes(q);
-        if (!matchOrderId && !matchName && !matchEmail && !matchBiz && !matchMethod && !matchCoupon) {
-          return false;
-        }
+      // Filter status
+      const status = (item.status || '').toLowerCase();
+      if (statusFilter === 'settlement' && !['settlement', 'capture', 'success'].includes(status)) {
+        return false;
+      }
+      if (statusFilter === 'pending' && status !== 'pending') {
+        return false;
+      }
+      if (statusFilter === 'failed' && !['expire', 'failed', 'cancel'].includes(status)) {
+        return false;
       }
 
-      return true;
+      // Filter search
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        item.orderId.toLowerCase().includes(q) ||
+        item.userEmail.toLowerCase().includes(q) ||
+        (item.userName && item.userName.toLowerCase().includes(q)) ||
+        (item.namaUsaha && item.namaUsaha.toLowerCase().includes(q)) ||
+        item.paymentMethod.toLowerCase().includes(q) ||
+        (item.couponCode && item.couponCode.toLowerCase().includes(q))
+      );
     });
   }, [purchases, statusFilter, searchQuery]);
 
@@ -175,7 +174,7 @@ export default function AdminPembelianPage() {
 
   // Verifikasi manual oleh Super Admin
   const handleManualVerify = async (item: PurchaseItem) => {
-    if (!confirm(`Konfirmasi verifikasi pembayaran manual untuk pesanan ${item.orderId}? Akun pembeli akan langsung ditingkatkan ke Premium.`)) {
+    if (!confirm(`Konfirmasi verifikasi manual pembayaran ${item.orderId}? Akun pembeli akan langsung ditingkatkan ke Premium.`)) {
       return;
     }
 
@@ -227,207 +226,200 @@ export default function AdminPembelianPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-5 sm:p-8 max-w-[1280px] mx-auto space-y-6 font-jakarta">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-sm font-semibold border transition-all animate-fade-in-up ${
+        <div className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl shadow-xl border text-xs font-semibold transition-all ${
           toastMessage.type === 'success' 
-            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-emerald-500/10' 
-            : 'bg-rose-50 text-rose-800 border-rose-200 shadow-rose-500/10'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+            : 'bg-rose-50 border-rose-200 text-rose-800'
         }`}>
           {toastMessage.type === 'success' ? (
-            <IconCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+            <IconCheck className="w-4 h-4 text-emerald-600 shrink-0" />
           ) : (
-            <IconAlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <IconAlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
           )}
           <span>{toastMessage.text}</span>
+          <button onClick={() => setToastMessage(null)} className="ml-1 text-zinc-400 hover:text-zinc-600">
+            <IconX className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-            <span>Kelola Pembelian Paket</span>
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">
+            Kelola Pembelian
           </h1>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-zinc-400 mt-1">
             Pantau pesanan paket UMKM, status pembayaran Midtrans, dan riwayat transaksi secara realtime.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
+        {/* Action Controls */}
+        <div className="flex items-center gap-2 sm:gap-3 text-xs">
+          <button 
             onClick={fetchPurchases}
+            title="Sinkronkan data"
             disabled={isLoading}
-            className="h-10 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 shadow-xs flex items-center gap-2 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs disabled:opacity-50 font-medium"
           >
-            <IconRefresh className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <IconRefresh className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : 'text-zinc-500'}`} />
             <span>Sinkronkan</span>
           </button>
         </div>
       </div>
 
-      {/* Metric Strip (4 Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Card 1: Total Pendapatan */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-500">Total Pendapatan</span>
-            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Berhasil
-            </span>
+      {/* Unified 4-Metric Strip (Matching Pengguna style) */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs overflow-hidden">
+        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-zinc-200/80">
+          
+          {/* Total Pendapatan */}
+          <div className="p-4 sm:p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-zinc-500">Total Pendapatan</span>
+              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50/80 px-1.5 py-0.5 rounded">
+                <IconCash className="w-3 h-3" /> Berhasil
+              </span>
+            </div>
+            <div>
+              <div className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
+                Rp {stats.totalRevenue.toLocaleString('id-ID')}
+              </div>
+              <div className="text-[11px] text-zinc-400 mt-1">
+                {stats.settlementCount} transaksi paket premium aktif
+              </div>
+            </div>
           </div>
-          <div className="text-2xl font-extrabold text-gray-900 tracking-tight">
-            Rp {stats.totalRevenue.toLocaleString('id-ID')}
-          </div>
-          <p className="text-[11px] text-gray-500 mt-2">
-            Dari {stats.settlementCount} transaksi paket premium aktif
-          </p>
-        </div>
 
-        {/* Card 2: Pembelian Sukses */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-500">Pembelian Sukses</span>
-            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-              Settlement
-            </span>
+          {/* Pembelian Sukses */}
+          <div className="p-4 sm:p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-zinc-500">Pembelian Sukses</span>
+              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded">
+                <IconCheck className="w-3 h-3" /> Settlement
+              </span>
+            </div>
+            <div>
+              <div className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">{stats.settlementCount}</div>
+              <div className="text-[11px] text-emerald-600 font-medium mt-1">Pembayaran terverifikasi</div>
+            </div>
           </div>
-          <div className="text-2xl font-extrabold text-blue-600 tracking-tight">
-            {stats.settlementCount}
-          </div>
-          <p className="text-[11px] text-gray-500 mt-2">
-            Pembayaran telah diverifikasi otomatis
-          </p>
-        </div>
 
-        {/* Card 3: Menunggu Pembayaran */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-500">Menunggu Pembayaran</span>
-            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-              Pending
-            </span>
+          {/* Menunggu Pembayaran */}
+          <div className="p-4 sm:p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-zinc-500">Menunggu Bayar</span>
+              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-amber-600 bg-amber-50/80 px-1.5 py-0.5 rounded">
+                <IconClock className="w-3 h-3" /> Pending
+              </span>
+            </div>
+            <div>
+              <div className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">{stats.pendingCount}</div>
+              <div className="text-[11px] text-amber-600 font-medium mt-1">Menunggu QRIS / Transfer VA</div>
+            </div>
           </div>
-          <div className="text-2xl font-extrabold text-amber-600 tracking-tight">
-            {stats.pendingCount}
-          </div>
-          <p className="text-[11px] text-gray-500 mt-2">
-            Menunggu scan QRIS / transfer VA
-          </p>
-        </div>
 
-        {/* Card 4: Total Order Masuk */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-500">Total Order Masuk</span>
-            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-purple-50 text-purple-700 border border-purple-200">
-              Semua Pesanan
-            </span>
+          {/* Total Order Masuk */}
+          <div className="p-4 sm:p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-zinc-500">Total Pesanan</span>
+              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-purple-600 bg-purple-50/80 px-1.5 py-0.5 rounded">
+                <IconShoppingCart className="w-3 h-3" /> Semua
+              </span>
+            </div>
+            <div>
+              <div className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">{stats.totalOrders}</div>
+              <div className="text-[11px] text-zinc-400 mt-1">Tercatat di database</div>
+            </div>
           </div>
-          <div className="text-2xl font-extrabold text-gray-900 tracking-tight">
-            {stats.totalOrders}
-          </div>
-          <p className="text-[11px] text-gray-500 mt-2">
-            Seluruh pesanan tercatat di database
-          </p>
-        </div>
 
+        </div>
       </div>
 
-      {/* Filter Tabs & Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      {/* Main Table Card (Single unified card with filter tabs & search on header) */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs overflow-hidden">
         
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 p-1 bg-gray-100/80 rounded-xl overflow-x-auto">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              statusFilter === 'all'
-                ? 'bg-black text-white shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Semua ({purchases.length})
-          </button>
-          <button
-            onClick={() => setStatusFilter('settlement')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              statusFilter === 'settlement'
-                ? 'bg-black text-white shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Sukses ({stats.settlementCount})
-          </button>
-          <button
-            onClick={() => setStatusFilter('pending')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              statusFilter === 'pending'
-                ? 'bg-black text-white shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Pending ({stats.pendingCount})
-          </button>
-          <button
-            onClick={() => setStatusFilter('failed')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              statusFilter === 'failed'
-                ? 'bg-black text-white shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Gagal ({stats.failedCount})
-          </button>
+        {/* Table Filters & Search Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-zinc-100">
+          <div className="flex items-center gap-1 bg-[#f4f4f5] p-1 rounded-xl text-xs font-medium text-zinc-500 w-fit overflow-x-auto">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1 rounded-lg transition-all ${
+                statusFilter === 'all' ? 'bg-white text-zinc-900 font-semibold shadow-2xs' : 'text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              Semua ({stats.totalOrders})
+            </button>
+            <button
+              onClick={() => setStatusFilter('settlement')}
+              className={`px-3 py-1 rounded-lg transition-all ${
+                statusFilter === 'settlement' ? 'bg-white text-emerald-600 font-semibold shadow-2xs' : 'text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              Sukses ({stats.settlementCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter('pending')}
+              className={`px-3 py-1 rounded-lg transition-all ${
+                statusFilter === 'pending' ? 'bg-white text-amber-600 font-semibold shadow-2xs' : 'text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              Pending ({stats.pendingCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter('failed')}
+              className={`px-3 py-1 rounded-lg transition-all ${
+                statusFilter === 'failed' ? 'bg-white text-rose-600 font-semibold shadow-2xs' : 'text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              Gagal ({stats.failedCount})
+            </button>
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <IconSearch className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
+            <input 
+              type="text" 
+              placeholder="Cari order ID, email, usaha..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#f4f4f5] border border-transparent rounded-xl focus:outline-none focus:border-zinc-300 focus:bg-white transition-all"
+            />
+          </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="relative w-full md:w-80">
-          <IconSearch className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari order ID, email, atau metode..."
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-blue-500 shadow-xs"
-          />
-        </div>
-
-      </div>
-
-      {/* Main Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+        {/* Purchase Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/70 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                <th className="py-3 px-5">Pembeli & Profil Usaha</th>
-                <th className="py-3 px-5">Order ID & Paket</th>
-                <th className="py-3 px-5">Metode Pembayaran</th>
-                <th className="py-3 px-5">Total Bayar</th>
-                <th className="py-3 px-5">Status Midtrans</th>
-                <th className="py-3 px-5">Waktu Order</th>
-                <th className="py-3 px-5 text-right">Aksi Super Admin</th>
+          <table className="w-full text-left text-xs">
+            <thead className="text-zinc-400 font-medium border-b border-zinc-100 bg-zinc-50/60">
+              <tr>
+                <th className="px-5 py-3 font-normal">Pembeli & Profil Usaha</th>
+                <th className="px-4 py-3 font-normal">Order ID & Paket</th>
+                <th className="px-4 py-3 font-normal">Metode Bayar</th>
+                <th className="px-4 py-3 font-normal">Total Bayar</th>
+                <th className="px-4 py-3 font-normal">Status Midtrans</th>
+                <th className="px-4 py-3 font-normal">Waktu Order</th>
+                <th className="px-5 py-3 font-normal text-right">Aksi Super Admin</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-xs">
+            <tbody className="divide-y divide-zinc-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-500">
-                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                    <span>Memuat data riwayat pembelian...</span>
+                  <td colSpan={7} className="px-5 py-16 text-center text-zinc-400">
+                    <IconRefresh className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-600" />
+                    Memuat riwayat transaksi pembelian...
                   </td>
                 </tr>
               ) : filteredPurchases.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-500">
-                    <IconShoppingCart className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                    <p className="font-semibold text-gray-700">Belum ada transaksi pembelian yang cocok.</p>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
-                      Transaksi baru yang dibuat pengguna di halaman checkout akan otomatis masuk ke sini.
+                  <td colSpan={7} className="px-5 py-16 text-center text-zinc-400">
+                    <IconShoppingCart className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
+                    <p className="font-semibold text-zinc-700">Belum ada transaksi pembelian yang cocok.</p>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">
+                      Transaksi baru yang dibuat pengguna di checkout akan otomatis masuk ke sini.
                     </p>
                   </td>
                 </tr>
@@ -436,28 +428,30 @@ export default function AdminPembelianPage() {
                   const status = (item.status || '').toLowerCase();
                   const isSuccess = ['settlement', 'capture', 'success'].includes(status);
                   const isPending = status === 'pending';
-                  const isFailed = ['expire', 'failed', 'cancel'].includes(status);
 
                   const paymentInfo = PAYMENT_ICON_MAP[item.paymentMethod] || { label: item.paymentMethod };
+                  const initialLetter = item.userName 
+                    ? item.userName.charAt(0).toUpperCase() 
+                    : item.userEmail.charAt(0).toUpperCase();
 
                   return (
-                    <tr key={item.id} className="hover:bg-gray-50/60 transition-colors">
+                    <tr key={item.id} className="hover:bg-zinc-50/70 transition-colors">
                       
                       {/* Pembeli & Profil Usaha */}
-                      <td className="py-3.5 px-5">
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">
-                            {item.userName ? item.userName.charAt(0).toUpperCase() : item.userEmail.charAt(0).toUpperCase()}
+                          <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0">
+                            {initialLetter}
                           </div>
                           <div className="min-w-0">
-                            <p className="font-bold text-gray-900 truncate">
+                            <p className="font-semibold text-zinc-900 leading-tight truncate">
                               {item.userName || item.userEmail.split('@')[0]}
                             </p>
-                            <p className="text-[11px] text-gray-500 truncate">{item.userEmail}</p>
+                            <p className="text-[11px] text-zinc-400 mt-0.5 truncate">{item.userEmail}</p>
                             {item.namaUsaha && (
-                              <p className="text-[10px] text-blue-600 font-medium flex items-center gap-1 mt-0.5">
-                                <IconBuildingStore className="w-3 h-3" />
-                                <span>{item.namaUsaha} {item.kotaLokasi ? `(${item.kotaLokasi})` : ''}</span>
+                              <p className="text-[11px] text-zinc-500 font-medium flex items-center gap-1 mt-0.5">
+                                <IconBuildingStore className="w-3 h-3 text-zinc-400 shrink-0" />
+                                <span className="truncate">{item.namaUsaha} {item.kotaLokasi ? `(${item.kotaLokasi})` : ''}</span>
                               </p>
                             )}
                           </div>
@@ -465,17 +459,17 @@ export default function AdminPembelianPage() {
                       </td>
 
                       {/* Order ID & Paket */}
-                      <td className="py-3.5 px-5">
+                      <td className="px-4 py-3.5">
                         <div>
                           <button
                             onClick={() => handleCopyOrderId(item.orderId)}
-                            className="font-mono font-semibold text-gray-800 hover:text-blue-600 flex items-center gap-1 group text-[11px]"
+                            className="font-mono text-zinc-700 hover:text-blue-600 flex items-center gap-1 group text-[11px] font-semibold"
                             title="Klik untuk menyalin Order ID"
                           >
                             <span>{item.orderId}</span>
-                            <IconCopy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <IconCopy className="w-3 h-3 opacity-0 group-hover:opacity-100 text-zinc-400 transition-opacity" />
                           </button>
-                          <div className="flex items-center gap-1.5 mt-1">
+                          <div className="mt-1">
                             <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-50 text-amber-700 border border-amber-200">
                               {item.plan === 'yearly' ? 'Paket 1 Tahun' : 'Paket 1 Bulan'}
                             </span>
@@ -483,114 +477,114 @@ export default function AdminPembelianPage() {
                         </div>
                       </td>
 
-                      {/* Metode Pembayaran */}
-                      <td className="py-3.5 px-5">
-                        <div className="flex items-center gap-2.5">
+                      {/* Metode Bayar */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
                           {paymentInfo.image ? (
-                            <div className="w-7 h-7 rounded-lg bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0 shadow-2xs">
+                            <div className="w-6 h-6 rounded-lg bg-white border border-zinc-200 p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
                               <Image
                                 src={paymentInfo.image}
                                 alt={paymentInfo.label}
-                                width={24}
-                                height={24}
+                                width={20}
+                                height={20}
                                 className="w-full h-full object-contain"
                               />
                             </div>
                           ) : (
-                            <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 shrink-0">
-                              <IconCreditCard className="w-4 h-4" />
+                            <div className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-500 shrink-0">
+                              <IconCreditCard className="w-3.5 h-3.5" />
                             </div>
                           )}
-                          <span className="font-semibold text-gray-800">{paymentInfo.label}</span>
+                          <span className="text-zinc-800 font-medium text-xs truncate max-w-[140px]">{paymentInfo.label}</span>
                         </div>
                       </td>
 
-                      {/* Total Bayar & Kupon */}
-                      <td className="py-3.5 px-5">
+                      {/* Total Bayar */}
+                      <td className="px-4 py-3.5">
                         <div>
-                          <p className="font-extrabold text-gray-900">
+                          <p className="font-bold text-zinc-900">
                             Rp {Number(item.amount).toLocaleString('id-ID')}
                           </p>
                           {item.couponCode && (
-                            <p className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+                            <p className="text-[10px] font-semibold text-emerald-600 flex items-center gap-0.5 mt-0.5">
                               <IconTag className="w-3 h-3" />
-                              <span>Kupon: {item.couponCode}</span>
+                              <span>{item.couponCode}</span>
                             </p>
                           )}
                         </div>
                       </td>
 
                       {/* Status Midtrans */}
-                      <td className="py-3.5 px-5">
+                      <td className="px-4 py-3.5">
                         {isSuccess ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            Sukses / Terbayar
+                            Sukses
                           </span>
                         ) : isPending ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                            Menunggu Bayar
+                            Pending
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                            Gagal / Expired
+                            Gagal
                           </span>
                         )}
                       </td>
 
                       {/* Waktu Order */}
-                      <td className="py-3.5 px-5 text-gray-500 text-[11px]">
+                      <td className="px-4 py-3.5 text-zinc-500">
                         <div>
-                          <p>{new Date(item.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                          <p className="text-gray-400 font-mono text-[10px]">
+                          <p className="text-zinc-700 font-medium">{new Date(item.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                          <p className="text-zinc-400 font-mono text-[10px]">
                             {new Date(item.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       </td>
 
                       {/* Aksi Super Admin */}
-                      <td className="py-3.5 px-5 text-right">
+                      <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Tombol Cek / Sinkron ke Midtrans */}
+                          {/* Sync Midtrans */}
                           <button
                             onClick={() => handleSyncMidtrans(item)}
                             disabled={isSyncingId === item.id}
-                            title="Sinkronkan status dari Midtrans API"
-                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            title="Sinkronkan status dari Midtrans"
+                            className="p-1.5 text-zinc-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <IconRefresh className={`w-4 h-4 ${isSyncingId === item.id ? 'animate-spin text-blue-600' : ''}`} />
                           </button>
 
-                          {/* Tombol Verifikasi Manual jika pending */}
+                          {/* Verifikasi Manual jika pending */}
                           {isPending && (
                             <button
                               onClick={() => handleManualVerify(item)}
                               title="Verifikasi manual & aktifkan premium"
-                              className="px-2 py-1 text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
+                              className="px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
                             >
                               Verifikasi
                             </button>
                           )}
 
-                          {/* Tombol Detail Info */}
+                          {/* Detail */}
                           <button
                             onClick={() => {
                               setSelectedPurchase(item);
                               setIsDetailModalOpen(true);
                             }}
                             title="Lihat rincian transaksi"
-                            className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors cursor-pointer"
                           >
-                            <IconReceipt className="w-4 h-4" />
+                            <IconEye className="w-4 h-4" />
                           </button>
 
-                          {/* Tombol Hapus */}
+                          {/* Hapus */}
                           <button
                             onClick={() => setDeleteConfirmId(item.id)}
                             title="Hapus riwayat pesanan"
-                            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <IconTrash className="w-4 h-4" />
                           </button>
@@ -609,48 +603,48 @@ export default function AdminPembelianPage() {
       {/* Modal Detail Pembelian */}
       {isDetailModalOpen && selectedPurchase && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 animate-zoom-in">
-            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-zinc-100 animate-zoom-in">
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-100 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                   <IconReceipt className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 text-sm">Rincian Pembelian</h3>
-                  <p className="text-xs text-gray-500 font-mono">{selectedPurchase.orderId}</p>
+                  <h3 className="font-bold text-zinc-900 text-sm">Rincian Pembelian</h3>
+                  <p className="text-xs text-zinc-400 font-mono">{selectedPurchase.orderId}</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsDetailModalOpen(false)}
-                className="p-1 text-gray-400 hover:text-gray-700 rounded-lg"
+                className="p-1 text-zinc-400 hover:text-zinc-700 rounded-lg"
               >
                 <IconX className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3.5 text-xs">
-              <div className="p-3 bg-gray-50 rounded-xl flex justify-between items-center">
-                <span className="text-gray-500">Status Pembayaran</span>
-                <span className={`px-2.5 py-0.5 rounded-full font-bold ${
+              <div className="p-3 bg-zinc-50 rounded-xl flex justify-between items-center">
+                <span className="text-zinc-500">Status Pembayaran</span>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
                   ['settlement', 'capture', 'success'].includes(selectedPurchase.status)
-                    ? 'bg-emerald-100 text-emerald-800'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : selectedPurchase.status === 'pending'
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-rose-100 text-rose-800'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-rose-50 text-rose-700 border border-rose-200'
                 }`}>
                   {selectedPurchase.status.toUpperCase()}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl border border-gray-100">
-                  <p className="text-gray-400 text-[10px]">Nama Pembeli</p>
-                  <p className="font-bold text-gray-900 mt-0.5">{selectedPurchase.userName || 'Tanpa Nama'}</p>
-                  <p className="text-[11px] text-gray-500">{selectedPurchase.userEmail}</p>
+                <div className="p-3 rounded-xl border border-zinc-100">
+                  <p className="text-zinc-400 text-[10px]">Nama Pembeli</p>
+                  <p className="font-bold text-zinc-900 mt-0.5">{selectedPurchase.userName || 'Tanpa Nama'}</p>
+                  <p className="text-[11px] text-zinc-400">{selectedPurchase.userEmail}</p>
                 </div>
-                <div className="p-3 rounded-xl border border-gray-100">
-                  <p className="text-gray-400 text-[10px]">Paket Langganan</p>
-                  <p className="font-bold text-gray-900 mt-0.5">
+                <div className="p-3 rounded-xl border border-zinc-100">
+                  <p className="text-zinc-400 text-[10px]">Paket Langganan</p>
+                  <p className="font-bold text-zinc-900 mt-0.5">
                     {selectedPurchase.plan === 'yearly' ? 'Tahunan (1 Tahun)' : 'Bulanan (1 Bulan)'}
                   </p>
                   <p className="text-[11px] text-blue-600 font-semibold">
@@ -662,18 +656,18 @@ export default function AdminPembelianPage() {
               {selectedPurchase.snapToken && (
                 <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
                   <p className="text-[10px] text-blue-700 font-bold mb-1">Snap Token Midtrans</p>
-                  <p className="font-mono text-[11px] text-slate-700 break-all">{selectedPurchase.snapToken}</p>
+                  <p className="font-mono text-[11px] text-zinc-700 break-all">{selectedPurchase.snapToken}</p>
                 </div>
               )}
 
-              <div className="p-3 rounded-xl border border-gray-100 space-y-1.5">
+              <div className="p-3 rounded-xl border border-zinc-100 space-y-1.5">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Metode Pembayaran:</span>
-                  <span className="font-semibold text-gray-800 uppercase">{selectedPurchase.paymentMethod}</span>
+                  <span className="text-zinc-500">Metode Pembayaran:</span>
+                  <span className="font-semibold text-zinc-800 uppercase">{selectedPurchase.paymentMethod}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Waktu Order:</span>
-                  <span className="text-gray-700">{new Date(selectedPurchase.createdAt).toLocaleString('id-ID')}</span>
+                  <span className="text-zinc-500">Waktu Order:</span>
+                  <span className="text-zinc-700">{new Date(selectedPurchase.createdAt).toLocaleString('id-ID')}</span>
                 </div>
                 {selectedPurchase.paidAt && (
                   <div className="flex justify-between text-emerald-700 font-semibold">
@@ -684,7 +678,7 @@ export default function AdminPembelianPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 mt-6 pt-4 border-t border-gray-100">
+            <div className="flex justify-end gap-2.5 mt-6 pt-4 border-t border-zinc-100">
               {selectedPurchase.status === 'pending' && (
                 <button
                   onClick={() => handleManualVerify(selectedPurchase)}
@@ -695,7 +689,7 @@ export default function AdminPembelianPage() {
               )}
               <button
                 onClick={() => setIsDetailModalOpen(false)}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition-all"
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-xs font-semibold transition-all"
               >
                 Tutup
               </button>
@@ -707,18 +701,18 @@ export default function AdminPembelianPage() {
       {/* Modal Konfirmasi Hapus */}
       {deleteConfirmId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-xl border border-zinc-100">
             <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <IconTrash className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-gray-900 text-base mb-1">Hapus Riwayat Pesanan?</h3>
-            <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+            <h3 className="font-bold text-zinc-900 text-base mb-1">Hapus Riwayat Pesanan?</h3>
+            <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
               Tindakan ini hanya menghapus log riwayat transaksi pembelian ini dari dashboard admin.
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setDeleteConfirmId(null)}
-                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl"
+                className="flex-1 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs rounded-xl"
               >
                 Batal
               </button>
@@ -736,4 +730,3 @@ export default function AdminPembelianPage() {
     </div>
   );
 }
-
