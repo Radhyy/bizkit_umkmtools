@@ -40,6 +40,7 @@ const PAYMENT_METHODS = [
     name: 'QRIS & E-Wallet',
     desc: 'GoPay, OVO, Dana, ShopeePay, LinkAja & BCA QR',
     badge: 'Paling Populer',
+    image: '/iconpembayaran/qris.png',
     icon: <IconQrcode className="w-5 h-5 text-blue-600" />
   },
   {
@@ -47,6 +48,7 @@ const PAYMENT_METHODS = [
     name: 'BCA Virtual Account',
     desc: 'Transfer instan otomatis dari m-BCA / KlikBCA',
     badge: 'Instan',
+    image: '/iconpembayaran/bca.png',
     icon: <IconBuildingBank className="w-5 h-5 text-blue-600" />
   },
   {
@@ -54,6 +56,7 @@ const PAYMENT_METHODS = [
     name: 'Mandiri Virtual Account',
     desc: 'Transfer via Livin by Mandiri & ATM Mandiri',
     badge: 'Instan',
+    image: '/iconpembayaran/mandiri.png',
     icon: <IconBuildingBank className="w-5 h-5 text-amber-600" />
   },
   {
@@ -61,6 +64,7 @@ const PAYMENT_METHODS = [
     name: 'BNI Virtual Account',
     desc: 'Transfer melalui BNI Mobile Banking & ATM',
     badge: 'Instan',
+    image: '/iconpembayaran/bni.png',
     icon: <IconBuildingBank className="w-5 h-5 text-emerald-600" />
   },
   {
@@ -68,6 +72,7 @@ const PAYMENT_METHODS = [
     name: 'BRI Virtual Account',
     desc: 'Transfer via BRImo & ATM BRI terdekat',
     badge: 'Instan',
+    image: '/iconpembayaran/bri.png',
     icon: <IconBuildingBank className="w-5 h-5 text-blue-500" />
   },
   {
@@ -486,10 +491,22 @@ function CheckoutContent() {
                           }`}
                         >
                           <div className="flex items-center gap-3.5">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                              isSelected ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 p-1.5 ${
+                              method.image
+                                ? (isSelected ? 'bg-white border-2 border-blue-500 shadow-xs' : 'bg-white border border-slate-200/90 shadow-xs')
+                                : (isSelected ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600')
                             }`}>
-                              {method.icon}
+                              {method.image ? (
+                                <Image
+                                  src={method.image}
+                                  alt={method.name}
+                                  width={40}
+                                  height={40}
+                                  className="w-full h-full object-contain"
+                                />
+                              ) : (
+                                method.icon
+                              )}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
