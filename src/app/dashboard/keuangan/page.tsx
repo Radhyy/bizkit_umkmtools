@@ -1,289 +1,944 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   IconRefresh, 
-  IconTrendingUp,
-  IconTrendingDown,
-  IconWallet,
-  IconCashBanknote,
-  IconChevronDown,
-  IconCalendarEvent,
-  IconFilter,
-  IconArrowRight,
-  IconReceipt2
+  IconArrowUpRight, 
+  IconArrowDownLeft,
+  IconChevronDown, 
+  IconFilter, 
+  IconPlus,
+  IconPencil,
+  IconTrash,
+  IconAlertTriangle,
+  IconX,
+  IconCheck,
+  IconDownload,
+  IconFileTypePdf,
+  IconFileTypeXls,
+  IconFileTypeCsv,
+  IconSearch,
+  IconReceipt2,
 } from '@tabler/icons-react';
+import { exportToPDF, exportToExcel, exportToCSV } from '@/lib/exportUtils';
 
-const transaksiData = [
-  { id: 1, tanggal: '31 Mei 2025', kategori: 'Penjualan', deskripsi: 'Penjualan Kasir', jumlah: 1250000, tipe: 'masuk' },
-  { id: 2, tanggal: '31 Mei 2025', kategori: 'Bahan Baku', deskripsi: 'Pembelian Ayam', jumlah: 850000, tipe: 'keluar' },
-  { id: 3, tanggal: '30 Mei 2025', kategori: 'Penjualan', deskripsi: 'Penjualan Kasir', jumlah: 980000, tipe: 'masuk' },
-  { id: 4, tanggal: '30 Mei 2025', kategori: 'Operasional', deskripsi: 'Listrik', jumlah: 320000, tipe: 'keluar' },
-  { id: 5, tanggal: '29 Mei 2025', kategori: 'Bahan Baku', deskripsi: 'Pembelian Sayur', jumlah: 450000, tipe: 'keluar' },
-  { id: 6, tanggal: '29 Mei 2025', kategori: 'Penjualan', deskripsi: 'Pesanan Katering', jumlah: 3500000, tipe: 'masuk' },
-  { id: 7, tanggal: '28 Mei 2025', kategori: 'Operasional', deskripsi: 'Gaji Karyawan', jumlah: 4500000, tipe: 'keluar' },
-  { id: 8, tanggal: '28 Mei 2025', kategori: 'Penjualan', deskripsi: 'Penjualan Kasir', jumlah: 1100000, tipe: 'masuk' },
-];
+interface Transaction {
+  id: string;
+  userId: string;
+  tipe: 'masuk' | 'keluar';
+  kategori: string;
+  deskripsi: string;
+  jumlah: number;
+  tanggal: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface SummaryData {
+  totalPemasukan: number;
+  totalPengeluaran: number;
+  saldo: number;
+  totalTransaksi: number;
+}
 
 const formatRupiah = (value: number) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
-    minimumFractionDigits: 0
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(value);
 };
 
-export default function KeuanganPage() {
-  const [activeTab, setActiveTab] = useState<'ringkasan' | 'pemasukan' | 'pengeluaran'>('ringkasan');
+const formatDateIndo = (dateStr: string) => {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  } catch {
+    return dateStr;
+  }
+};
 
-  // Filter transactions based on active tab
-  const filteredTransaksi = transaksiData.filter(trx => {
-    if (activeTab === 'pemasukan') return trx.tipe === 'masuk';
-    if (activeTab === 'pengeluaran') return trx.tipe === 'keluar';
-    return true; // ringkasan
+export default function KeuanganPage() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'ringkasan' | 'pemasukan' | 'pengeluaran'>('ringkasan');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [summary, setSummary] = useState<SummaryData>({
+    totalPemasukan: 0,
+    totalPengeluaran: 0,
+    saldo: 0,
+    totalTransaksi: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name?: string; email: string } | null>(null);
+
+  // Filter kategori & Pencarian
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Modal Hapus Kustom
+  const [deletingTrx, setDeletingTrx] = useState<Transaction | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Modal Edit Kustom
+  const [editingTrx, setEditingTrx] = useState<Transaction | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    tipe: 'masuk' as 'masuk' | 'keluar',
+    kategori: '',
+    deskripsi: '',
+    jumlah: '',
+    tanggal: ''
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Toast Notifikasi
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Modal Unduh Laporan
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3500);
+  };
+
+  // Ambil user dan load data transaksi dari API
+  const fetchKeuanganData = async (userId: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/keuangan?userId=${userId}`);
+      const data = await res.json();
+      if (res.ok && data.transactions) {
+        setTransactions(data.transactions);
+        if (data.summary) {
+          setSummary(data.summary);
+        }
+      } else {
+        showToast(data.error || 'Gagal memuat data transaksi', 'error');
+      }
+    } catch (err) {
+      console.error('Error fetching keuangan data:', err);
+      showToast('Terjadi kesalahan saat memuat data keuangan.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem("user") : null;
+    if (!raw) {
+      router.push("/login");
+      return;
+    }
+    try {
+      const u = JSON.parse(raw);
+      if (!u?.id) {
+        router.push("/login");
+        return;
+      }
+      setCurrentUser(u);
+      fetchKeuanganData(u.id);
+    } catch {
+      router.push("/login");
+    }
+  }, [router]);
+
+  // Handle Edit Transaksi
+  const handleOpenEdit = (trx: Transaction) => {
+    setEditingTrx(trx);
+    const dateFormatted = trx.tanggal ? new Date(trx.tanggal).toISOString().split('T')[0] : '';
+    setEditFormData({
+      tipe: trx.tipe,
+      kategori: trx.kategori,
+      deskripsi: trx.deskripsi,
+      jumlah: trx.jumlah.toLocaleString('id-ID'),
+      tanggal: dateFormatted
+    });
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTrx || !currentUser) return;
+    setIsSavingEdit(true);
+
+    const parsedJumlah = parseInt(editFormData.jumlah.replace(/\D/g, "")) || 0;
+    if (parsedJumlah <= 0) {
+      showToast('Nominal transaksi harus lebih dari 0', 'error');
+      setIsSavingEdit(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/keuangan/${editingTrx.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          tipe: editFormData.tipe,
+          kategori: editFormData.kategori.trim(),
+          deskripsi: editFormData.deskripsi.trim(),
+          jumlah: parsedJumlah,
+          tanggal: editFormData.tanggal
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal memperbarui transaksi');
+      }
+
+      // Update state lokal
+      const updatedList = transactions.map(t => t.id === editingTrx.id ? data.transaction : t);
+      setTransactions(updatedList);
+      recalculateSummary(updatedList);
+
+      setEditingTrx(null);
+      showToast('Catatan transaksi berhasil diperbarui!', 'success');
+    } catch (err: any) {
+      console.error('Error updating transaction:', err);
+      showToast(err.message || 'Gagal memperbarui transaksi', 'error');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Handle Hapus Transaksi
+  const handleConfirmDelete = async () => {
+    if (!deletingTrx || !currentUser) return;
+    setIsDeleting(true);
+
+    try {
+      const res = await fetch(`/api/keuangan/${deletingTrx.id}?userId=${currentUser.id}`, {
+        method: 'DELETE'
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal menghapus transaksi');
+      }
+
+      // Hapus dari state lokal
+      const updatedList = transactions.filter(t => t.id !== deletingTrx.id);
+      setTransactions(updatedList);
+      recalculateSummary(updatedList);
+
+      setDeletingTrx(null);
+      showToast('Transaksi berhasil dihapus dari catatan Anda!', 'success');
+    } catch (err: any) {
+      console.error('Error deleting transaction:', err);
+      showToast(err.message || 'Gagal menghapus transaksi', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Recalculate summary helper
+  const recalculateSummary = (list: Transaction[]) => {
+    let masuk = 0;
+    let keluar = 0;
+    list.forEach(t => {
+      const j = Number(t.jumlah) || 0;
+      if (t.tipe === 'masuk') masuk += j;
+      else keluar += j;
+    });
+    setSummary({
+      totalPemasukan: masuk,
+      totalPengeluaran: keluar,
+      saldo: masuk - keluar,
+      totalTransaksi: list.length
+    });
+  };
+
+  // Filter daftar transaksi berdasarkan Tab, Kategori, dan Search Query
+  const filteredTransaksi = transactions.filter(trx => {
+    if (activeTab === 'pemasukan' && trx.tipe !== 'masuk') return false;
+    if (activeTab === 'pengeluaran' && trx.tipe !== 'keluar') return false;
+    if (selectedCategory !== 'all' && trx.kategori !== selectedCategory) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchDesk = trx.deskripsi?.toLowerCase().includes(q);
+      const matchKat = trx.kategori?.toLowerCase().includes(q);
+      if (!matchDesk && !matchKat) return false;
+    }
+    return true;
   });
 
+  // Kategori unik untuk dropdown filter
+  const allCategories = Array.from(new Set(transactions.map(t => t.kategori)));
+
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+    <div className="p-5 sm:p-8 max-w-[1280px] mx-auto space-y-6 font-jakarta">
+      
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-5 right-5 z-50 px-4 py-2.5 rounded-2xl shadow-xl border flex items-center gap-2 text-xs font-semibold transition-all ${
+          toast.type === 'success' 
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+            : 'bg-rose-50 text-rose-800 border-rose-200'
+        }`}>
+          {toast.type === 'success' ? (
+            <IconCheck className="w-4 h-4 text-emerald-600" />
+          ) : (
+            <IconAlertTriangle className="w-4 h-4 text-rose-600" />
+          )}
+          <span>{toast.message}</span>
+          <button onClick={() => setToast(null)} className="ml-2 text-zinc-400 hover:text-zinc-700">
+            <IconX className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Header Section: Title + Action Buttons */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="p-1.5 bg-blue-600 text-white rounded-lg shadow-sm">
-              <IconReceipt2 className="w-5 h-5" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Keuangan & Kas</h1>
+          <p className="text-xs text-zinc-400 mt-0.5">Pantau arus kas masuk, pengeluaran, dan pembukuan bisnis Anda secara terinci.</p>
+        </div>
+
+        {/* Right Controls */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+          {/* Refresh Data */}
+          <button 
+            onClick={() => currentUser?.id && fetchKeuanganData(currentUser.id)}
+            title="Muat ulang data"
+            disabled={loading}
+            className="p-2 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs disabled:opacity-50"
+          >
+            <IconRefresh className={`w-4 h-4 ${loading ? 'animate-spin text-blue-600' : 'text-zinc-500'}`} />
+          </button>
+
+          {/* Unduh Laporan */}
+          <button 
+            onClick={() => {
+              if (transactions.length === 0) {
+                showToast('Belum ada data transaksi untuk diunduh.', 'error');
+                return;
+              }
+              setIsExportModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 font-medium hover:bg-zinc-50 transition-colors shadow-2xs"
+          >
+            <IconDownload className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Unduh Laporan</span>
+          </button>
+
+          {/* Catat Transaksi Baru (Black pill matching active sidebar) */}
+          <Link
+            href="/dashboard/keuangan/tambah"
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#18181b] hover:bg-zinc-800 text-white rounded-xl font-semibold shadow-xs transition-all"
+          >
+            <IconPlus className="w-3.5 h-3.5" stroke={2.5} />
+            <span>Catat Transaksi</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* 2-Column KPI Cards in One Bordered Container (Hanya Total Pemasukan & Total Pengeluaran) */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs overflow-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-zinc-200/80">
+          
+          {/* 1. Total Pemasukan */}
+          <div className="p-4 sm:p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-zinc-500">Total Pemasukan</span>
+              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50/80 px-1.5 py-0.5 rounded">
+                <IconArrowUpRight className="w-3 h-3" /> Kas Masuk
+              </span>
             </div>
-            <h1 className="text-3xl font-bold text-[#0f172a]">Pemasukan & Pengeluaran</h1>
+            <div>
+              <div className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
+                {formatRupiah(summary.totalPemasukan)}
+              </div>
+              <div className="text-[11px] text-zinc-400 mt-1">Total penerimaan tercatat</div>
+            </div>
           </div>
-          <p className="text-gray-500 text-sm mt-1">Pantau arus kas bisnis Anda secara detail dan real-time.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="p-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors shrink-0">
-            <IconRefresh className="w-5 h-5" />
-          </button>
-          <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 rounded-lg text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm w-full sm:w-auto">
-            Unduh Laporan
-          </button>
+
+          {/* 2. Total Pengeluaran */}
+          <div className="p-4 sm:p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-zinc-500">Total Pengeluaran</span>
+              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-rose-500 bg-rose-50/80 px-1.5 py-0.5 rounded">
+                <IconArrowDownLeft className="w-3 h-3" /> Kas Keluar
+              </span>
+            </div>
+            <div>
+              <div className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
+                {formatRupiah(summary.totalPengeluaran)}
+              </div>
+              <div className="text-[11px] text-zinc-400 mt-1">Biaya & operasional bahan</div>
+            </div>
+          </div>
+
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 mb-8 bg-white p-1 rounded-lg w-full sm:w-max border border-gray-100 overflow-x-auto custom-scrollbar">
-        <button 
-          onClick={() => setActiveTab('ringkasan')}
-          className={`px-5 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-            activeTab === 'ringkasan' 
-              ? 'bg-white shadow-sm border border-gray-100 text-[#0f172a]' 
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Ringkasan
-        </button>
-        <button 
-          onClick={() => setActiveTab('pemasukan')}
-          className={`px-5 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-            activeTab === 'pemasukan' 
-              ? 'bg-white shadow-sm border border-gray-100 text-blue-600' 
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Pemasukan
-        </button>
-        <button 
-          onClick={() => setActiveTab('pengeluaran')}
-          className={`px-5 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-            activeTab === 'pengeluaran' 
-              ? 'bg-white shadow-sm border border-gray-100 text-red-600' 
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Pengeluaran
-        </button>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      {/* Action Bar: Filter Tabs, Category Dropdown & Search */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
         
-        {/* Card 1: Total Pemasukan (Ringkasan & Pemasukan) or Total Pengeluaran (Pengeluaran) */}
-        {activeTab !== 'pengeluaran' ? (
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between">
-            <div className="flex flex-col">
-              <h3 className="text-gray-500 font-medium mb-3">Total Pemasukan</h3>
-              <div className="text-2xl sm:text-3xl font-bold text-[#0f172a] mb-2 whitespace-nowrap">Rp 24.500.000</div>
-              <span className="text-blue-500 text-xs font-semibold flex items-center gap-1 mt-auto">
-                <IconTrendingUp className="w-3 h-3" /> +12% dari bulan lalu
-              </span>
-            </div>
-            <div className="flex flex-col items-end justify-between">
-              <div className="p-1.5 bg-blue-50 rounded-lg mb-4">
-                <IconWallet className="w-5 h-5 text-blue-500" />
-              </div>
-              <div className="flex items-end gap-1.5 h-10">
-                <div className="w-2.5 rounded-t-sm bg-blue-500/30 h-[30%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-blue-500/50 h-[50%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-blue-500/40 h-[40%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-blue-500/70 h-[70%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-blue-500/60 h-[60%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-blue-500/80 h-[80%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-blue-500 h-[100%]"></div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between">
-            <div className="flex flex-col">
-              <h3 className="text-gray-500 font-medium mb-3">Total Pengeluaran</h3>
-              <div className="text-2xl sm:text-3xl font-bold text-[#0f172a] mb-2 whitespace-nowrap">Rp 12.800.000</div>
-              <span className="text-red-500 text-xs font-semibold flex items-center gap-1 mt-auto">
-                <IconTrendingDown className="w-3 h-3" /> +8% dari bulan lalu
-              </span>
-            </div>
-            <div className="flex flex-col items-end justify-between">
-              <div className="p-1.5 bg-red-50 rounded-lg mb-4">
-                <IconCashBanknote className="w-5 h-5 text-red-500" />
-              </div>
-              <div className="flex items-end gap-1.5 h-10">
-                <div className="w-2.5 rounded-t-sm bg-red-500/30 h-[20%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500/50 h-[40%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500/40 h-[30%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500/70 h-[60%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500/60 h-[50%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500/80 h-[70%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500 h-[90%]"></div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Segmented Switch: Ringkasan | Pemasukan | Pengeluaran */}
+        <div className="bg-[#f4f4f5] p-0.5 rounded-xl flex items-center text-xs font-medium w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setActiveTab('ringkasan')}
+            className={`px-3.5 py-1.5 rounded-lg transition-all flex-1 sm:flex-initial ${
+              activeTab === 'ringkasan' 
+                ? 'bg-white text-zinc-900 font-semibold shadow-2xs' 
+                : 'text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            Semua ({transactions.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('pemasukan')}
+            className={`px-3.5 py-1.5 rounded-lg transition-all flex-1 sm:flex-initial ${
+              activeTab === 'pemasukan' 
+                ? 'bg-white text-emerald-600 font-semibold shadow-2xs' 
+                : 'text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            Pemasukan
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('pengeluaran')}
+            className={`px-3.5 py-1.5 rounded-lg transition-all flex-1 sm:flex-initial ${
+              activeTab === 'pengeluaran' 
+                ? 'bg-white text-rose-500 font-semibold shadow-2xs' 
+                : 'text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            Pengeluaran
+          </button>
+        </div>
 
-        {/* Card 2: Total Pengeluaran (Ringkasan) or Jumlah Transaksi (Pemasukan / Pengeluaran) */}
-        {activeTab === 'ringkasan' ? (
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between">
-            <div className="flex flex-col">
-              <h3 className="text-gray-500 font-medium mb-3">Total Pengeluaran</h3>
-              <div className="text-2xl sm:text-3xl font-bold text-[#0f172a] mb-2 whitespace-nowrap">Rp 12.800.000</div>
-              <span className="text-red-500 text-xs font-semibold flex items-center gap-1 mt-auto">
-                <IconTrendingDown className="w-3 h-3" /> +8% dari bulan lalu
-              </span>
-            </div>
-            <div className="flex flex-col items-end justify-between">
-              <div className="p-1.5 bg-red-50 rounded-lg mb-4">
-                <IconCashBanknote className="w-5 h-5 text-red-500" />
-              </div>
-              <div className="flex items-end gap-1.5 h-10">
-                <div className="w-2.5 rounded-t-sm bg-red-500/30 h-[20%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500/50 h-[40%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500/40 h-[30%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500/70 h-[60%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500/60 h-[50%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500/80 h-[70%]"></div>
-                <div className="w-2.5 rounded-t-sm bg-red-500 h-[90%]"></div>
-              </div>
-            </div>
+        {/* Total Transaksi, Category Filter & Search Input */}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {/* Total Transaksi (Di sebelah kiri Semua Kategori dengan ukuran yang sama) */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 font-medium shadow-2xs whitespace-nowrap">
+            <IconReceipt2 className="w-3.5 h-3.5 text-zinc-400" />
+            <span>{filteredTransaksi.length} Transaksi</span>
           </div>
-        ) : (
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between">
-            <div className="flex flex-col">
-              <h3 className="text-gray-500 font-medium mb-3">Total Transaksi {activeTab === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'}</h3>
-              <div className="text-3xl font-bold text-[#0f172a] mb-2">
-                {transaksiData.filter(t => t.tipe === (activeTab === 'pemasukan' ? 'masuk' : 'keluar')).length} Transaksi
-              </div>
-              <span className={`${activeTab === 'pemasukan' ? 'text-blue-500' : 'text-red-500'} text-xs font-semibold flex items-center gap-1 mt-auto`}>
-                <IconTrendingUp className="w-3 h-3" /> +3% dari bulan lalu
-              </span>
-            </div>
-            <div className="flex flex-col items-end justify-between">
-              <div className={`p-1.5 rounded-lg mb-4 ${activeTab === 'pemasukan' ? 'bg-blue-50' : 'bg-red-50'}`}>
-                <IconReceipt2 className={`w-5 h-5 ${activeTab === 'pemasukan' ? 'text-blue-500' : 'text-red-500'}`} />
-              </div>
-              <div className="flex items-end gap-1.5 h-10">
-                {[20, 40, 30, 60, 50, 70, 90].map((h, i) => (
-                  <div key={i} className={`w-2.5 rounded-t-sm ${activeTab === 'pemasukan' ? 'bg-blue-500' : 'bg-red-500'}`} style={{ height: `${h}%`, opacity: 0.3 + (i * 0.1) }}></div>
+
+          {/* Category Dropdown */}
+          <div className="relative">
+            <button 
+              type="button"
+              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+              className="flex items-center justify-between gap-1.5 px-3 py-1.5 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 font-medium hover:bg-zinc-50 transition-colors shadow-2xs"
+            >
+              <IconFilter className="w-3.5 h-3.5 text-zinc-400" />
+              <span>{selectedCategory === 'all' ? 'Semua Kategori' : selectedCategory}</span>
+              <IconChevronDown className="w-3.5 h-3.5 text-zinc-400 ml-0.5" />
+            </button>
+
+            {isCategoryDropdownOpen && (
+              <div className="absolute right-0 mt-1.5 w-48 bg-white border border-zinc-200/80 rounded-xl shadow-lg z-20 py-1 text-xs">
+                <button 
+                  onClick={() => { setSelectedCategory('all'); setIsCategoryDropdownOpen(false); }}
+                  className={`w-full text-left px-3.5 py-2 hover:bg-zinc-50 transition-colors ${selectedCategory === 'all' ? 'font-bold text-blue-600 bg-blue-50/50' : 'text-zinc-700'}`}
+                >
+                  Semua Kategori
+                </button>
+                {allCategories.map(cat => (
+                  <button 
+                    key={cat}
+                    onClick={() => { setSelectedCategory(cat); setIsCategoryDropdownOpen(false); }}
+                    className={`w-full text-left px-3.5 py-2 hover:bg-zinc-50 transition-colors ${selectedCategory === cat ? 'font-bold text-blue-600 bg-blue-50/50' : 'text-zinc-700'}`}
+                  >
+                    {cat}
+                  </button>
                 ))}
               </div>
-            </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Transactions Table Section */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col">
-        {/* Table Header Controls */}
-        <div className="px-6 py-5 border-b border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <h2 className="text-lg font-bold text-[#0f172a]">
-            {activeTab === 'ringkasan' ? 'Detail Transaksi' : 
-             activeTab === 'pemasukan' ? 'Detail Pemasukan' : 'Detail Pengeluaran'}
-          </h2>
-          
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            <button className="flex items-center justify-between sm:justify-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors w-full sm:w-auto">
-              <div className="flex items-center gap-2">
-                <IconFilter className="w-4 h-4 text-gray-400" />
-                Semua Kategori
-              </div>
-              <IconChevronDown className="w-4 h-4 text-gray-400 ml-1" />
-            </button>
-            <button className="flex items-center justify-between sm:justify-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors w-full sm:w-auto">
-              <div className="flex items-center gap-2">
-                <IconCalendarEvent className="w-4 h-4 text-gray-400" />
-                1 - 31 Mei 2025
-              </div>
-              <IconChevronDown className="w-4 h-4 text-gray-400 ml-1" />
-            </button>
+          {/* Search Box */}
+          <div className="relative">
+            <IconSearch className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-2" />
+            <input 
+              type="text" 
+              placeholder="Cari transaksi..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-40 sm:w-56 pl-8 pr-3 py-1.5 text-xs bg-[#f4f4f5] border border-transparent rounded-xl focus:outline-none focus:border-zinc-300 focus:bg-white transition-all text-zinc-800 placeholder-zinc-400"
+            />
           </div>
         </div>
 
-        {/* Table Content */}
+      </div>
+
+      {/* Detail Transaksi Table (Identical Clean Style as Top Products) */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tanggal</th>
-                <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Kategori</th>
-                <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deskripsi</th>
-                <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Jumlah</th>
+          <table className="w-full text-left text-xs">
+            <thead className="text-zinc-400 font-medium border-b border-zinc-100 bg-zinc-50/50">
+              <tr>
+                <th className="px-5 py-3 w-10 text-zinc-400 font-normal">#</th>
+                <th className="px-4 py-3 font-normal">Keterangan Transaksi</th>
+                <th className="px-4 py-3 font-normal">Kategori</th>
+                <th className="px-4 py-3 font-normal">Tanggal</th>
+                <th className="px-4 py-3 font-normal">Arus Kas</th>
+                <th className="px-4 py-3 font-normal">
+                  <span className="inline-flex items-center gap-1 text-zinc-700 font-medium cursor-pointer">
+                    Nominal ▾
+                  </span>
+                </th>
+                <th className="px-4 py-3 text-center font-normal w-24">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
-              {filteredTransaksi.map((trx) => (
-                <tr key={trx.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-6 text-gray-600 font-medium whitespace-nowrap">
-                    {trx.tanggal}
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
-                      {trx.kategori}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-[#0f172a] font-medium">
-                    {trx.deskripsi}
-                  </td>
-                  <td className="py-4 px-6 text-right whitespace-nowrap">
-                    <span className={`font-bold ${trx.tipe === 'masuk' ? 'text-blue-600' : 'text-[#0f172a]'}`}>
-                      {trx.tipe === 'masuk' ? '+' : '-'}{formatRupiah(trx.jumlah)}
-                    </span>
+            <tbody className="divide-y divide-zinc-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center text-zinc-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <IconRefresh className="w-5 h-5 animate-spin text-blue-600" />
+                      <span>Memuat catatan keuangan...</span>
+                    </div>
                   </td>
                 </tr>
-              ))}
-              {filteredTransaksi.length === 0 && (
+              ) : filteredTransaksi.length > 0 ? (
+                filteredTransaksi.map((trx, index) => (
+                  <tr key={trx.id} className="hover:bg-zinc-50/70 transition-colors">
+                    {/* Index */}
+                    <td className="px-5 py-3.5 text-zinc-400 font-normal">{index + 1}</td>
+
+                    {/* Deskripsi & Ikon */}
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                          trx.tipe === 'masuk' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
+                        }`}>
+                          {trx.tipe === 'masuk' ? (
+                            <IconArrowDownLeft className="w-4 h-4" stroke={2.5} />
+                          ) : (
+                            <IconArrowUpRight className="w-4 h-4" stroke={2.5} />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-zinc-900 text-xs sm:text-sm leading-tight">
+                            {trx.deskripsi}
+                          </p>
+                          <p className="text-[11px] text-zinc-400 mt-0.5">
+                            ID: {trx.id.slice(0, 8)}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Kategori Badge */}
+                    <td className="px-4 py-3.5 text-zinc-600 font-normal">
+                      <span className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-600 text-[11px] font-medium">
+                        {trx.kategori}
+                      </span>
+                    </td>
+
+                    {/* Tanggal */}
+                    <td className="px-4 py-3.5 text-zinc-600 font-medium whitespace-nowrap">
+                      {formatDateIndo(trx.tanggal)}
+                    </td>
+
+                    {/* Tipe Arus Kas */}
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      {trx.tipe === 'masuk' ? (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Kas Masuk
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-rose-500">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                          Kas Keluar
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Nominal */}
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className={`font-bold text-xs sm:text-sm ${
+                        trx.tipe === 'masuk' ? 'text-emerald-600' : 'text-zinc-900'
+                      }`}>
+                        {trx.tipe === 'masuk' ? '+' : '-'}{formatRupiah(trx.jumlah)}
+                      </span>
+                    </td>
+
+                    {/* Aksi: Edit & Hapus */}
+                    <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => handleOpenEdit(trx)}
+                          title="Edit transaksi"
+                          className="p-1.5 text-zinc-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <IconPencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingTrx(trx)}
+                          title="Hapus transaksi"
+                          className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        >
+                          <IconTrash className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-500">
-                    Tidak ada transaksi untuk ditampilkan.
+                  <td colSpan={7} className="px-5 py-12 text-center text-zinc-500">
+                    <div className="max-w-sm mx-auto flex flex-col items-center justify-center">
+                      <div className="w-10 h-10 rounded-2xl bg-zinc-100 text-zinc-400 flex items-center justify-center mb-2.5">
+                        <IconReceipt2 className="w-5 h-5" />
+                      </div>
+                      <p className="font-semibold text-zinc-800 text-xs sm:text-sm mb-1">Belum Ada Transaksi</p>
+                      <p className="text-[11px] text-zinc-400 mb-4">
+                        Data keuangan masih kosong untuk filter ini. Mulai dengan mencatat transaksi baru.
+                      </p>
+                      <Link
+                        href="/dashboard/keuangan/tambah"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#18181b] hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                      >
+                        <IconPlus className="w-3.5 h-3.5" /> Catat Transaksi Baru
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-
-        {/* Table Footer */}
-        {activeTab === 'ringkasan' && (
-          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/30 rounded-b-2xl">
-            <Link href="/dashboard/riwayat" className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors group">
-              Lihat Semua Transaksi
-              <IconArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-        )}
       </div>
+
+      {/* ======================================================== */}
+      {/* MODAL KONFIRMASI HAPUS KUSTOM                             */}
+      {/* ======================================================== */}
+      {deletingTrx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in font-jakarta">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-zinc-200/80 transform transition-all">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <IconAlertTriangle className="w-5 h-5 stroke-[2]" />
+            </div>
+
+            <h3 className="text-base font-bold text-center text-zinc-900 mb-1">
+              Hapus Catatan Transaksi?
+            </h3>
+            <p className="text-xs text-center text-zinc-500 mb-4 leading-relaxed">
+              Catatan transaksi ini akan dihapus permanen dari pembukuan akun Anda.
+            </p>
+
+            <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-100 mb-5 flex flex-col gap-1.5 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400">Deskripsi:</span>
+                <span className="font-semibold text-zinc-800 truncate max-w-[200px]">{deletingTrx.deskripsi}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400">Kategori:</span>
+                <span className="font-medium text-zinc-700">{deletingTrx.kategori}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400">Nominal:</span>
+                <span className={`font-bold ${deletingTrx.tipe === 'masuk' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                  {deletingTrx.tipe === 'masuk' ? '+' : '-'}{formatRupiah(deletingTrx.jumlah)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400">Tanggal:</span>
+                <span className="text-zinc-600">{formatDateIndo(deletingTrx.tanggal)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDeletingTrx(null)}
+                disabled={isDeleting}
+                className="flex-1 py-2 px-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-semibold text-xs transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold text-xs transition-colors shadow-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <IconRefresh className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menghapus...</span>
+                  </>
+                ) : (
+                  <span>Ya, Hapus</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL EDIT TRANSAKSI KUSTOM                               */}
+      {/* ======================================================== */}
+      {editingTrx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in font-jakarta">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-zinc-200/80 transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-zinc-100 text-zinc-800 rounded-lg">
+                  <IconPencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900 leading-tight">Edit Transaksi</h3>
+                  <p className="text-[11px] text-zinc-400">Perbarui catatan keuangan</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setEditingTrx(null)}
+                className="p-1 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100"
+              >
+                <IconX className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="flex flex-col gap-3 text-xs">
+              
+              {/* Toggle Pemasukan / Pengeluaran */}
+              <div className="flex bg-[#f4f4f5] p-0.5 rounded-xl w-full">
+                <button
+                  type="button"
+                  onClick={() => setEditFormData({ ...editFormData, tipe: 'masuk' })}
+                  className={`flex-1 py-1.5 rounded-lg font-semibold text-xs transition-all ${
+                    editFormData.tipe === 'masuk'
+                      ? 'bg-white text-emerald-600 shadow-2xs'
+                      : 'text-zinc-500 hover:text-zinc-800'
+                  }`}
+                >
+                  Pemasukan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditFormData({ ...editFormData, tipe: 'keluar' })}
+                  className={`flex-1 py-1.5 rounded-lg font-semibold text-xs transition-all ${
+                    editFormData.tipe === 'keluar'
+                      ? 'bg-white text-rose-600 shadow-2xs'
+                      : 'text-zinc-500 hover:text-zinc-800'
+                  }`}
+                >
+                  Pengeluaran
+                </button>
+              </div>
+
+              {/* Tanggal */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-zinc-700">Tanggal</label>
+                <input
+                  type="date"
+                  required
+                  value={editFormData.tanggal}
+                  onChange={(e) => setEditFormData({ ...editFormData, tanggal: e.target.value })}
+                  className="px-3 py-2 rounded-xl border border-zinc-200 text-xs focus:outline-none focus:border-zinc-400 text-zinc-800"
+                />
+              </div>
+
+              {/* Kategori */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-zinc-700">Kategori</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.kategori}
+                  onChange={(e) => setEditFormData({ ...editFormData, kategori: e.target.value })}
+                  placeholder="Contoh: Penjualan Produk, Bahan Baku, dll"
+                  className="px-3 py-2 rounded-xl border border-zinc-200 text-xs focus:outline-none focus:border-zinc-400 text-zinc-800"
+                />
+              </div>
+
+              {/* Nominal */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-zinc-700">Nominal (Rp)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 font-semibold text-xs">Rp</span>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.jumlah}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      setEditFormData({
+                        ...editFormData,
+                        jumlah: val ? parseInt(val).toLocaleString('id-ID') : ""
+                      });
+                    }}
+                    className="w-full pl-8 pr-3 py-2 rounded-xl border border-zinc-200 text-xs font-bold focus:outline-none focus:border-zinc-400 text-zinc-800"
+                  />
+                </div>
+              </div>
+
+              {/* Deskripsi */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-zinc-700">Keterangan / Deskripsi</label>
+                <textarea
+                  rows={2}
+                  required
+                  value={editFormData.deskripsi}
+                  onChange={(e) => setEditFormData({ ...editFormData, deskripsi: e.target.value })}
+                  placeholder="Keterangan singkat transaksi..."
+                  className="px-3 py-2 rounded-xl border border-zinc-200 text-xs focus:outline-none focus:border-zinc-400 text-zinc-800 resize-none"
+                />
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="flex items-center gap-2 pt-2 mt-1 border-t border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingTrx(null)}
+                  disabled={isSavingEdit}
+                  className="flex-1 py-2 px-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-semibold text-xs transition-colors disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="flex-1 py-2 px-3 bg-[#18181b] hover:bg-zinc-800 text-white rounded-xl font-semibold text-xs transition-colors shadow-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {isSavingEdit ? (
+                    <>
+                      <IconRefresh className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <span>Simpan Perubahan</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL PILIH FORMAT UNDUH (PDF, EXCEL SPREADSHEET, CSV)   */}
+      {/* ======================================================== */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in font-jakarta">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-zinc-200/80 transform transition-all">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-zinc-100 text-zinc-800 rounded-lg">
+                  <IconDownload className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900 leading-tight">Unduh Laporan Keuangan</h3>
+                  <p className="text-[11px] text-zinc-400">Pilih format berkas pembukuan Anda</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsExportModalOpen(false)}
+                className="p-1 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100"
+              >
+                <IconX className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2.5 my-2">
+              
+              {/* Opsi 1: PDF */}
+              <button
+                type="button"
+                onClick={() => {
+                  exportToPDF(transactions, summary);
+                  setIsExportModalOpen(false);
+                  showToast('Laporan PDF berhasil diunduh!', 'success');
+                }}
+                className="flex items-start gap-3 p-3 rounded-xl border border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all text-left group"
+              >
+                <div className="p-2 bg-rose-50 text-rose-600 rounded-lg shrink-0">
+                  <IconFileTypePdf className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-zinc-900 text-xs">Dokumen PDF (.pdf)</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded">Formal</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
+                    Laporan siap cetak lengkap dengan kop Bizkit, KPI, dan rincian transaksi.
+                  </p>
+                </div>
+              </button>
+
+              {/* Opsi 2: Excel */}
+              <button
+                type="button"
+                onClick={() => {
+                  exportToExcel(transactions, summary);
+                  setIsExportModalOpen(false);
+                  showToast('Spreadsheet Excel berhasil diunduh!', 'success');
+                }}
+                className="flex items-start gap-3 p-3 rounded-xl border border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all text-left group"
+              >
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg shrink-0">
+                  <IconFileTypeXls className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-zinc-900 text-xs">Spreadsheet Excel (.xlsx)</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">Populer</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
+                    Format tabel data terstruktur dengan kolom angka yang mudah diolah.
+                  </p>
+                </div>
+              </button>
+
+              {/* Opsi 3: CSV */}
+              <button
+                type="button"
+                onClick={() => {
+                  exportToCSV(transactions, summary);
+                  setIsExportModalOpen(false);
+                  showToast('Berkas CSV berhasil diunduh!', 'success');
+                }}
+                className="flex items-start gap-3 p-3 rounded-xl border border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all text-left group"
+              >
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+                  <IconFileTypeCsv className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-zinc-900 text-xs">Berkas CSV (.csv)</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">Universal</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
+                    Kompatibel dengan Google Sheets, Excel, atau software akuntansi lainnya.
+                  </p>
+                </div>
+              </button>
+
+            </div>
+
+            <div className="pt-2 mt-2 border-t border-zinc-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsExportModalOpen(false)}
+                className="px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { Plus_Jakarta_Sans, Poppins } from 'next/font/google';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -76,16 +77,36 @@ export default function FiturPage() {
       <div className="max-w-7xl mx-auto px-6 md:px-8 mb-24">
         {/* Header Section */}
         <div className="text-center max-w-3xl mx-auto mb-20 flex flex-col items-center">
-          <div className="inline-flex items-center justify-center gap-2.5 text-blue-600 font-bold text-[15px] mb-6 tracking-tight antialiased">
-            <Image src="/IconDiamond.png" alt="Diamond" width={28} height={28} unoptimized={true} className="w-7 h-7 object-contain translate-y-[-1px]" />
+          <motion.div 
+            initial={{ opacity: 0, y: -12, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="inline-flex items-center justify-center gap-2.5 text-blue-600 font-bold text-[15px] mb-6 tracking-tight antialiased"
+          >
+            <motion.div
+              animate={{ y: [0, -4, 0] }}
+              transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+            >
+              <Image src="/IconDiamond.png" alt="Diamond" width={28} height={28} unoptimized={true} className="w-7 h-7 object-contain translate-y-[-1px]" />
+            </motion.div>
             <span className={poppins.className}>Fitur Unggulan</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-6 leading-tight">
+          </motion.div>
+          <motion.h1 
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-6 leading-tight"
+          >
             Perjalanan bisnis UMKM Anda, <br className="hidden md:block"/> dibuat jauh lebih simpel
-          </h1>
-          <p className="text-lg text-slate-600 leading-relaxed max-w-2xl">
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="text-lg text-slate-600 leading-relaxed max-w-2xl"
+          >
             Catat keuangan dengan rapi, pantau laporan penjualan, dan manfaatkan asisten cerdas AI untuk memaksimalkan potensi bisnis Anda.
-          </p>
+          </motion.p>
         </div>
 
         {/* Feature List (Zigzag) */}
@@ -93,29 +114,57 @@ export default function FiturPage() {
           {features.map((feat, index) => {
             const isReversed = index % 2 !== 0;
             return (
-              <div 
+              <motion.div 
                 key={feat.id} 
+                initial={{ opacity: 0, y: 60 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
                 className={`flex flex-col ${isReversed ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-12 md:gap-24`}
               >
                 {/* Text Content */}
-                <div className="flex-1 flex flex-col items-start text-left">
-                  <h2 className="text-5xl md:text-6xl font-bold text-blue-600 mb-6 font-mono tracking-tighter">
+                <motion.div 
+                  initial={{ opacity: 0, x: isReversed ? 35 : -35 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.65, delay: 0.15, ease: "easeOut" }}
+                  className="flex-1 flex flex-col items-start text-left"
+                >
+                  <motion.h2 
+                    whileHover={{ scale: 1.08, x: isReversed ? -4 : 4 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 15 }}
+                    className="text-5xl md:text-6xl font-bold text-blue-600 mb-6 font-mono tracking-tighter inline-block cursor-default select-none"
+                  >
                     {feat.id}
-                  </h2>
+                  </motion.h2>
                   <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-4 leading-snug">
                     {feat.title}
                   </h3>
                   <p className="text-[17px] text-slate-600 leading-relaxed mb-8">
                     {feat.desc}
                   </p>
-                  <div className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2.5 rounded-full font-semibold text-sm">
+                  <motion.div 
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2.5 rounded-full font-semibold text-sm cursor-default shadow-xs"
+                  >
                     {feat.icon} {feat.badge}
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
 
                 {/* Image Content */}
-                <div className="flex-1 w-full max-w-lg mx-auto">
-                  <div className="w-full relative drop-shadow-xl hover:-translate-y-2 transition-transform duration-500">
+                <motion.div 
+                  initial={{ opacity: 0, x: isReversed ? -35 : 35, scale: 0.96 }}
+                  whileInView={{ opacity: 1, x: 0, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
+                  className="flex-1 w-full max-w-lg mx-auto"
+                >
+                  <motion.div 
+                    whileHover={{ y: -8, scale: 1.02 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                    className="w-full relative drop-shadow-xl"
+                  >
                     <Image 
                       src={feat.image} 
                       alt={feat.title} 
@@ -124,9 +173,9 @@ export default function FiturPage() {
                       className="w-full h-auto object-contain"
                       unoptimized
                     />
-                  </div>
-                </div>
-              </div>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
             );
           })}
         </div>

@@ -37,16 +37,24 @@ export async function POST(req: Request) {
     // Cek verifikasi OTP
     if (!user.isVerified) {
       return NextResponse.json({ 
-        error: 'Akun Anda belum diverifikasi. Silakan cek email Anda untuk kode OTP.',
-        needsVerification: true 
+        error: 'Akun Anda belum diverifikasi. Silakan masukkan kode OTP yang telah dikirim ke email Anda.',
+        needsVerification: true,
+        email: user.email
       }, { status: 403 });
     }
 
-    // Login sukses (Untuk sistem login utuh biasanya kita set JWT/Session Cookie di sini)
-    // Karena masih tahap MVP, kita anggap sukses dan kembalikan data dasar
+    // Ambil role dari database (default: 'free')
+    const userRole = user.role || 'free';
+
+    // Login sukses
     return NextResponse.json({ 
       message: 'Login berhasil!', 
-      user: { id: user.id, name: user.name, email: user.email } 
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email, 
+        role: userRole 
+      } 
     }, { status: 200 });
 
   } catch (error) {

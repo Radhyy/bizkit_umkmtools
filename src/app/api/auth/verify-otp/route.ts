@@ -37,9 +37,17 @@ export async function POST(req: Request) {
       [email]
     );
 
+    // Ambil role dari database (default: 'free')
+    const userRole = user.role || 'free';
+
     return NextResponse.json({ 
       message: 'Verifikasi berhasil! Akun Anda sudah aktif.',
-      user: { id: user.id, name: user.name, email: user.email }
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email,
+        role: userRole
+      }
     }, { status: 200 });
 
   } catch (error) {

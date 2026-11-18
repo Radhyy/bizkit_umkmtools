@@ -1,10 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import { motion } from "framer-motion";
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export default function TambahTransaksiPage() {
   const [formData, setFormData] = useState({
@@ -38,7 +35,7 @@ export default function TambahTransaksiPage() {
   };
 
   return (
-    <div className={`p-4 md:p-8 max-w-5xl mx-auto ${jakarta.className}`}>
+    <div className="p-4 md:p-8 max-w-5xl mx-auto font-jakarta">
       
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">

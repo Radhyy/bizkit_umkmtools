@@ -8,13 +8,95 @@ datasource db {
 }
 
 model User {
-  id         String    @id @default(cuid())
-  email      String    @unique
-  name       String?
-  password   String
-  isVerified Boolean   @default(false)
-  otpCode    String?
-  otpExpiry  DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  password     String
+  role         String        @default("free") // "free", "premium", "admin"
+  isVerified   Boolean       @default(false)
+  otpCode      String?
+  otpExpiry    DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions    Transaction[]
+  businessProfile BusinessProfile?
+  chatSessions    ChatSession[]
+  chatMessages    ChatMessage[]
+  aiInsightCache  AiInsightCache?
 }
+
+model BusinessProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  namaUsaha       String
+  kategoriBisnis  String
+  deskripsiBisnis String?
+  targetAudiens   String
+  platformFokus   String
+  gayaPromosi     String
+  budgetPromosi   String?
+  kotaLokasi      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tipe      String   // "masuk" | "keluar"
+  kategori  String
+  deskripsi String
+  jumlah    Float    @default(0)
+  tanggal   DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([tanggal])
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String        @default("Obrolan Baru")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @default(now()) @updatedAt
+  messages  ChatMessage[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String      // "user" | "assistant"
+  content   String
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model AiInsightCache {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dataFingerprint String
+  wawasan         Json
+  tips            Json
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+}
+
+
+
+

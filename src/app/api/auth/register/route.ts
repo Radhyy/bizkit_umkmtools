@@ -4,7 +4,6 @@ import bcrypt from 'bcrypt';
 import { sendOTPEmail } from '@/lib/email';
 import { v4 as uuidv4 } from 'uuid';
 import { checkRateLimit, isValidEmail } from '@/lib/security';
-
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
@@ -29,10 +28,32 @@ export async function POST(req: Request) {
     // Cek apakah email sudah terdaftar
     const existingUser = await pool.query('SELECT * FROM "User" WHERE email = $1', [email]);
     if (existingUser.rows.length > 0) {
-      return NextResponse.json({ error: 'Email sudah terdaftar.' }, { status: 400 });
+      const user = existingUser.rows[0];
+      if (user.isVerified) {
+        return NextResponse.json({ error: 'Email sudah terdaftar dan terverifikasi. Silakan login.' }, { status: 400 });
+      }
+      
+      // Jika akun sebelumnya belum diverifikasi (misal gagal kirim OTP), perbarui OTP dan password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+      await pool.query(
+        'UPDATE "User" SET name = $1, password = $2, "otpCode" = $3, "otpExpiry" = $4, "updatedAt" = NOW() WHERE email = $5',
+        [name || '', hashedPassword, otpCode, otpExpiry, email]
+      );
+
+      try {
+        await sendOTPEmail(email, otpCode);
+      } catch (emailError) {
+        console.error('Gagal mengirim email OTP ulang:', emailError);
+        return NextResponse.json({ error: 'Gagal mengirim email OTP, pastikan pengaturan email benar.' }, { status: 500 });
+      }
+
+      return NextResponse.json({ message: 'Kode OTP baru telah dikirimkan ke email Anda.' }, { status: 200 });
     }
 
-    // Hash password
+    // Hash password untuk user baru
     const hashedPassword = await bcrypt.hash(password, 10);
     
     // Buat OTP (6 digit angka acak)
@@ -40,10 +61,13 @@ export async function POST(req: Request) {
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // Berakhir dalam 10 menit
     const id = uuidv4();
 
+    // Role default pendaftaran akun baru adalah 'free'
+    const role = 'free';
+
     // Simpan ke database (status isVerified = false)
     await pool.query(
-      'INSERT INTO "User" (id, email, name, password, "isVerified", "otpCode", "otpExpiry") VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [id, email, name || '', hashedPassword, false, otpCode, otpExpiry]
+      'INSERT INTO "User" (id, email, name, password, "isVerified", "otpCode", "otpExpiry", role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [id, email, name || '', hashedPassword, false, otpCode, otpExpiry, role]
     );
 
     // Kirim email OTP

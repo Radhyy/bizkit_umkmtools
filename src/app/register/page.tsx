@@ -71,12 +71,33 @@ export default function RegisterPage() {
       // Simpan user ke local storage (langsung login otomatis)
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      setSuccessMsg("Verifikasi berhasil! Mengalihkan ke beranda...");
-      setTimeout(() => router.push("/"), 2000);
+      setSuccessMsg("Verifikasi berhasil! Menyiapkan profil UMKM Anda...");
+      setTimeout(() => router.push("/onboarding"), 1200);
     } catch (err: any) {
       setErrorMsg(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [resending, setResending] = useState(false);
+  const handleResendOtp = async () => {
+    setResending(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await fetch("/api/auth/resend-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal mengirim ulang OTP");
+      setSuccessMsg("Kode OTP baru berhasil dikirim!");
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setResending(false);
     }
   };
 
@@ -255,10 +276,28 @@ export default function RegisterPage() {
 
               <button 
                 type="submit" disabled={loading || otpCode.length !== 6}
-                className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(37,99,235,0.2)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.3)] active:translate-y-0.5 active:shadow-none disabled:opacity-70"
+                className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(37,99,235,0.2)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.3)] active:translate-y-0.5 active:shadow-none disabled:opacity-70"
               >
                 {loading ? "Memverifikasi..." : "Verifikasi OTP"}
               </button>
+
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setStep("REGISTER"); setErrorMsg(""); setSuccessMsg(""); }}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+                >
+                  &larr; Kembali
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resending}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {resending ? "Mengirim..." : "Kirim Ulang OTP"}
+                </button>
+              </div>
             </motion.form>
           )}
         </AnimatePresence>

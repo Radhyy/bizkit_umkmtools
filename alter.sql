@@ -3,6 +3,7 @@ CREATE TABLE "User" (
     "email" TEXT NOT NULL,
     "name" TEXT,
     "password" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT 'free',
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "otpCode" TEXT,
     "otpExpiry" TIMESTAMP(3),

@@ -1,52 +1,87 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
 } from 'recharts';
 import { 
   IconRefresh, 
   IconTrendingUp,
   IconBulb,
-  IconAlertCircle,
-  IconChartLine,
-  IconChevronRight,
+  IconAlertTriangle,
+  IconCheck,
+  IconX,
+  IconReceipt2,
+  IconShoppingBag,
   IconSparkles,
-  IconArrowRight,
-  IconFlame
+  IconPlus
 } from '@tabler/icons-react';
 
-const trenPenjualanData = [
-  { day: 'Sen', current: 12, prev: 10 },
-  { day: 'Sel', current: 16, prev: 15 },
-  { day: 'Rab', current: 24, prev: 18 },
-  { day: 'Kam', current: 19, prev: 17 },
-  { day: 'Jum', current: 28, prev: 22 },
-  { day: 'Sab', current: 33, prev: 25 },
-  { day: 'Min', current: 28, prev: 20 },
-];
+interface Transaction {
+  id: string;
+  userId: string;
+  tipe: 'masuk' | 'keluar';
+  kategori: string;
+  deskripsi: string;
+  jumlah: number;
+  tanggal: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-const menuLaris = [
-  { rank: 1, name: 'Nasi Goreng Spesial', qty: 32, trend: 'up' },
-  { rank: 2, name: 'Ayam Geprek', qty: 28, trend: 'up' },
-  { rank: 3, name: 'Es Teh Manis', qty: 24, trend: 'stable' },
-  { rank: 4, name: 'Mie Ayam', qty: 16, trend: 'down' },
-  { rank: 5, name: 'Es Jeruk', qty: 16, trend: 'up' },
-];
+interface WawasanItem {
+  tipe: 'tren' | 'biaya' | 'rasio';
+  judul: string;
+  deskripsi: string;
+  highlight?: string;
+  status: 'positif' | 'peringatan' | 'netral';
+}
 
+interface TipItem {
+  judul: string;
+  deskripsi: string;
+  kategori: 'omzet' | 'biaya' | 'kas';
+}
+
+const formatRupiah = (value: number) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
+// Tooltip Hitam Modern & Presisi
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
+    const current = payload.find((p: any) => p.dataKey === 'current')?.value || 0;
+    const prev = payload.find((p: any) => p.dataKey === 'prev')?.value || 0;
+
     return (
-      <div className="bg-white border border-gray-100 shadow-lg rounded-lg p-3 text-sm flex flex-col gap-2 min-w-[140px]">
-        <p className="text-gray-500 font-medium mb-1">{label}</p>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-blue-500" />
-          <span className="text-gray-700 font-semibold">Minggu Ini</span>
-          <span className="ml-auto font-bold text-gray-900">{payload[0].value}</span>
+      <div className="bg-[#18181b] text-white px-3.5 py-2.5 rounded-xl text-xs font-semibold shadow-2xl flex flex-col gap-1.5 whitespace-nowrap font-jakarta">
+        <div className="text-zinc-400 font-medium text-[11px] pb-1 border-b border-zinc-800">
+          Hari: {label}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-blue-100" />
-          <span className="text-gray-700 font-semibold">Minggu Lalu</span>
-          <span className="ml-auto font-bold text-gray-900">{payload[1].value}</span>
+        <div className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5 text-blue-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+            Minggu Ini:
+          </span>
+          <span className="font-bold text-white">{formatRupiah(current)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5 text-zinc-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+            Minggu Lalu:
+          </span>
+          <span className="font-bold text-zinc-300">{formatRupiah(prev)}</span>
         </div>
       </div>
     );
@@ -55,176 +90,527 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function InsightPage() {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<{ id: string; name?: string; email: string } | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [wawasanList, setWawasanList] = useState<WawasanItem[]>([]);
+  const [tipsList, setTipsList] = useState<TipItem[]>([]);
+  
+  const [activeTab, setActiveTab] = useState<'ringkasan' | 'tren' | 'pengeluaran' | 'tips'>('ringkasan');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
+
+  // Load User dari localStorage
+  useEffect(() => {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+    if (!raw) {
+      router.push('/login');
+      return;
+    }
+    try {
+      const u = JSON.parse(raw);
+      if (!u?.id) {
+        router.push('/login');
+        return;
+      }
+      setCurrentUser(u);
+      loadAllData(u.id, false);
+    } catch {
+      router.push('/login');
+    }
+  }, [router]);
+
+  // Fetch data Keuangan & AI Insight
+  const loadAllData = async (userId: string, forceAiRefresh: boolean = false) => {
+    if (forceAiRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
+
+    try {
+      // 1. Ambil transaksi keuangan riil dari database
+      const trxRes = await fetch(`/api/keuangan?userId=${userId}`);
+      if (trxRes.ok) {
+        const trxData = await trxRes.json();
+        setTransactions(trxData.transactions || []);
+      }
+
+      // 2. Ambil Wawasan & Tips AI dari database cache / Groq
+      const insightRes = await fetch(`/api/ai/insight?userId=${userId}${forceAiRefresh ? '&force=true' : ''}`);
+      if (insightRes.ok) {
+        const insightData = await insightRes.json();
+        if (Array.isArray(insightData.wawasan)) {
+          setWawasanList(insightData.wawasan);
+        }
+        if (Array.isArray(insightData.tips)) {
+          setTipsList(insightData.tips);
+        }
+        setIsFromCache(Boolean(insightData.cached));
+      }
+
+      if (forceAiRefresh) {
+        setToastMessage('Insight bisnis & data keuangan berhasil disinkronkan!');
+        setTimeout(() => setToastMessage(null), 3500);
+      }
+    } catch (err) {
+      console.error('Error loading insight data:', err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    if (currentUser?.id) {
+      loadAllData(currentUser.id, true);
+    }
+  };
+
+  // Kalkulasi Tren Pemasukan Harian (Sen-Min) berdasarkan data riil
+  const { chartData, rataRataPemasukan, puncakHari, totalPemasukanMingguIni, trenPersen } = useMemo(() => {
+    const dayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+    const currentWeekValues = [0, 0, 0, 0, 0, 0, 0];
+    const prevWeekValues = [0, 0, 0, 0, 0, 0, 0];
+
+    const now = new Date();
+    // Cari hari Senin minggu ini
+    const currentDay = now.getDay(); // 0 is Sunday
+    const distanceToMonday = (currentDay + 6) % 7;
+    const startOfCurrentWeek = new Date(now);
+    startOfCurrentWeek.setDate(now.getDate() - distanceToMonday);
+    startOfCurrentWeek.setHours(0, 0, 0, 0);
+
+    const startOfPrevWeek = new Date(startOfCurrentWeek);
+    startOfPrevWeek.setDate(startOfCurrentWeek.getDate() - 7);
+
+    let totalCurrent = 0;
+    let totalPrev = 0;
+
+    transactions.forEach((trx) => {
+      if (trx.tipe !== 'masuk') return;
+      const amt = Number(trx.jumlah) || 0;
+      const trxDate = new Date(trx.tanggal || trx.createdAt);
+      
+      const dayIndex = (trxDate.getDay() + 6) % 7; // 0 for Sen, 6 for Min
+
+      if (trxDate >= startOfCurrentWeek) {
+        currentWeekValues[dayIndex] += amt;
+        totalCurrent += amt;
+      } else if (trxDate >= startOfPrevWeek && trxDate < startOfCurrentWeek) {
+        prevWeekValues[dayIndex] += amt;
+        totalPrev += amt;
+      } else {
+        // Jika belum ada rentang tanggal penuh, petakan ke hari transaksi
+        currentWeekValues[dayIndex] += amt;
+        totalCurrent += amt;
+      }
+    });
+
+    const data = dayNames.map((day, idx) => ({
+      day,
+      current: currentWeekValues[idx],
+      prev: prevWeekValues[idx],
+    }));
+
+    // Cari hari puncak
+    let maxVal = -1;
+    let maxDayName = 'Sen';
+    data.forEach((d) => {
+      if (d.current > maxVal) {
+        maxVal = d.current;
+        maxDayName = d.day;
+      }
+    });
+
+    const fullDayMap: Record<string, string> = {
+      Sen: 'Senin',
+      Sel: 'Selasa',
+      Rab: 'Rabu',
+      Kam: 'Kamis',
+      Jum: 'Jumat',
+      Sab: 'Sabtu',
+      Min: 'Minggu'
+    };
+
+    const avg = Math.round(totalCurrent / 7);
+    const growth = totalPrev > 0 ? Math.round(((totalCurrent - totalPrev) / totalPrev) * 100) : 0;
+
+    return {
+      chartData: data,
+      rataRataPemasukan: avg,
+      puncakHari: { day: fullDayMap[maxDayName] || maxDayName, val: maxVal > 0 ? maxVal : 0 },
+      totalPemasukanMingguIni: totalCurrent,
+      trenPersen: growth,
+    };
+  }, [transactions]);
+
+  // Kalkulasi Pembelian Bahan & Biaya Terbesar dari Transaksi Pengeluaran
+  const { topExpenses, totalBelanjaBahan } = useMemo(() => {
+    const expenseMap: Record<string, { count: number; total: number }> = {};
+    let totalAll = 0;
+
+    transactions.forEach((trx) => {
+      if (trx.tipe !== 'keluar') return;
+      const amt = Number(trx.jumlah) || 0;
+      totalAll += amt;
+
+      const key = (trx.deskripsi || trx.kategori || 'Pengeluaran Operasional').trim();
+      if (!expenseMap[key]) {
+        expenseMap[key] = { count: 0, total: 0 };
+      }
+      expenseMap[key].count += 1;
+      expenseMap[key].total += amt;
+    });
+
+    const list = Object.entries(expenseMap)
+      .map(([name, data]) => ({
+        name,
+        total: data.total,
+        frekuensi: `${data.count}x belanja`,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5)
+      .map((item, idx) => ({ ...item, rank: idx + 1 }));
+
+    return {
+      topExpenses: list,
+      totalBelanjaBahan: totalAll,
+    };
+  }, [transactions]);
+
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      {/* Header Section */}
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="p-1.5 bg-blue-600 text-white rounded-lg shadow-sm">
-              <IconSparkles className="w-5 h-5" />
-            </div>
-            <h1 className="text-3xl font-bold text-[#0f172a]">Insight Bisnis</h1>
-          </div>
-          <p className="text-gray-500 text-sm mt-1">Analisis data untuk membantu Anda mengambil keputusan yang lebih baik.</p>
+    <div className="p-5 sm:p-8 max-w-[1280px] mx-auto space-y-6 font-jakarta">
+      
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 px-4 py-2.5 rounded-2xl shadow-xl border bg-emerald-50 text-emerald-800 border-emerald-200 flex items-center gap-2 text-xs font-semibold animate-fade-in">
+          <IconCheck className="w-4 h-4 text-emerald-600" />
+          <span>{toastMessage}</span>
+          <button onClick={() => setToastMessage(null)} className="ml-2 text-zinc-400 hover:text-zinc-700">
+            <IconX className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="p-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors">
-            <IconRefresh className="w-5 h-5" />
+      )}
+
+      {/* Header Section (Tanpa Icon di samping Title H1) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Insight Bisnis</h1>
+          <p className="text-xs text-zinc-400 mt-1">
+            Analisis data cerdas untuk memantau performa pemasukan, pengeluaran bahan, dan arus kas Anda.
+          </p>
+        </div>
+
+        {/* Action Button: Refresh AI & Keuangan */}
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleRefresh}
+            title="Sinkronkan data dan perbarui analisis AI"
+            disabled={isRefreshing || isLoading}
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-zinc-200/90 rounded-xl text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs disabled:opacity-50"
+          >
+            <IconRefresh className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-600' : 'text-zinc-500'}`} />
+            <span>{isRefreshing ? 'Menganalisis...' : 'Perbarui Insight'}</span>
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 mb-8 bg-white p-1 rounded-lg border border-gray-100 overflow-x-auto no-scrollbar max-w-full">
-        <button className="px-5 py-2 text-sm font-medium bg-white shadow-sm border border-gray-100 rounded-md text-[#0f172a] whitespace-nowrap shrink-0">
+      {/* Segmented Switch Filter Bar */}
+      <div className="bg-[#f4f4f5] p-1 rounded-xl inline-flex items-center text-xs font-medium w-full sm:w-auto overflow-x-auto no-scrollbar">
+        <button 
+          onClick={() => setActiveTab('ringkasan')}
+          className={`px-4 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
+            activeTab === 'ringkasan' 
+              ? 'bg-white text-zinc-900 font-semibold shadow-2xs' 
+              : 'text-zinc-500 hover:text-zinc-800'
+          }`}
+        >
           Ringkasan
         </button>
-        <button className="px-5 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap shrink-0">
-          Tren Penjualan
+        <button 
+          onClick={() => setActiveTab('tren')}
+          className={`px-4 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
+            activeTab === 'tren' 
+              ? 'bg-white text-zinc-900 font-semibold shadow-2xs' 
+              : 'text-zinc-500 hover:text-zinc-800'
+          }`}
+        >
+          Tren Pemasukan
         </button>
-        <button className="px-5 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap shrink-0">
-          Perilaku Pelanggan
+        <button 
+          onClick={() => setActiveTab('pengeluaran')}
+          className={`px-4 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
+            activeTab === 'pengeluaran' 
+              ? 'bg-white text-zinc-900 font-semibold shadow-2xs' 
+              : 'text-zinc-500 hover:text-zinc-800'
+          }`}
+        >
+          Pengeluaran Bahan
         </button>
-        <button className="px-5 py-2 text-sm font-medium text-blue-600 flex items-center gap-1.5 hover:text-blue-700 whitespace-nowrap shrink-0">
-          <IconSparkles className="w-4 h-4" />
-          Rekomendasi AI
+        <button 
+          onClick={() => setActiveTab('tips')}
+          className={`px-4 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
+            activeTab === 'tips' 
+              ? 'bg-white text-zinc-900 font-semibold shadow-2xs' 
+              : 'text-zinc-500 hover:text-zinc-800'
+          }`}
+        >
+          Tips & Saran
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Tren Penjualan Chart */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col">
-          <div className="flex justify-between items-start mb-6">
+      {/* Main Grid: Top Row (Tren Pemasukan & Pembelian Bahan) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Tren Pemasukan Bar Chart (7 Cols, Tanpa Icon di H2) */}
+        {(activeTab === 'ringkasan' || activeTab === 'tren') && (
+          <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs flex flex-col justify-between">
             <div>
-              <h2 className="text-lg font-bold text-[#0f172a] mb-1">Tren Penjualan</h2>
-              <p className="text-sm text-gray-500">Berdasarkan volume pesanan</p>
+              <div className="flex items-start justify-between gap-2 mb-4">
+                <div>
+                  <h2 className="text-base font-bold text-zinc-900">Tren Pemasukan</h2>
+                  <p className="text-xs text-zinc-400 mt-0.5">Berdasarkan nominal hasil penjualan harian dari database</p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md ${
+                    trenPersen >= 0 ? 'text-emerald-600 bg-emerald-50/80' : 'text-rose-600 bg-rose-50/80'
+                  }`}>
+                    <IconTrendingUp className="w-3.5 h-3.5" /> {trenPersen >= 0 ? `+${trenPersen}%` : `${trenPersen}%`}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 mt-0.5">vs minggu lalu</span>
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center gap-4 text-xs font-medium mb-3">
+                <div className="flex items-center gap-1.5 text-zinc-700">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb]"></span>
+                  <span>Minggu Ini</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-zinc-500">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#93c5fd]"></span>
+                  <span>Minggu Lalu</span>
+                </div>
+              </div>
+
+              {/* Chart Container */}
+              <div className="h-[220px] w-full mt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 15, bottom: 0 }} barGap={3}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
+                    <XAxis 
+                      dataKey="day" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#a1a1aa', fontSize: 11 }}
+                      dy={8}
+                    />
+                    <YAxis 
+                      width={65}
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#a1a1aa', fontSize: 11 }}
+                      tickFormatter={(val) => {
+                        if (val === 0) return '0';
+                        if (val >= 1000000) return `${(val / 1000000).toLocaleString('id-ID')}Jt`;
+                        return `${(val / 1000).toLocaleString('id-ID')}Rb`;
+                      }}
+                    />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
+                    <Bar dataKey="current" fill="#2563eb" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                    <Bar dataKey="prev" fill="#93c5fd" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="flex flex-col items-end">
-              <span className="text-blue-500 font-bold flex items-center gap-1 text-lg">
-                <IconTrendingUp className="w-5 h-5" /> +12%
+
+            <div className="pt-3 border-t border-zinc-100 mt-4 flex items-center justify-between text-[11px] text-zinc-400">
+              <span>Rata-rata pemasukan {formatRupiah(rataRataPemasukan)} / hari</span>
+              <span className="font-semibold text-zinc-700">
+                Puncak: {puncakHari.day} ({formatRupiah(puncakHari.val)})
               </span>
-              <span className="text-xs text-gray-400">dibanding minggu lalu</span>
             </div>
           </div>
-          
-          <div className="flex-1 min-h-[220px] w-full mt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={trenPenjualanData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barGap={2}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="day" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
-                <Bar dataKey="current" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={16} />
-                <Bar dataKey="prev" fill="#bfdbfe" radius={[4, 4, 0, 0]} barSize={16} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        )}
 
-        {/* Menu Paling Laris */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center mb-5">
-            <h2 className="text-lg font-bold text-[#0f172a] flex items-center gap-2">
-              <IconFlame className="w-5 h-5 text-orange-500" />
-              Menu Paling Laris
-            </h2>
-            <button className="text-sm font-medium text-blue-600 hover:text-blue-700">Lihat Semua</button>
-          </div>
-          
-          <div className="space-y-4">
-            {menuLaris.map((item) => (
-              <div key={item.rank} className="flex items-center justify-between group">
-                <div className="flex items-center gap-4">
-                  <span className={`text-sm font-bold w-6 text-center ${item.rank <= 3 ? 'text-[#0f172a]' : 'text-gray-400'}`}>
-                    {item.rank}.
-                  </span>
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-[#0f172a] transition-colors">
-                    {item.name}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-semibold text-[#0f172a]">{item.qty} porsi</span>
+        {/* Pembelian Bahan & Biaya Terbesar (5 Cols, Tanpa Icon di H2) */}
+        {(activeTab === 'ringkasan' || activeTab === 'pengeluaran') && (
+          <div className={`bg-white p-5 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs flex flex-col justify-between ${
+            activeTab === 'pengeluaran' ? 'lg:col-span-12' : 'lg:col-span-5'
+          }`}>
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-base font-bold text-zinc-900">Pembelian Bahan & Biaya</h2>
+                  <p className="text-xs text-zinc-400 mt-0.5">Pengeluaran bahan yang paling sering dibeli</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Wawasan Penting */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-          <h2 className="text-lg font-bold text-[#0f172a] mb-5">Wawasan Penting</h2>
-          
-          <div className="space-y-4">
-            <div className="flex gap-4 items-start">
-              <div className="p-2 bg-orange-100 text-orange-600 rounded-full shrink-0 mt-0.5">
-                <IconChartLine className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  Penjualan <span className="font-semibold text-[#0f172a]">meningkat di akhir pekan</span> (terutama Sabtu & Minggu).
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex gap-4 items-start">
-              <div className="p-2 bg-blue-100 text-blue-600 rounded-full shrink-0 mt-0.5">
-                <IconBulb className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  Pelanggan cenderung memesan <span className="font-semibold text-[#0f172a]">menu minuman di siang hari</span> saat cuaca terik.
-                </p>
-              </div>
+              {topExpenses.length === 0 ? (
+                <div className="py-10 text-center text-xs text-zinc-400 space-y-2 border border-dashed border-zinc-200 rounded-xl">
+                  <IconShoppingBag className="w-8 h-8 text-zinc-300 mx-auto" />
+                  <p className="font-medium text-zinc-600">Belum ada data pengeluaran bahan</p>
+                  <p className="text-[11px] text-zinc-400">Catat belanja bahan usaha di menu Keuangan</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {topExpenses.map((item) => (
+                    <div 
+                      key={item.rank} 
+                      className="flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-50/80 transition-colors text-xs border border-zinc-100"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`w-5 text-center font-bold ${
+                          item.rank <= 3 ? 'text-zinc-900' : 'text-zinc-400'
+                        }`}>
+                          {item.rank}.
+                        </span>
+                        <div>
+                          <div className="font-medium text-zinc-800">{item.name}</div>
+                          <div className="text-[10px] text-zinc-400">{item.frekuensi}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 tabular-nums">
+                        <span className="px-2.5 py-1 bg-zinc-50 text-zinc-900 font-semibold rounded-lg text-xs border border-zinc-200/60 whitespace-nowrap">
+                          {formatRupiah(item.total)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="flex gap-4 items-start">
-              <div className="p-2 bg-red-100 text-red-600 rounded-full shrink-0 mt-0.5">
-                <IconAlertCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  Bahan baku ayam mengalami <span className="font-semibold text-red-600">kenaikan harga sebesar 18%</span> dalam 7 hari terakhir.
-                </p>
-              </div>
+            <div className="pt-3 border-t border-zinc-100 mt-4 flex items-center justify-between text-[11px] text-zinc-400">
+              <span>Total belanja bahan: {formatRupiah(totalBelanjaBahan)}</span>
+              <span className="font-semibold text-zinc-700">{topExpenses.length} Item Terbesar</span>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Rekomendasi Tindakan (AI) */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden group">
-          {/* Decorative element */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
-          
-          <div className="relative z-10 flex flex-col h-full">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                <IconSparkles className="w-5 h-5" />
-              </div>
-              <h2 className="text-lg font-bold text-[#0f172a]">Rekomendasi Tindakan</h2>
-            </div>
-            
-            <p className="text-sm text-gray-600 leading-relaxed mb-6 flex-1 bg-gray-50/80 p-4 rounded-xl border border-gray-100">
-              Pertimbangkan untuk membuat promo paket menu di akhir pekan (Nasi Goreng Spesial + Es Teh Manis) dan segera cari alternatif supplier bahan baku ayam untuk menekan biaya modal.
-            </p>
-            
-            <button className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-6 rounded-xl transition-colors shadow-sm">
-              Terapkan Sekarang
-              <IconArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
       </div>
+
+      {/* Bottom Grid: Wawasan Penting & Saran / Tips Finansial */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Wawasan Penting (7 Cols, Tanpa Icon di H2, Teks Vertikal Tengah / items-center) */}
+        {(activeTab === 'ringkasan' || activeTab === 'tren') && (
+          <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs">
+            <div className="mb-4">
+              <h2 className="text-base font-bold text-zinc-900">Wawasan Penting</h2>
+              <p className="text-xs text-zinc-400 mt-0.5">Analisis cerdas pola pemasukan dan fluktuasi harga bahan dari catatan Anda</p>
+            </div>
+
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="h-16 bg-zinc-100 animate-pulse rounded-xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3.5">
+                {wawasanList.map((w, idx) => {
+                  const isPositif = w.status === 'positif';
+                  const isPeringatan = w.status === 'peringatan';
+
+                  return (
+                    <div 
+                      key={idx} 
+                      className="flex items-center gap-3.5 p-3.5 rounded-xl bg-zinc-50/70 border border-zinc-200/60"
+                    >
+                      <div className={`p-2.5 rounded-xl shrink-0 shadow-2xs ${
+                        isPositif 
+                          ? 'bg-emerald-100 text-emerald-700' 
+                          : isPeringatan 
+                            ? 'bg-amber-100 text-amber-700' 
+                            : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {w.tipe === 'tren' ? (
+                          <IconTrendingUp className="w-4 h-4" />
+                        ) : w.tipe === 'biaya' ? (
+                          <IconShoppingBag className="w-4 h-4" />
+                        ) : (
+                          <IconReceipt2 className="w-4 h-4" />
+                        )}
+                      </div>
+                      <div className="text-xs sm:text-sm text-zinc-700 leading-relaxed">
+                        <span className="font-bold text-zinc-900 block mb-0.5">{w.judul}</span>
+                        {w.deskripsi}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Saran & Tips Finansial (5 Cols, Tanpa Icon di H2, Tanpa Button Terapkan) */}
+        {(activeTab === 'ringkasan' || activeTab === 'tips') && (
+          <div className={`bg-white p-5 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs flex flex-col justify-between ${
+            activeTab === 'tips' ? 'lg:col-span-12' : 'lg:col-span-5'
+          }`}>
+            <div>
+              <div className="mb-4">
+                <h2 className="text-base font-bold text-zinc-900">Saran & Tips Bisnis</h2>
+                <p className="text-xs text-zinc-400 mt-0.5">Panduan praktis menjaga omzet dan mengantisipasi penurunan kas</p>
+              </div>
+
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((n) => (
+                    <div key={n} className="h-16 bg-zinc-100 animate-pulse rounded-xl" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {tipsList.map((tip, idx) => {
+                    const isOmzet = tip.kategori === 'omzet';
+                    const isBiaya = tip.kategori === 'biaya';
+
+                    return (
+                      <div key={idx} className="p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/70 flex items-start gap-3">
+                        <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
+                          isOmzet 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : isBiaya 
+                              ? 'bg-amber-100 text-amber-700' 
+                              : 'bg-emerald-100 text-emerald-700'
+                        }`}>
+                          {isOmzet ? (
+                            <IconBulb className="w-3.5 h-3.5" />
+                          ) : isBiaya ? (
+                            <IconAlertTriangle className="w-3.5 h-3.5" />
+                          ) : (
+                            <IconReceipt2 className="w-3.5 h-3.5" />
+                          )}
+                        </div>
+                        <div className="text-xs text-zinc-600 leading-relaxed">
+                          <span className="font-bold text-zinc-900 block mb-0.5">{tip.judul}</span>
+                          {tip.deskripsi}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-zinc-100 mt-4 text-[11px] text-zinc-400 flex items-center justify-between">
+              <span>Saran otomatis diperbarui dari pembukuan harian</span>
+              <span className="flex items-center gap-1 text-zinc-500 font-medium">
+                <IconSparkles className="w-3 h-3 text-blue-500" /> AI Konsultan
+              </span>
+            </div>
+          </div>
+        )}
+
+      </div>
+
     </div>
   );
 }
