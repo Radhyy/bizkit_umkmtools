@@ -78,8 +78,17 @@ export async function POST(req: Request) {
             "updatedAt" = NOW()
           WHERE "orderId" = $1
         `, [orderId]);
+
+        // Tambah usageCount kupon jika transaksi menggunakan kupon diskon
+        await pool.query(`
+          UPDATE "DiscountCoupon"
+          SET "usageCount" = "usageCount" + 1, "updatedAt" = NOW()
+          WHERE code = (
+            SELECT "couponCode" FROM "SubscriptionPurchase" WHERE "orderId" = $1 LIMIT 1
+          )
+        `, [orderId]);
       } catch (subErr) {
-        console.warn('Gagal update status SubscriptionPurchase:', subErr);
+        console.warn('Gagal update status SubscriptionPurchase atau kupon:', subErr);
       }
     }
 

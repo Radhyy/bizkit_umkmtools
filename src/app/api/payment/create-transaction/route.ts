@@ -60,14 +60,42 @@ export async function POST(req: Request) {
 
     if (couponCode && typeof couponCode === 'string') {
       const cleanCode = couponCode.trim().toUpperCase();
-      if (VALID_COUPONS[cleanCode]) {
-        const coupon = VALID_COUPONS[cleanCode];
-        if (coupon.type === 'percent') {
-          discountAmount = Math.round((basePrice * coupon.value) / 100);
-        } else {
-          discountAmount = coupon.value;
+      try {
+        const dbCouponRes = await pool.query(`
+          SELECT * FROM "DiscountCoupon"
+          WHERE UPPER(code) = $1 AND "isActive" = true
+            AND ("validUntil" IS NULL OR "validUntil" > NOW())
+            AND ("usageLimit" IS NULL OR "usageCount" < "usageLimit")
+          LIMIT 1
+        `, [cleanCode]);
+
+        if (dbCouponRes.rows.length > 0) {
+          const dbCoupon = dbCouponRes.rows[0];
+          const val = Number(dbCoupon.discountValue);
+          if (dbCoupon.discountType === 'percent') {
+            discountAmount = Math.round((basePrice * val) / 100);
+            if (dbCoupon.maxDiscount && discountAmount > Number(dbCoupon.maxDiscount)) {
+              discountAmount = Number(dbCoupon.maxDiscount);
+            }
+          } else {
+            discountAmount = val;
+          }
+          appliedCoupon = cleanCode;
+        } else if (VALID_COUPONS[cleanCode]) {
+          const coupon = VALID_COUPONS[cleanCode];
+          if (coupon.type === 'percent') {
+            discountAmount = Math.round((basePrice * coupon.value) / 100);
+          } else {
+            discountAmount = coupon.value;
+          }
+          appliedCoupon = cleanCode;
         }
-        appliedCoupon = cleanCode;
+      } catch (cErr) {
+        if (VALID_COUPONS[cleanCode]) {
+          const coupon = VALID_COUPONS[cleanCode];
+          discountAmount = coupon.type === 'percent' ? Math.round((basePrice * coupon.value) / 100) : coupon.value;
+          appliedCoupon = cleanCode;
+        }
       }
     }
 

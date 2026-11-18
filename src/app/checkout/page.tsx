@@ -116,6 +116,8 @@ function CheckoutContent() {
   // Coupon state
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [dynamicCoupon, setDynamicCoupon] = useState<{ code: string; label: string; discountAmount: number } | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
 
   // Payment process state
@@ -160,7 +162,9 @@ function CheckoutContent() {
   // Kalkulasi harga
   const basePrice = plan === 'yearly' ? 468000 : 49000;
   let discountAmount = 0;
-  if (appliedCoupon && PROMO_CODES[appliedCoupon]) {
+  if (dynamicCoupon && dynamicCoupon.code === appliedCoupon) {
+    discountAmount = dynamicCoupon.discountAmount;
+  } else if (appliedCoupon && PROMO_CODES[appliedCoupon]) {
     const c = PROMO_CODES[appliedCoupon];
     if (c.type === 'percent') {
       discountAmount = Math.round((basePrice * c.value) / 100);
@@ -171,7 +175,7 @@ function CheckoutContent() {
   const finalPrice = Math.max(10000, basePrice - discountAmount);
 
   // Terapkan kupon
-  const handleApplyCoupon = (codeToApply?: string) => {
+  const handleApplyCoupon = async (codeToApply?: string) => {
     const code = (codeToApply || couponInput).trim().toUpperCase();
     setCouponError(null);
 
@@ -180,16 +184,60 @@ function CheckoutContent() {
       return;
     }
 
-    if (PROMO_CODES[code]) {
-      setAppliedCoupon(code);
-      setCouponInput(code);
-    } else {
-      setCouponError('Kode kupon tidak valid atau sudah kedaluwarsa.');
+    setIsValidatingCoupon(true);
+    try {
+      const res = await fetch('/api/payment/check-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, amount: basePrice })
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setAppliedCoupon(data.coupon.code);
+        setCouponInput(data.coupon.code);
+        setDynamicCoupon({
+          code: data.coupon.code,
+          label: data.coupon.label,
+          discountAmount: data.coupon.discountAmount
+        });
+        setCouponError(null);
+      } else if (PROMO_CODES[code]) {
+        const c = PROMO_CODES[code];
+        const disc = c.type === 'percent' ? Math.round((basePrice * c.value) / 100) : c.value;
+        setAppliedCoupon(code);
+        setCouponInput(code);
+        setDynamicCoupon({
+          code: code,
+          label: c.label,
+          discountAmount: disc
+        });
+        setCouponError(null);
+      } else {
+        setCouponError(data.message || 'Kode kupon tidak valid atau sudah kedaluwarsa.');
+      }
+    } catch {
+      if (PROMO_CODES[code]) {
+        const c = PROMO_CODES[code];
+        const disc = c.type === 'percent' ? Math.round((basePrice * c.value) / 100) : c.value;
+        setAppliedCoupon(code);
+        setCouponInput(code);
+        setDynamicCoupon({
+          code: code,
+          label: c.label,
+          discountAmount: disc
+        });
+        setCouponError(null);
+      } else {
+        setCouponError('Gagal memeriksa kode kupon.');
+      }
+    } finally {
+      setIsValidatingCoupon(false);
     }
   };
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
+    setDynamicCoupon(null);
     setCouponInput('');
     setCouponError(null);
   };
