@@ -105,8 +105,8 @@ export default function Navbar() {
     <header className="fixed top-0 left-0 right-0 z-50 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
       <div className="flex items-center gap-3 bg-white/70 backdrop-blur-md border border-gray-100 py-2 px-5 rounded-full shadow-sm">
         <Link href="/" className="flex items-center gap-3">
-          <Image src="/PP-BizKit.png" alt="Bizkit" width={32} height={32} className="w-8 h-8 object-cover rounded-[10px] shadow-sm" />
-          <span className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: "'Sparling Demo', sans-serif" }}>Bizkit</span>
+          <Image src="/PP-BizKit.png" alt="Bizkit" width={34} height={34} className="w-[34px] h-[34px] object-cover rounded-[10px] shadow-sm shrink-0" />
+          <span className="text-[22px] font-semibold text-slate-900 tracking-tight translate-y-[2px] leading-none" style={{ fontFamily: "'Sparling Demo', sans-serif" }}>Bizkit</span>
         </Link>
       </div>
       

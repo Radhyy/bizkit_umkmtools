@@ -13,8 +13,8 @@ export default function Footer() {
           {/* Column 1: Brand & Contact */}
           <div className="flex flex-col items-start gap-8">
             <div className="flex items-center gap-3">
-              <Image src="/PP-BizKit.png" alt="Bizkit" width={32} height={32} className="w-8 h-8 object-cover rounded-[10px] shadow-sm" />
-              <span className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: "'Sparling Demo', sans-serif" }}>Bizkit</span>
+              <Image src="/PP-BizKit.png" alt="Bizkit" width={34} height={34} className="w-[34px] h-[34px] object-cover rounded-[10px] shadow-sm shrink-0" />
+              <span className="text-[22px] font-semibold text-slate-900 tracking-tight translate-y-[2px] leading-none" style={{ fontFamily: "'Sparling Demo', sans-serif" }}>Bizkit</span>
             </div>
 
             <div className={`flex flex-col gap-3 ${jakarta.className}`}>
