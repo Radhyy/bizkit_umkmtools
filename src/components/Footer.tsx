@@ -13,7 +13,7 @@ export default function Footer() {
           {/* Column 1: Brand & Contact */}
           <div className="flex flex-col items-start gap-8">
             <div className="flex items-center gap-3">
-              <Image src="/LogoToolsUmkm.png" alt="Bizkit" width={32} height={32} className="w-8 h-8 object-contain" />
+              <Image src="/PP-BizKit.png" alt="Bizkit" width={32} height={32} className="w-8 h-8 object-cover rounded-[10px] shadow-sm" />
               <span className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: "'Sparling Demo', sans-serif" }}>Bizkit</span>
             </div>
 
