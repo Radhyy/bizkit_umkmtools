@@ -71,7 +71,9 @@ async function ensureTables() {
 
 // ========================================================
 // RAG RETRIEVAL & DYNAMIC RANKING MECHANISM
-// Termasuk Mekanisme Notice Food Vlogger Kecil & Log Kontak
+// Hierarki Pengurutan:
+// 1. Kedekatan Lokasi Influencer dengan Toko Dulu (Direct City > Regional > Nasional)
+// 2. Frekuensi Kerjasama (Contact Log across all dashboard) & Prioritas Food Vlogger Kecil
 // ========================================================
 function rankInfluencersRAG(
   creators: VerifiedCreator[],
@@ -82,100 +84,128 @@ function rankInfluencersRAG(
   const userCategory = (businessProfile?.kategoriBisnis || 'kuliner').toLowerCase().trim();
   const storeName = businessProfile?.namaUsaha || 'Toko UMKM';
 
-  // Hitung total kontak di sistem
-  let totalPlatformContacts = 0;
-  Object.values(contactCounts).forEach((c) => {
-    totalPlatformContacts += c;
-  });
+  // Helper clustering wilayah aglomerasi / provinsi di Indonesia
+  const isEastJava = (c: string) =>
+    ['sidoarjo', 'surabaya', 'malang', 'gresik', 'mojokerto', 'pasuruan', 'batu', 'kediri', 'jember', 'banyuwangi', 'jatim', 'jawa timur'].some((k) => c.includes(k));
+
+  const isJabodetabek = (c: string) =>
+    ['jakarta', 'bogor', 'depok', 'tangerang', 'bekasi', 'tangsel', 'jabodetabek'].some((k) => c.includes(k));
+
+  const isJatengDiy = (c: string) =>
+    ['semarang', 'solo', 'surakarta', 'jogja', 'yogyakarta', 'magelang', 'salatiga', 'jateng', 'jawa tengah', 'diy'].some((k) => c.includes(k));
+
+  const isJabar = (c: string) =>
+    ['bandung', 'cimahi', 'cirebon', 'tasikmalaya', 'sukabumi', 'garut', 'jabar', 'jawa barat'].some((k) => c.includes(k));
+
+  const isBali = (c: string) =>
+    ['bali', 'denpasar', 'badung', 'ubud', 'canggu', 'kuta', 'seminyak'].some((k) => c.includes(k));
+
+  const isSumut = (c: string) =>
+    ['medan', 'binjai', 'deli serdang', 'sumut', 'sumatera utara'].some((k) => c.includes(k));
+
+  const isSulsel = (c: string) =>
+    ['makassar', 'gowa', 'maros', 'sulsel', 'sulawesi selatan'].some((k) => c.includes(k));
 
   const scoredList = creators.map((creator) => {
     const handleClean = creator.handle.toLowerCase().trim();
     const contactsForThisCreator = contactCounts[handleClean] || 0;
     const isSmallCreator = creator.tier === 'nano' || creator.tier === 'micro' || creator.followersCount <= 75000;
 
-    // 1. SKOR GEOGRAFIS / LOKASI (Bobot Tinggi: 50 poin)
-    let locScore = 15;
-    const directCityMatch = creator.citiesSupported.some((c) => userCity.includes(c) || c.includes(userCity));
-    const regionalMatch = 
-      (userCity.includes('sidoarjo') || userCity.includes('surabaya') || userCity.includes('malang')) &&
-      creator.citiesSupported.some(c => ['sidoarjo', 'surabaya', 'jatim', 'jawa timur', 'malang'].includes(c));
+    // 1. TIER KEDEKATAN LOKASI (Prioritas Utama)
+    // Tier 3: Langsung di kota toko (Direct City Match)
+    // Tier 2: Kawasan regional / provinsi terdekat (Regional Match)
+    // Tier 1: Nasional / Luar wilayah (National Match)
+    const directCityMatch =
+      creator.citiesSupported.some((c) => userCity.includes(c) || c.includes(userCity)) ||
+      creator.cityRegion.toLowerCase().includes(userCity);
 
+    const regionalMatch =
+      (isEastJava(userCity) && (creator.citiesSupported.some(isEastJava) || isEastJava(creator.cityRegion.toLowerCase()))) ||
+      (isJabodetabek(userCity) && (creator.citiesSupported.some(isJabodetabek) || isJabodetabek(creator.cityRegion.toLowerCase()))) ||
+      (isJatengDiy(userCity) && (creator.citiesSupported.some(isJatengDiy) || isJatengDiy(creator.cityRegion.toLowerCase()))) ||
+      (isJabar(userCity) && (creator.citiesSupported.some(isJabar) || isJabar(creator.cityRegion.toLowerCase()))) ||
+      (isBali(userCity) && (creator.citiesSupported.some(isBali) || isBali(creator.cityRegion.toLowerCase()))) ||
+      (isSumut(userCity) && (creator.citiesSupported.some(isSumut) || isSumut(creator.cityRegion.toLowerCase()))) ||
+      (isSulsel(userCity) && (creator.citiesSupported.some(isSulsel) || isSulsel(creator.cityRegion.toLowerCase())));
+
+    let locationTier = 1;
     if (directCityMatch) {
-      locScore = 50; // Langsung di kota toko!
+      locationTier = 3;
     } else if (regionalMatch) {
-      locScore = 38; // Kawasan aglomerasi / provinsi terdekat
-    } else if (creator.citiesSupported.includes('nasional') || creator.citiesSupported.includes('indonesia')) {
-      locScore = 22;
+      locationTier = 2;
+    } else {
+      locationTier = 1;
     }
 
-    // 2. SKOR NICHE / KATEGORI (Bobot: 30 poin)
+    // 2. FAKTOR KEDUA: LOG KONTAK KERJASAMA & KREATOR KECIL
+    // Requirement:
+    // - Berapa kali diajak kerjasama: Jika sudah terlalu sering dihubungi (banyak log kontak),
+    //   posisinya diturunkan agar tidak terjadi saturasi / monopoli.
+    // - Sebaliknya, kreator kecil (food vlogger lokal nano/micro) yang belum banyak dihubungi
+    //   diangkat posisinya ke atas agar ternotice UMKM.
+    const contactPenalty = contactsForThisCreator * 20;
+
+    let smallCreatorScore = 0;
+    if (isSmallCreator) {
+      smallCreatorScore += 35;
+      if (contactsForThisCreator === 0) {
+        smallCreatorScore += 15; // Bonus belum pernah dihubungi
+      }
+    } else {
+      if (contactsForThisCreator > 0) {
+        smallCreatorScore -= 10;
+      }
+    }
+
+    // Relevansi Niche
     let nicheScore = 15;
     if (userCategory.includes('kuliner') || userCategory.includes('makan') || userCategory.includes('minum')) {
-      nicheScore = creator.nicheCategory === 'kuliner' ? 30 : 18;
+      nicheScore = creator.nicheCategory === 'kuliner' ? 25 : 10;
     } else if (userCategory.includes('fashion') || userCategory.includes('baju') || userCategory.includes('hijab')) {
-      nicheScore = (creator.nicheCategory === 'fashion' || creator.nicheCategory === 'retail') ? 30 : 14;
+      nicheScore = (creator.nicheCategory === 'fashion' || creator.nicheCategory === 'retail') ? 25 : 8;
     } else {
-      nicheScore = 20;
+      nicheScore = 18;
     }
 
-    // 3. MEKANISME LOG KONTAK ACROSS ALL DASHBOARD & NOTICE FOOD VLOGGER KECIL
-    // Requirement:
-    // "catat seluruh log (across all dashboard) yang menghubungi influencer, nanti kalau udah terlalu banyak, 
-    //  influencer itu jangan ditaruh rekomendasi atas, sebaliknya, taruh influencer yang kecil keatas rekomendasi."
-    
-    // a) Penalti Saturasi: Semakin sering dihubungi di dashboard, skornya diturunkan
-    const saturationPenalty = Math.min(contactsForThisCreator * 8, 42);
+    // Public ER Score
+    const erScore = Math.min((parseFloat(creator.engagement) || 5) * 1.5, 15);
 
-    // b) Boost Khusus Food Vlogger Kecil (Nano & Micro):
-    // Food vlogger kecil diberikan dorongan skor agar naik ke atas
-    let smallCreatorBoost = 0;
-    if (isSmallCreator) {
-      // Baseline prioritas untuk kreator kecil agar mudah ternotice
-      smallCreatorBoost += 24;
+    const secondaryScore = smallCreatorScore + nicheScore + erScore - contactPenalty;
 
-      // Jika belum banyak atau belum pernah dihubungi sama sekali, beri bonus eksplorasi
-      if (contactsForThisCreator === 0) {
-        smallCreatorBoost += 12;
-      }
-
-      // Jika platform memiliki influencer besar yang sering dihubungi, otomatis angkat kreator kecil lebih tinggi lagi
-      if (totalPlatformContacts > 0) {
-        smallCreatorBoost += 8;
-      }
-    }
-
-    // 4. ESTIMASI ENGAGEMENT / DAMPAK YANG BISA DIBERIKAN KE TOKO (PERSENTASE)
-    // Requirement: "engagement yang bisa diberikan oleh influencer ke toko (persentase)"
+    // 3. ESTIMASI ENGAGEMENT / DAMPAK KE TOKO (PERSENTASE)
     const publicErNumber = parseFloat(creator.engagement) || 6.0;
     let storeEngagementNum = publicErNumber;
-
-    // Lokasi satu kota memberikan konversi kunjungan fisik / order lokal lebih tinggi
     if (directCityMatch) {
       storeEngagementNum += 4.5;
     } else if (regionalMatch) {
       storeEngagementNum += 2.8;
     }
 
-    // Niche yang relevan meningkatkan konversi interaksi langsung
-    if (nicheScore >= 25) {
+    if (nicheScore >= 20) {
       storeEngagementNum += 2.0;
     }
 
-    // Kreator mikro/nano memiliki kedekatan audiens lokal & rasio interaksi per tayang lebih tinggi
     if (isSmallCreator) {
       storeEngagementNum += 3.2;
     }
 
-    // Format persentase estimasi dampak ke toko
     const estimatedStoreEngagement = `+${storeEngagementNum.toFixed(1)}%`;
 
-    // 5. TOTAL PERHITUNGAN SKOR AKHIR KANDIDAT
-    let rawScore = locScore + nicheScore - saturationPenalty + smallCreatorBoost;
+    // 4. MATCH SCORE PERSENTASE UNTUK CARD
+    // Tier 3 (Kota Toko): 95% - 99%
+    // Tier 2 (Regional): 88% - 94%
+    // Tier 1 (Nasional/Lain): 80% - 87%
+    let matchScore = 80;
+    const normalizedSec = Math.min(Math.max(secondaryScore / 70, 0), 1);
+    if (locationTier === 3) {
+      matchScore = Math.round(95 + normalizedSec * 4);
+    } else if (locationTier === 2) {
+      matchScore = Math.round(88 + normalizedSec * 6);
+    } else {
+      matchScore = Math.round(80 + normalizedSec * 7);
+    }
 
-    // Normalisasi skor kecocokan dalam rentang 82% - 99%
-    let matchScore = Math.min(Math.max(Math.round(75 + (rawScore / 115) * 24), 82), 99);
-
-    // Default Rationale berbasis RAG Lokasi & Profil Toko
+    // 5. Default Rationale Berbasis RAG Lokasi & Profil Toko
     let personalizedReason = creator.description;
     let collaborationTip = 'Kirim sampel produk terbaik Anda atau ajukan review santai di tempat.';
 
@@ -195,7 +225,8 @@ function rankInfluencersRAG(
 
     return {
       creator,
-      rawScore,
+      locationTier,
+      secondaryScore,
       matchScore,
       estimatedStoreEngagement,
       isSmallCreator,
@@ -205,8 +236,19 @@ function rankInfluencersRAG(
     };
   });
 
-  // Urutkan kandidat berdasarkan skor tertinggi ke terendah
-  scoredList.sort((a, b) => b.rawScore - a.rawScore);
+  // PENGURUTAN STRICT:
+  // 1. Kedekatan lokasi influencer dengan toko DULU
+  // 2. Baru yang lain-lain (frekuensi kerjasama di platform & kreator kecil ke atas)
+  // 3. Fallback: followers lebih kecil (lebih merakyat) jika seri
+  scoredList.sort((a, b) => {
+    if (b.locationTier !== a.locationTier) {
+      return b.locationTier - a.locationTier;
+    }
+    if (b.secondaryScore !== a.secondaryScore) {
+      return b.secondaryScore - a.secondaryScore;
+    }
+    return a.creator.followersCount - b.creator.followersCount;
+  });
 
   // Petakan ke antarmuka InfluencerItem
   return scoredList.map((item, idx) => ({
