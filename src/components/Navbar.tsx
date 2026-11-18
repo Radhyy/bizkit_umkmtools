@@ -219,7 +219,7 @@ export default function Navbar() {
                     </Link>
                   )}
 
-                  {/* Menu Khusus Premium & Trial: Buka Dashboard */}
+                  {/* Menu Khusus Premium & Trial: Dashboard */}
                   {(user.role === 'premium' || user.role === 'trial') && (
                     <Link 
                       href="/dashboard"
