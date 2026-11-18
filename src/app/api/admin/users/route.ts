@@ -11,7 +11,8 @@ function calculateTrialInfo(user: any) {
   let trialStatus: 'none' | 'active' | 'expired' = 'none';
   let daysLeft = 0;
 
-  if (user.trialEndsAt) {
+  // Trial hanya aktif jika role pengguna memang 'trial'
+  if (role === 'trial' && user.trialEndsAt) {
     const now = new Date();
     const trialDate = new Date(user.trialEndsAt);
     const diffMs = trialDate.getTime() - now.getTime();
@@ -30,7 +31,7 @@ function calculateTrialInfo(user: any) {
   const hasDashboardAccess = !user.isLocked && (
     role === 'admin' || 
     role === 'premium' || 
-    trialStatus === 'active'
+    (role === 'trial' && trialStatus === 'active')
   );
 
   return {
@@ -287,16 +288,21 @@ export async function PATCH(req: Request) {
           UPDATE "User"
           SET 
             role = $1,
+            "trialEndsAt" = NULL,
+            "trialGrantedDays" = 0,
             "isLocked" = false,
             "updatedAt" = NOW()
           WHERE id = $2
           RETURNING id, name, email, role, "isLocked", "trialEndsAt"
         `, [newRole, userId]);
       } else {
+        // newRole === 'free' atau 'admin': bersihkan masa trial
         updateResult = await pool.query(`
           UPDATE "User"
           SET 
             role = $1,
+            "trialEndsAt" = NULL,
+            "trialGrantedDays" = 0,
             "updatedAt" = NOW()
           WHERE id = $2
           RETURNING id, name, email, role, "isLocked", "trialEndsAt"

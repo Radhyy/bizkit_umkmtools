@@ -58,8 +58,8 @@ export async function GET(req: Request) {
       });
     }
 
-    // 4. Role Trial atau memiliki masa trial aktif
-    if (user.trialEndsAt) {
+    // 4. Role Trial: periksa sisa masa trial aktif
+    if (userRole === 'trial' && user.trialEndsAt) {
       const now = new Date();
       const trialEnds = new Date(user.trialEndsAt);
       const diffMs = trialEnds.getTime() - now.getTime();

@@ -377,7 +377,7 @@ export default function HargaPage() {
 
             <div className="mt-auto pt-4">
               <Link
-                href="/login?redirect=/harga"
+                href={`/checkout?plan=${isYearly ? 'yearly' : 'monthly'}`}
                 className="w-full h-[52px] bg-gradient-to-b from-[#0066FF] to-[#0047FF] hover:from-[#1a75ff] hover:to-[#003be6] text-white font-bold py-2 pl-6 pr-2 rounded-full flex items-center justify-between transition-all shadow-[0_8px_20px_rgba(0,71,255,0.25),inset_0_2px_0_rgba(255,255,255,0.25),inset_0_-4px_0_rgba(0,0,0,0.18)] hover:-translate-y-0.5 active:translate-y-1 active:shadow-[0_0px_0px_rgba(0,71,255,0),inset_0_4px_8px_rgba(0,0,0,0.2)] cursor-pointer"
               >
                 <span className="text-[14px] md:text-[15px] font-bold">Upgrade ke Premium Sekarang</span>
