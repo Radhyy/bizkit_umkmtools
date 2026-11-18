@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { v4 as uuidv4 } from 'uuid';
 
 const VALID_COUPONS: Record<string, { type: 'percent' | 'fixed'; value: number; label: string }> = {
   'BIZKITHEMAT': { type: 'percent', value: 20, label: 'Diskon 20%' },
@@ -148,6 +149,32 @@ export async function POST(req: Request) {
         error: midtransData.message || 'Gagal menghubungi server pembayaran Midtrans.',
         details: midtransData
       }, { status: 500 });
+    }
+
+    // Catat riwayat pembelian ke tabel SubscriptionPurchase
+    try {
+      const purchaseId = uuidv4();
+      await pool.query(`
+        INSERT INTO "SubscriptionPurchase" (
+          id, "orderId", "userId", plan, amount, "discountAmount", "couponCode", 
+          "paymentMethod", status, "snapToken", "snapRedirectUrl", "midtransResponse", "createdAt", "updatedAt"
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', $9, $10, $11, NOW(), NOW())
+      `, [
+        purchaseId,
+        orderId,
+        user.id,
+        plan,
+        finalAmount,
+        discountAmount,
+        appliedCoupon,
+        paymentMethod,
+        midtransData.token,
+        midtransData.redirect_url,
+        JSON.stringify(midtransData)
+      ]);
+    } catch (dbErr) {
+      console.error('Gagal mencatat SubscriptionPurchase:', dbErr);
     }
 
     return NextResponse.json({

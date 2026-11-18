@@ -67,6 +67,22 @@ export async function POST(req: Request) {
 
     const updatedUser = updateResult.rows[0];
 
+    // Update status transaksi pembelian di SubscriptionPurchase
+    if (orderId) {
+      try {
+        await pool.query(`
+          UPDATE "SubscriptionPurchase"
+          SET 
+            status = 'settlement',
+            "paidAt" = NOW(),
+            "updatedAt" = NOW()
+          WHERE "orderId" = $1
+        `, [orderId]);
+      } catch (subErr) {
+        console.warn('Gagal update status SubscriptionPurchase:', subErr);
+      }
+    }
+
     // 4. Catat notifikasi sukses ke akun pengguna
     try {
       const planName = plan === 'yearly' ? 'Tahunan (1 Tahun)' : 'Bulanan (1 Bulan)';
