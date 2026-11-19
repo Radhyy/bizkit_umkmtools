@@ -29,6 +29,7 @@ import {
   IconX,
   IconClock,
   IconShieldLock,
+  IconMenu2,
 } from '@tabler/icons-react';
 
 export default function DashboardLayout({
@@ -257,11 +258,11 @@ export default function DashboardLayout({
 
   // Navigation Items
   const primaryNavItems = [
-    { href: '/dashboard', icon: IconGridDots, label: 'Overview' },
-    { href: '/dashboard/keuangan', icon: IconFlame, label: 'Keuangan & Kas' },
-    { href: '/dashboard/laporan', icon: IconChartBar, label: 'Laporan Bisnis' },
-    { href: '/dashboard/ai', icon: IconTrendingUp, label: 'Insight Tren' },
-    { href: '/dashboard/asisten', icon: IconBrain, label: 'Asisten AI' },
+    { href: '/dashboard', icon: IconGridDots, label: 'Overview', shortLabel: 'Overview' },
+    { href: '/dashboard/keuangan', icon: IconFlame, label: 'Keuangan & Kas', shortLabel: 'Keuangan' },
+    { href: '/dashboard/laporan', icon: IconChartBar, label: 'Laporan Bisnis', shortLabel: 'Laporan' },
+    { href: '/dashboard/ai', icon: IconTrendingUp, label: 'Insight Tren', shortLabel: 'Insight' },
+    { href: '/dashboard/asisten', icon: IconBrain, label: 'Asisten AI', shortLabel: 'Asisten AI' },
   ];
 
   const analyzeNavItems = [
@@ -270,7 +271,7 @@ export default function DashboardLayout({
     { href: '/dashboard/export', icon: IconTag, label: 'Export Data' },
   ];
 
-  const filterItems = (items: typeof primaryNavItems) => {
+  const filterItems = <T extends { label: string }>(items: T[]): T[] => {
     if (!searchQuery.trim()) return items;
     return items.filter(it => it.label.toLowerCase().includes(searchQuery.toLowerCase()));
   };
@@ -549,9 +550,64 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-[#F8F9FA] pt-16 lg:pt-0">
+      <main className="flex-1 overflow-auto bg-[#F8F9FA] pt-16 pb-24 lg:pt-0 lg:pb-0">
         {children}
       </main>
+
+      {/* Floating Bottom App Navigation Bar (Khusus Mobile - Pill Style) */}
+      {!isMobileMenuOpen && (
+        <nav 
+          aria-label="Mobile Navigation Dock"
+          className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-md border border-zinc-200/90 shadow-[0_10px_35px_rgba(0,0,0,0.12)] rounded-full px-2 py-1.5 flex items-center gap-1 sm:gap-2 max-w-[95vw] animate-in fade-in slide-in-from-bottom-3 duration-200"
+        >
+          {primaryNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = item.href === '/dashboard' 
+              ? pathname === '/dashboard' 
+              : pathname.startsWith(item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="relative group focus:outline-none"
+              >
+                {/* Speech Bubble Tooltip for Active Item (matching screenshot) */}
+                {isActive && (
+                  <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-white border border-zinc-200/90 rounded-xl shadow-md text-[11px] font-bold text-zinc-900 whitespace-nowrap pointer-events-none z-50 animate-in fade-in zoom-in-95 duration-150">
+                    {item.shortLabel || item.label}
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-zinc-200/90 rotate-45"></div>
+                  </div>
+                )}
+
+                <div 
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                    isActive
+                      ? 'bg-zinc-100 text-zinc-950 shadow-2xs font-bold ring-1 ring-zinc-200/60'
+                      : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/70'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" stroke={isActive ? 2.5 : 2} />
+                </div>
+              </Link>
+            );
+          })}
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-zinc-200 mx-0.5" />
+
+          {/* Menu Drawer Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label="Buka Menu Lengkap"
+            title="Menu Lainnya"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/70 transition-all focus:outline-none"
+          >
+            <IconMenu2 className="w-5 h-5" stroke={2} />
+          </button>
+        </nav>
+      )}
     </div>
   );
 }
