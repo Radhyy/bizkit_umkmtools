@@ -10,7 +10,7 @@ export async function GET(req: Request) {
 
     // Ambil data admin dari tabel User
     const userRes = await pool.query(
-      `SELECT id, name, email, role, "createdAt", "updatedAt" FROM "User" WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+      `SELECT id, name, email, role, "avatarUrl", "createdAt", "updatedAt" FROM "User" WHERE LOWER(email) = LOWER($1) LIMIT 1`,
       [email]
     );
 
@@ -19,6 +19,7 @@ export async function GET(req: Request) {
       name: 'Radhiyya',
       email: 'radiaakbarradia@gmail.com',
       role: 'admin',
+      avatarUrl: null,
       createdAt: new Date().toISOString()
     };
 
@@ -27,6 +28,7 @@ export async function GET(req: Request) {
     const midtransIsProduction = process.env.MIDTRANS_IS_PRODUCTION === 'true';
     const waGroqKeysCount = (process.env.GROQ_WA_API_KEYS || '').split(',').filter(Boolean).length;
     const cacheMetrics = getPlanCacheMetrics();
+    const s3Configured = Boolean(process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY);
 
     return NextResponse.json({
       success: true,
@@ -34,6 +36,12 @@ export async function GET(req: Request) {
       system: {
         nodeEnv: process.env.NODE_ENV || 'development',
         databaseConnected: true,
+        storage: {
+          provider: 'KilatStorage S3 (CloudKilat)',
+          bucket: process.env.S3_BUCKET_NAME || 'bizkit-tools',
+          endpoint: process.env.S3_ENDPOINT || 'https://s3-id-jkt-1.kilatstorage.id',
+          isConfigured: s3Configured,
+        },
         midtrans: {
           isConfigured: midtransConfigured,
           isProduction: midtransIsProduction,

@@ -33,7 +33,7 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role?: string; avatarUrl?: string } | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -348,11 +348,21 @@ export default function AdminLayout({
           <div className="pt-1">
             <div className="flex items-center justify-between p-1.5 rounded-2xl hover:bg-zinc-100/80 transition-colors cursor-pointer group">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 p-0.5 shrink-0 shadow-2xs flex items-center justify-center overflow-hidden">
-                  <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-white text-[11px] font-bold">
-                    {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
+                {currentUser?.avatarUrl ? (
+                  <div className="w-8 h-8 rounded-xl overflow-hidden border border-zinc-200/80 shrink-0 shadow-2xs bg-white flex items-center justify-center p-0.5">
+                    <img 
+                      src={currentUser.avatarUrl} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover rounded-[10px]" 
+                    />
                   </div>
-                </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 p-0.5 shrink-0 shadow-2xs flex items-center justify-center overflow-hidden">
+                    <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-white text-[11px] font-bold">
+                      {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
+                    </div>
+                  </div>
+                )}
                 {!isCollapsed && (
                   <div className="flex flex-col min-w-0">
                     <span className="text-[13px] font-semibold text-zinc-900 leading-tight truncate">

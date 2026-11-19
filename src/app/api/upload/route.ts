@@ -10,6 +10,7 @@ export async function POST(req: Request) {
     const file = formData.get('file') as File | null;
     const userId = formData.get('userId') as string | null;
     const folder = (formData.get('folder') as string) || 'logos';
+    const uploadType = (formData.get('type') as string) || (folder === 'avatars' ? 'avatar' : 'logo');
 
     if (!file) {
       return NextResponse.json({ error: 'Tidak ada berkas yang diunggah.' }, { status: 400 });
@@ -39,17 +40,26 @@ export async function POST(req: Request) {
     // Unggah ke KilatStorage S3
     const uploadResult = await uploadToS3(buffer, file.name, file.type, folder);
 
-    // Jika userId disertakan, simpan logoUrl ke BusinessProfile
+    // Jika userId / email disertakan, simpan ke database sesuai tipe upload
     if (userId) {
       try {
-        await pool.query(
-          `UPDATE "BusinessProfile" 
-           SET "logoUrl" = $1, "updatedAt" = NOW() 
-           WHERE "userId" = $2`,
-          [uploadResult.url, userId]
-        );
+        if (uploadType === 'avatar') {
+          await pool.query(
+            `UPDATE "User" 
+             SET "avatarUrl" = $1, "updatedAt" = NOW() 
+             WHERE id = $2 OR email = $2`,
+            [uploadResult.url, userId]
+          );
+        } else {
+          await pool.query(
+            `UPDATE "BusinessProfile" 
+             SET "logoUrl" = $1, "updatedAt" = NOW() 
+             WHERE "userId" = $2`,
+            [uploadResult.url, userId]
+          );
+        }
       } catch (dbErr) {
-        console.error('Failed to update BusinessProfile with logoUrl:', dbErr);
+        console.error('Failed to update database with S3 URL:', dbErr);
       }
     }
 

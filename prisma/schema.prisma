@@ -19,6 +19,7 @@ model User {
   trialEndsAt      DateTime?
   isLocked         Boolean          @default(false)
   trialGrantedDays Int              @default(0)
+  avatarUrl        String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   transactions    Transaction[]

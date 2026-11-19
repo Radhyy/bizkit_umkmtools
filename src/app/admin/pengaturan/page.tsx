@@ -17,16 +17,23 @@ import {
   IconRefresh,
   IconDeviceFloppy,
   IconKey,
-  IconServer
+  IconServer,
+  IconUpload,
+  IconTrash,
+  IconCloud,
 } from '@tabler/icons-react';
 
 export default function AdminPengaturanPage() {
-  const [currentUser, setCurrentUser] = useState<{ id?: string; name: string; email: string; role?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id?: string; name: string; email: string; role?: string; avatarUrl?: string } | null>(null);
   const [adminName, setAdminName] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
+
   const [systemData, setSystemData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -58,6 +65,7 @@ export default function AdminPengaturanPage() {
       if (res.ok && data.success) {
         if (data.admin) {
           setAdminName(data.admin.name || 'Radhiyya');
+          if (data.admin.avatarUrl) setAvatarUrl(data.admin.avatarUrl);
         }
         setSystemData(data.system);
       }
@@ -65,6 +73,80 @@ export default function AdminPengaturanPage() {
       console.error(err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'Harap pilih berkas gambar (JPG, PNG, WEBP, atau SVG).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('error', 'Ukuran berkas maksimal 5MB.');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'avatars');
+      formData.append('type', 'avatar');
+      formData.append('userId', currentUser?.email || 'radiaakbarradia@gmail.com');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setAvatarUrl(data.url);
+        showToast('success', 'Foto profil admin berhasil diunggah ke KilatStorage S3!');
+        if (currentUser) {
+          const updated = { ...currentUser, avatarUrl: data.url };
+          localStorage.setItem('user', JSON.stringify(updated));
+        }
+      } else {
+        showToast('error', data.error || 'Gagal mengunggah foto ke S3.');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('error', 'Terjadi kesalahan saat mengunggah foto.');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!avatarUrl) return;
+    setIsUploadingAvatar(true);
+    try {
+      const res = await fetch(
+        `/api/upload?url=${encodeURIComponent(avatarUrl)}&userId=${encodeURIComponent(currentUser?.email || 'radiaakbarradia@gmail.com')}`,
+        { method: 'DELETE' }
+      );
+      if (res.ok) {
+        setAvatarUrl(null);
+        showToast('success', 'Foto profil admin berhasil dihapus.');
+        if (currentUser) {
+          const updated = { ...currentUser, avatarUrl: undefined };
+          localStorage.setItem('user', JSON.stringify(updated));
+        }
+      } else {
+        showToast('error', 'Gagal menghapus foto.');
+      }
+    } catch {
+      showToast('error', 'Terjadi kesalahan saat menghapus foto.');
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -219,6 +301,83 @@ export default function AdminPengaturanPage() {
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-4">
+              {/* Avatar Section */}
+              <div className="flex items-center gap-4 pb-4 border-b border-zinc-100">
+                <div className="relative group shrink-0">
+                  {avatarUrl ? (
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden border border-zinc-200/90 shadow-2xs bg-white flex items-center justify-center p-0.5">
+                      <img 
+                        src={avatarUrl} 
+                        alt="Avatar Admin" 
+                        className="w-full h-full object-cover rounded-xl" 
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-xl shrink-0 shadow-2xs">
+                      {adminName ? adminName.charAt(0).toUpperCase() : 'A'}
+                    </div>
+                  )}
+                  {isUploadingAvatar && (
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-xs rounded-2xl flex items-center justify-center text-white">
+                      <IconRefresh className="w-4 h-4 animate-spin" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-zinc-900">Foto Profil Administrator</span>
+                    {avatarUrl && (
+                      <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        S3 Aktif
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-zinc-400">
+                    Format gambar JPG, PNG, WEBP, atau SVG (Maksimal 5MB).
+                  </p>
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 rounded-xl text-xs font-semibold text-zinc-700 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {isUploadingAvatar ? (
+                        <>
+                          <IconRefresh className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                          <span>Mengunggah...</span>
+                        </>
+                      ) : (
+                        <>
+                          <IconUpload className="w-3.5 h-3.5 text-zinc-500" />
+                          <span>{avatarUrl ? 'Ganti Foto' : 'Unggah Foto'}</span>
+                        </>
+                      )}
+                    </button>
+
+                    {avatarUrl && !isUploadingAvatar && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                      >
+                        <IconTrash className="w-3.5 h-3.5" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-zinc-700 uppercase tracking-wider mb-1.5">
                   Nama Administrator
@@ -461,6 +620,38 @@ export default function AdminPengaturanPage() {
             <p className="text-[11px] text-zinc-500 leading-relaxed">
               Database cloud terenkripsi penuh dan terhubung dengan connection pooling.
             </p>
+          </div>
+
+          {/* Card 6: KilatStorage S3 Object Storage */}
+          <div className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-2xs">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+                  <IconCloud className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-zinc-900">KilatStorage S3</span>
+              </div>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Terkoneksi
+              </span>
+            </div>
+            <div className="text-[11px] text-zinc-500 space-y-1 mt-2 bg-zinc-50 p-2.5 rounded-xl border border-zinc-100">
+              <div className="flex justify-between">
+                <span>Penyedia:</span>
+                <span className="font-semibold text-zinc-800">CloudKilat Object Storage</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Bucket:</span>
+                <span className="font-mono text-zinc-800 font-semibold">bizkit-tools</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Endpoint:</span>
+                <span className="font-mono text-[10px] text-zinc-500 truncate max-w-[170px]" title="https://s3-id-jkt-1.kilatstorage.id">
+                  s3-id-jkt-1.kilatstorage.id
+                </span>
+              </div>
+            </div>
           </div>
 
         </div>
