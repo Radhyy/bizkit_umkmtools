@@ -282,7 +282,7 @@ export default function InsightPage() {
   }, [transactions]);
 
   return (
-    <div className="p-5 sm:p-8 max-w-[1280px] mx-auto space-y-6 font-jakarta">
+    <div className="p-4 sm:p-8 max-w-[1280px] mx-auto space-y-4 sm:space-y-6 font-jakarta">
       
       {/* Toast Notification */}
       {toastMessage && (
@@ -296,21 +296,21 @@ export default function InsightPage() {
       )}
 
       {/* Header Section (Tanpa Icon di samping Title H1) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Insight Bisnis</h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
             Analisis data cerdas untuk memantau performa pemasukan, pengeluaran bahan, dan arus kas Anda.
           </p>
         </div>
 
         {/* Action Button: Refresh AI & Keuangan */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button 
             onClick={handleRefresh}
             title="Sinkronkan data dan perbarui analisis AI"
             disabled={isRefreshing || isLoading}
-            className="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-zinc-200/90 rounded-xl text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs disabled:opacity-50"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 sm:py-2 bg-white border border-zinc-200/90 rounded-xl text-xs font-semibold text-zinc-700 hover:bg-zinc-50 active:bg-zinc-100 transition-colors shadow-2xs disabled:opacity-50"
           >
             <IconRefresh className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-600' : 'text-zinc-500'}`} />
             <span>{isRefreshing ? 'Menganalisis...' : 'Perbarui Insight'}</span>
@@ -319,10 +319,10 @@ export default function InsightPage() {
       </div>
 
       {/* Segmented Switch Filter Bar */}
-      <div className="bg-[#f4f4f5] p-1 rounded-xl inline-flex items-center text-xs font-medium w-full sm:w-auto overflow-x-auto no-scrollbar">
+      <div className="bg-[#f4f4f5] p-1 rounded-xl flex items-center text-xs font-medium w-full sm:w-auto overflow-x-auto no-scrollbar gap-1">
         <button 
           onClick={() => setActiveTab('ringkasan')}
-          className={`px-4 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
+          className={`flex-1 sm:flex-initial text-center px-3.5 py-2 sm:py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
             activeTab === 'ringkasan' 
               ? 'bg-white text-zinc-900 font-semibold shadow-2xs' 
               : 'text-zinc-500 hover:text-zinc-800'
@@ -332,7 +332,7 @@ export default function InsightPage() {
         </button>
         <button 
           onClick={() => setActiveTab('tren')}
-          className={`px-4 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
+          className={`flex-1 sm:flex-initial text-center px-3.5 py-2 sm:py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
             activeTab === 'tren' 
               ? 'bg-white text-zinc-900 font-semibold shadow-2xs' 
               : 'text-zinc-500 hover:text-zinc-800'
@@ -342,7 +342,7 @@ export default function InsightPage() {
         </button>
         <button 
           onClick={() => setActiveTab('pengeluaran')}
-          className={`px-4 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
+          className={`flex-1 sm:flex-initial text-center px-3.5 py-2 sm:py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
             activeTab === 'pengeluaran' 
               ? 'bg-white text-zinc-900 font-semibold shadow-2xs' 
               : 'text-zinc-500 hover:text-zinc-800'
@@ -352,7 +352,7 @@ export default function InsightPage() {
         </button>
         <button 
           onClick={() => setActiveTab('tips')}
-          className={`px-4 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
+          className={`flex-1 sm:flex-initial text-center px-3.5 py-2 sm:py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 ${
             activeTab === 'tips' 
               ? 'bg-white text-zinc-900 font-semibold shadow-2xs' 
               : 'text-zinc-500 hover:text-zinc-800'
@@ -363,29 +363,31 @@ export default function InsightPage() {
       </div>
 
       {/* Main Grid: Top Row (Tren Pemasukan & Pembelian Bahan) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
         
         {/* Tren Pemasukan Bar Chart (7 Cols, Tanpa Icon di H2) */}
         {(activeTab === 'ringkasan' || activeTab === 'tren') && (
-          <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs flex flex-col justify-between">
+          <div className="lg:col-span-7 bg-white p-4 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs flex flex-col justify-between">
             <div>
-              <div className="flex items-start justify-between gap-2 mb-4">
-                <div>
-                  <h2 className="text-base font-bold text-zinc-900">Tren Pemasukan</h2>
-                  <p className="text-xs text-zinc-400 mt-0.5">Berdasarkan nominal hasil penjualan harian dari database</p>
+              <div className="flex items-start justify-between gap-3 mb-3 sm:mb-4">
+                <div className="min-w-0">
+                  <h2 className="text-sm sm:text-base font-bold text-zinc-900 leading-tight">Tren Pemasukan</h2>
+                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 leading-snug">
+                    Berdasarkan nominal hasil penjualan harian dari database
+                  </p>
                 </div>
-                <div className="flex flex-col items-end">
-                  <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md ${
-                    trenPersen >= 0 ? 'text-emerald-600 bg-emerald-50/80' : 'text-rose-600 bg-rose-50/80'
+                <div className="flex flex-col items-end shrink-0">
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap ${
+                    trenPersen >= 0 ? 'text-emerald-700 bg-emerald-50 border border-emerald-200/60' : 'text-rose-700 bg-rose-50 border border-rose-200/60'
                   }`}>
                     <IconTrendingUp className="w-3.5 h-3.5" /> {trenPersen >= 0 ? `+${trenPersen}%` : `${trenPersen}%`}
                   </span>
-                  <span className="text-[10px] text-zinc-400 mt-0.5">vs minggu lalu</span>
+                  <span className="text-[10px] text-zinc-400 mt-0.5 whitespace-nowrap">vs minggu lalu</span>
                 </div>
               </div>
 
               {/* Legend */}
-              <div className="flex items-center gap-4 text-xs font-medium mb-3">
+              <div className="flex items-center gap-4 text-[11px] sm:text-xs font-medium mb-3">
                 <div className="flex items-center gap-1.5 text-zinc-700">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb]"></span>
                   <span>Minggu Ini</span>
@@ -397,9 +399,9 @@ export default function InsightPage() {
               </div>
 
               {/* Chart Container */}
-              <div className="h-[220px] w-full mt-2">
+              <div className="h-[210px] sm:h-[220px] w-full mt-2 -ml-3 sm:ml-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 15, bottom: 0 }} barGap={3}>
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barGap={3}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
                     <XAxis 
                       dataKey="day" 
@@ -409,10 +411,10 @@ export default function InsightPage() {
                       dy={8}
                     />
                     <YAxis 
-                      width={65}
+                      width={52}
                       axisLine={false} 
                       tickLine={false} 
-                      tick={{ fill: '#a1a1aa', fontSize: 11 }}
+                      tick={{ fill: '#a1a1aa', fontSize: 10 }}
                       tickFormatter={(val) => {
                         if (val === 0) return '0';
                         if (val >= 1000000) return `${(val / 1000000).toLocaleString('id-ID')}Jt`;
@@ -427,25 +429,31 @@ export default function InsightPage() {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-zinc-100 mt-4 flex items-center justify-between text-[11px] text-zinc-400">
-              <span>Rata-rata pemasukan {formatRupiah(rataRataPemasukan)} / hari</span>
-              <span className="font-semibold text-zinc-700">
-                Puncak: {puncakHari.day} ({formatRupiah(puncakHari.val)})
-              </span>
+            <div className="pt-3 border-t border-zinc-100 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-zinc-500">
+              <div className="flex items-center justify-between sm:justify-start gap-1">
+                <span>Rata-rata pemasukan:</span>
+                <span className="font-semibold text-zinc-800">{formatRupiah(rataRataPemasukan)} / hari</span>
+              </div>
+              <div className="flex items-center justify-between sm:justify-start gap-1">
+                <span>Puncak tertinggi:</span>
+                <span className="font-semibold text-zinc-900">
+                  {puncakHari.day} ({formatRupiah(puncakHari.val)})
+                </span>
+              </div>
             </div>
           </div>
         )}
 
         {/* Pembelian Bahan & Biaya Terbesar (5 Cols, Tanpa Icon di H2) */}
         {(activeTab === 'ringkasan' || activeTab === 'pengeluaran') && (
-          <div className={`bg-white p-5 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs flex flex-col justify-between ${
+          <div className={`bg-white p-4 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs flex flex-col justify-between ${
             activeTab === 'pengeluaran' ? 'lg:col-span-12' : 'lg:col-span-5'
           }`}>
             <div>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <div>
-                  <h2 className="text-base font-bold text-zinc-900">Pembelian Bahan & Biaya</h2>
-                  <p className="text-xs text-zinc-400 mt-0.5">Pengeluaran bahan yang paling sering dibeli</p>
+                  <h2 className="text-sm sm:text-base font-bold text-zinc-900 leading-tight">Pembelian Bahan & Biaya</h2>
+                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">Pengeluaran bahan yang paling sering dibeli</p>
                 </div>
               </div>
 
@@ -456,26 +464,26 @@ export default function InsightPage() {
                   <p className="text-[11px] text-zinc-400">Catat belanja bahan usaha di menu Keuangan</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {topExpenses.map((item) => (
                     <div 
                       key={item.rank} 
-                      className="flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-50/80 transition-colors text-xs border border-zinc-100"
+                      className="flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-50/80 transition-colors text-xs border border-zinc-100 gap-2"
                     >
-                      <div className="flex items-center gap-3">
-                        <span className={`w-5 text-center font-bold ${
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <span className={`w-5 text-center font-bold shrink-0 ${
                           item.rank <= 3 ? 'text-zinc-900' : 'text-zinc-400'
                         }`}>
                           {item.rank}.
                         </span>
-                        <div>
-                          <div className="font-medium text-zinc-800">{item.name}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-zinc-800 truncate text-xs">{item.name}</div>
                           <div className="text-[10px] text-zinc-400">{item.frekuensi}</div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 tabular-nums">
-                        <span className="px-2.5 py-1 bg-zinc-50 text-zinc-900 font-semibold rounded-lg text-xs border border-zinc-200/60 whitespace-nowrap">
+                      <div className="flex items-center gap-2 tabular-nums shrink-0">
+                        <span className="px-2.5 py-1 bg-zinc-50 text-zinc-900 font-bold rounded-lg text-xs border border-zinc-200/60 whitespace-nowrap">
                           {formatRupiah(item.total)}
                         </span>
                       </div>
@@ -485,9 +493,14 @@ export default function InsightPage() {
               )}
             </div>
 
-            <div className="pt-3 border-t border-zinc-100 mt-4 flex items-center justify-between text-[11px] text-zinc-400">
-              <span>Total belanja bahan: {formatRupiah(totalBelanjaBahan)}</span>
-              <span className="font-semibold text-zinc-700">{topExpenses.length} Item Terbesar</span>
+            <div className="pt-3 border-t border-zinc-100 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-zinc-500">
+              <div className="flex items-center justify-between sm:justify-start gap-1">
+                <span>Total belanja bahan:</span>
+                <span className="font-bold text-zinc-900">{formatRupiah(totalBelanjaBahan)}</span>
+              </div>
+              <span className="text-zinc-400 self-end sm:self-auto text-[10px] sm:text-[11px]">
+                {topExpenses.length} Item Terbesar
+              </span>
             </div>
           </div>
         )}
@@ -495,14 +508,14 @@ export default function InsightPage() {
       </div>
 
       {/* Bottom Grid: Wawasan Penting & Saran / Tips Finansial */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
         
         {/* Wawasan Penting (7 Cols, Tanpa Icon di H2, Teks Vertikal Tengah / items-center) */}
         {(activeTab === 'ringkasan' || activeTab === 'tren') && (
-          <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs">
-            <div className="mb-4">
-              <h2 className="text-base font-bold text-zinc-900">Wawasan Penting</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">Analisis cerdas pola pemasukan dan fluktuasi harga bahan dari catatan Anda</p>
+          <div className="lg:col-span-7 bg-white p-4 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs">
+            <div className="mb-3 sm:mb-4">
+              <h2 className="text-sm sm:text-base font-bold text-zinc-900 leading-tight">Wawasan Penting</h2>
+              <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">Analisis cerdas pola pemasukan dan fluktuasi harga bahan dari catatan Anda</p>
             </div>
 
             {isLoading ? (
@@ -512,7 +525,7 @@ export default function InsightPage() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-3.5">
+              <div className="space-y-3">
                 {wawasanList.map((w, idx) => {
                   const isPositif = w.status === 'positif';
                   const isPeringatan = w.status === 'peringatan';
@@ -520,9 +533,9 @@ export default function InsightPage() {
                   return (
                     <div 
                       key={idx} 
-                      className="flex items-center gap-3.5 p-3.5 rounded-xl bg-zinc-50/70 border border-zinc-200/60"
+                      className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-zinc-50/70 border border-zinc-200/60"
                     >
-                      <div className={`p-2.5 rounded-xl shrink-0 shadow-2xs ${
+                      <div className={`p-2 sm:p-2.5 rounded-xl shrink-0 mt-0.5 shadow-2xs ${
                         isPositif 
                           ? 'bg-emerald-100 text-emerald-700' 
                           : isPeringatan 
@@ -537,9 +550,9 @@ export default function InsightPage() {
                           <IconReceipt2 className="w-4 h-4" />
                         )}
                       </div>
-                      <div className="text-xs sm:text-sm text-zinc-700 leading-relaxed">
-                        <span className="font-bold text-zinc-900 block mb-0.5">{w.judul}</span>
-                        {w.deskripsi}
+                      <div className="text-xs sm:text-sm text-zinc-700 leading-relaxed min-w-0">
+                        <span className="font-bold text-zinc-900 block mb-0.5 text-xs sm:text-sm">{w.judul}</span>
+                        <p className="text-zinc-600 text-xs sm:text-sm leading-normal">{w.deskripsi}</p>
                       </div>
                     </div>
                   );
@@ -551,13 +564,13 @@ export default function InsightPage() {
 
         {/* Saran & Tips Finansial (5 Cols, Tanpa Icon di H2, Tanpa Button Terapkan) */}
         {(activeTab === 'ringkasan' || activeTab === 'tips') && (
-          <div className={`bg-white p-5 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs flex flex-col justify-between ${
+          <div className={`bg-white p-4 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs flex flex-col justify-between ${
             activeTab === 'tips' ? 'lg:col-span-12' : 'lg:col-span-5'
           }`}>
             <div>
-              <div className="mb-4">
-                <h2 className="text-base font-bold text-zinc-900">Saran & Tips Bisnis</h2>
-                <p className="text-xs text-zinc-400 mt-0.5">Panduan praktis menjaga omzet dan mengantisipasi penurunan kas</p>
+              <div className="mb-3 sm:mb-4">
+                <h2 className="text-sm sm:text-base font-bold text-zinc-900 leading-tight">Saran & Tips Bisnis</h2>
+                <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">Panduan praktis menjaga omzet dan mengantisipasi penurunan kas</p>
               </div>
 
               {isLoading ? (
@@ -567,13 +580,13 @@ export default function InsightPage() {
                   ))}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5 sm:space-y-3">
                   {tipsList.map((tip, idx) => {
                     const isOmzet = tip.kategori === 'omzet';
                     const isBiaya = tip.kategori === 'biaya';
 
                     return (
-                      <div key={idx} className="p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/70 flex items-start gap-3">
+                      <div key={idx} className="p-3 sm:p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/70 flex items-start gap-3">
                         <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
                           isOmzet 
                             ? 'bg-blue-100 text-blue-700' 
@@ -589,9 +602,9 @@ export default function InsightPage() {
                             <IconReceipt2 className="w-3.5 h-3.5" />
                           )}
                         </div>
-                        <div className="text-xs text-zinc-600 leading-relaxed">
-                          <span className="font-bold text-zinc-900 block mb-0.5">{tip.judul}</span>
-                          {tip.deskripsi}
+                        <div className="text-xs text-zinc-600 leading-relaxed min-w-0">
+                          <span className="font-bold text-zinc-900 block mb-0.5 text-xs">{tip.judul}</span>
+                          <p className="text-zinc-600 text-xs leading-normal">{tip.deskripsi}</p>
                         </div>
                       </div>
                     );
@@ -600,10 +613,10 @@ export default function InsightPage() {
               )}
             </div>
 
-            <div className="pt-3 border-t border-zinc-100 mt-4 text-[11px] text-zinc-400 flex items-center justify-between">
+            <div className="pt-3 border-t border-zinc-100 mt-3 text-[11px] text-zinc-400 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <span>Saran otomatis diperbarui dari pembukuan harian</span>
-              <span className="flex items-center gap-1 text-zinc-500 font-medium">
-                <IconSparkles className="w-3 h-3 text-blue-500" /> AI Konsultan
+              <span className="flex items-center gap-1 text-zinc-500 font-medium self-end sm:self-auto">
+                <IconSparkles className="w-3.5 h-3.5 text-blue-500" /> AI Konsultan
               </span>
             </div>
           </div>
