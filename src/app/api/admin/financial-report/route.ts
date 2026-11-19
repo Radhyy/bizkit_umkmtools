@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getPlanConfigs } from '@/lib/planCache';
 
 export async function GET(req: Request) {
   try {
@@ -31,10 +32,11 @@ export async function GET(req: Request) {
         sp."createdAt",
         u.name as "userName",
         u.email as "userEmail",
-        u."namaUsaha",
-        u."kotaLokasi"
+        bp."namaUsaha",
+        bp."kotaLokasi"
       FROM "SubscriptionPurchase" sp
       LEFT JOIN "User" u ON sp."userId" = u.id
+      LEFT JOIN "BusinessProfile" bp ON sp."userId" = bp."userId"
       WHERE sp.status IN ('settlement', 'capture', 'success')
       ${dateFilter}
       ORDER BY sp."createdAt" DESC
@@ -67,13 +69,17 @@ export async function GET(req: Request) {
       methodBreakdown[method] = (methodBreakdown[method] || 0) + amt;
     });
 
-    // Hitung estimasi MRR (Monthly Recurring Revenue) dari pengguna aktif
+    // Hitung estimasi MRR (Monthly Recurring Revenue) dari pengguna aktif & harga dinamis
     const activePremiumUsersRes = await pool.query(`
       SELECT COUNT(*) as count FROM "User" WHERE role = 'premium'
     `);
     const activePremiumCount = parseInt(activePremiumUsersRes.rows[0]?.count || '0', 10);
 
-    const mrr = activePremiumCount * 49000;
+    const activePlans = await getPlanConfigs();
+    const monthlyPlanObj = activePlans.find(p => p.id === 'premium_monthly' || p.billingCycle === 'monthly');
+    const dynamicMonthlyPrice = monthlyPlanObj ? monthlyPlanObj.price : 49000;
+
+    const mrr = activePremiumCount * dynamicMonthlyPrice;
     const arr = mrr * 12;
     const aov = purchases.length > 0 ? Math.round(netRevenue / purchases.length) : 0;
     const estimatedGatewayFee = Math.round(netRevenue * 0.015);
