@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -68,6 +68,22 @@ const faqs = [
 export default function HargaPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [monthlyPrice, setMonthlyPrice] = useState(49000);
+  const [yearlyPrice, setYearlyPrice] = useState(468000);
+
+  useEffect(() => {
+    fetch('/api/plans')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.plans)) {
+          const m = data.plans.find((p: any) => p.id === 'premium_monthly' || p.billingCycle === 'monthly');
+          const y = data.plans.find((p: any) => p.id === 'premium_annual' || p.billingCycle === 'annual');
+          if (m && m.price !== undefined) setMonthlyPrice(Number(m.price));
+          if (y && y.price !== undefined) setYearlyPrice(Number(y.price));
+        }
+      })
+      .catch(err => console.error('Error fetching plans in /harga:', err));
+  }, []);
 
   const toggleFaq = (index: number) => {
     setActiveFaq(activeFaq === index ? null : index);
@@ -304,12 +320,16 @@ export default function HargaPage() {
               <div className="mb-6 pb-6 border-b border-slate-100">
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-extrabold text-slate-900 tracking-tight">
-                    {isYearly ? "Rp 39.000" : "Rp 49.000"}
+                    {isYearly 
+                      ? `Rp ${Math.round(yearlyPrice / 12).toLocaleString('id-ID')}` 
+                      : `Rp ${monthlyPrice.toLocaleString('id-ID')}`}
                   </span>
                   <span className="text-sm font-medium text-slate-500">/ bulan</span>
                 </div>
                 <p className="text-xs text-blue-600 mt-1.5 font-semibold">
-                  {isYearly ? "Ditagih Rp 468.000 per tahun (Hemat Rp 120.000)" : "Dapat dibatalkan atau diperpanjang kapan saja"}
+                  {isYearly 
+                    ? `Ditagih Rp ${yearlyPrice.toLocaleString('id-ID')} per tahun${(monthlyPrice * 12 - yearlyPrice > 0) ? ` (Hemat Rp ${(monthlyPrice * 12 - yearlyPrice).toLocaleString('id-ID')})` : ''}` 
+                    : "Dapat dibatalkan atau diperpanjang kapan saja"}
                 </p>
               </div>
 

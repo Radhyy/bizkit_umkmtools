@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
+import { getPlanConfigs } from '@/lib/planCache';
 
 export async function POST(req: Request) {
   try {
@@ -41,9 +42,16 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // 3. Tentukan harga dasar
+    // 3. Tentukan harga dasar dari in-memory cache ("otak cache")
     const isYearly = plan === 'yearly';
-    const basePrice = isYearly ? 468000 : 49000;
+    const activePlans = await getPlanConfigs();
+    const monthlyPlanObj = activePlans.find(p => p.id === 'premium_monthly') || activePlans.find(p => p.billingCycle === 'monthly');
+    const yearlyPlanObj = activePlans.find(p => p.id === 'premium_annual') || activePlans.find(p => p.billingCycle === 'annual');
+
+    const defaultMonthlyPrice = monthlyPlanObj ? monthlyPlanObj.price : 49000;
+    const defaultYearlyPrice = yearlyPlanObj ? yearlyPlanObj.price : 468000;
+
+    const basePrice = isYearly ? defaultYearlyPrice : defaultMonthlyPrice;
     let discountAmount = 0;
     let appliedCoupon: string | null = null;
 

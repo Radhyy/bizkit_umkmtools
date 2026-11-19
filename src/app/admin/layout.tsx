@@ -114,7 +114,7 @@ export default function AdminLayout({
     { href: '/admin/pembelian', icon: IconShoppingCart, label: 'Pembelian' },
     { href: '/admin/diskon', icon: IconTag, label: 'Kode Diskon' },
     { href: '/admin/whatsapp', icon: IconBrandWhatsapp, label: 'WhatsApp Bot' },
-    { href: '/admin#paket', icon: IconSparkles, label: 'Paket & MRR' },
+    { href: '/admin/paket', icon: IconSparkles, label: 'Paket & MRR' },
     { href: '/admin/laporan', icon: IconChartBar, label: 'Laporan Finansial' },
   ];
 

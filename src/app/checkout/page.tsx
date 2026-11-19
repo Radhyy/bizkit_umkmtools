@@ -104,6 +104,23 @@ function CheckoutContent() {
   const initialPlan = searchParams.get('plan') === 'yearly' ? 'yearly' : 'monthly';
   const [plan, setPlan] = useState<'monthly' | 'yearly'>(initialPlan);
   const [selectedMethod, setSelectedMethod] = useState('qris');
+  const [monthlyPrice, setMonthlyPrice] = useState(49000);
+  const [yearlyPrice, setYearlyPrice] = useState(468000);
+
+  // Ambil harga dinamis dari in-memory cache ("otak cache")
+  useEffect(() => {
+    fetch('/api/plans')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.plans)) {
+          const m = data.plans.find((p: any) => p.id === 'premium_monthly' || p.billingCycle === 'monthly');
+          const y = data.plans.find((p: any) => p.id === 'premium_annual' || p.billingCycle === 'annual');
+          if (m && m.price !== undefined) setMonthlyPrice(Number(m.price));
+          if (y && y.price !== undefined) setYearlyPrice(Number(y.price));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Coupon state
   const [couponInput, setCouponInput] = useState('');
@@ -157,8 +174,8 @@ function CheckoutContent() {
     }
   }, [router]);
 
-  // Kalkulasi harga berdasarkan database kupon
-  const basePrice = plan === 'yearly' ? 468000 : 49000;
+  // Kalkulasi harga berdasarkan database kupon & harga dinamis otak cache
+  const basePrice = plan === 'yearly' ? yearlyPrice : monthlyPrice;
   let discountAmount = 0;
   if (dynamicCoupon && dynamicCoupon.code === appliedCoupon) {
     if (dynamicCoupon.discountType === 'percent') {
@@ -460,7 +477,9 @@ function CheckoutContent() {
                       </div>
                       <p className="text-xs text-slate-500 mb-3">Fleksibel, dapat dibatalkan kapan saja.</p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-extrabold text-slate-900">Rp 49.000</span>
+                        <span className="text-xl font-extrabold text-slate-900">
+                          Rp {monthlyPrice.toLocaleString('id-ID')}
+                        </span>
                         <span className="text-xs text-slate-500">/ bulan</span>
                       </div>
                     </div>
@@ -482,9 +501,14 @@ function CheckoutContent() {
                           {plan === 'yearly' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                         </div>
                       </div>
-                      <p className="text-xs text-emerald-600 font-semibold mb-3">Hemat 20% (Rp 39.000/bln)</p>
+                      <p className="text-xs text-emerald-600 font-semibold mb-3">
+                        Setara Rp {Math.round(yearlyPrice / 12).toLocaleString('id-ID')}/bln
+                        {monthlyPrice * 12 - yearlyPrice > 0 ? ` (Hemat Rp ${(monthlyPrice * 12 - yearlyPrice).toLocaleString('id-ID')})` : ''}
+                      </p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-extrabold text-slate-900">Rp 468.000</span>
+                        <span className="text-xl font-extrabold text-slate-900">
+                          Rp {yearlyPrice.toLocaleString('id-ID')}
+                        </span>
                         <span className="text-xs text-slate-500">/ tahun</span>
                       </div>
                     </div>
