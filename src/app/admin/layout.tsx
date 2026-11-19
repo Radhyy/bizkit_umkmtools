@@ -120,7 +120,6 @@ export default function AdminLayout({
 
   const adminSystemItems = [
     { href: '/admin#audit', icon: IconShieldCheck, label: 'Audit & Keamanan' },
-    { href: '/dashboard', icon: IconReportMoney, label: 'Mode UMKM User' },
   ];
 
   return (
