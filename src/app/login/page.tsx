@@ -26,13 +26,18 @@ export default function LoginPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const err = params.get("error");
+      const desc = params.get("desc");
       if (err) {
-        if (err === "GoogleAuthDibatalkan") {
+        if (err === "GoogleAuthDibatalkan" || err === "access_denied") {
           setErrorMsg("Login dengan Google dibatalkan.");
+        } else if (err === "redirect_uri_mismatch") {
+          setErrorMsg("Redirect URI belum sesuai di Google Cloud Console. Pastikan http://localhost:3000/api/auth/google/callback sudah ditambahkan di Authorized redirect URIs.");
         } else if (err === "AkunDinonaktifkan") {
           setErrorMsg("Akun Anda telah dinonaktifkan sementara oleh administrator.");
+        } else if (desc) {
+          setErrorMsg(`Gagal masuk dengan Google: ${desc}`);
         } else {
-          setErrorMsg("Gagal masuk dengan akun Google. Silakan coba lagi.");
+          setErrorMsg(`Gagal masuk dengan akun Google (${err}). Silakan coba lagi.`);
         }
       }
     }

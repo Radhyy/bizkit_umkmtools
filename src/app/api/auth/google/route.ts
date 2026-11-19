@@ -1,6 +1,37 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
 export const runtime = 'nodejs';
+
+function getGoogleCredentials() {
+  let clientId = process.env.GOOGLE_CLIENT_ID;
+  let clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    try {
+      const envPath = path.resolve(process.cwd(), '.env');
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, 'utf8');
+        content.split('\n').forEach((line) => {
+          const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+          if (match) {
+            const key = match[1];
+            let value = (match[2] || '').trim();
+            if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+            if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
+            if (key === 'GOOGLE_CLIENT_ID' && !clientId) clientId = value;
+            if (key === 'GOOGLE_CLIENT_SECRET' && !clientSecret) clientSecret = value;
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Error reading .env directly:', e);
+    }
+  }
+
+  return { clientId, clientSecret };
+}
 
 function getBaseUrl(req: Request) {
   const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'localhost:3000';
@@ -10,7 +41,7 @@ function getBaseUrl(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const { clientId } = getGoogleCredentials();
     if (!clientId) {
       return NextResponse.json(
         { error: 'GOOGLE_CLIENT_ID belum dikonfigurasi di server (.env).' },

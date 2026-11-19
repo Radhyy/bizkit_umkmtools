@@ -2,8 +2,39 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
 
 export const runtime = 'nodejs';
+
+function getGoogleCredentials() {
+  let clientId = process.env.GOOGLE_CLIENT_ID;
+  let clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    try {
+      const envPath = path.resolve(process.cwd(), '.env');
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, 'utf8');
+        content.split('\n').forEach((line) => {
+          const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+          if (match) {
+            const key = match[1];
+            let value = (match[2] || '').trim();
+            if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+            if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
+            if (key === 'GOOGLE_CLIENT_ID' && !clientId) clientId = value;
+            if (key === 'GOOGLE_CLIENT_SECRET' && !clientSecret) clientSecret = value;
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Error reading .env directly in callback:', e);
+    }
+  }
+
+  return { clientId, clientSecret };
+}
 
 function getBaseUrl(req: Request) {
   const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'localhost:3000';
@@ -15,10 +46,12 @@ export async function GET(req: Request) {
   const baseUrl = getBaseUrl(req);
   const { searchParams } = new URL(req.url);
 
+  // 1. Cek jika Google mengirimkan error dari consent screen
   const errorParam = searchParams.get('error');
   if (errorParam) {
     console.warn('Google OAuth error callback:', errorParam);
-    return NextResponse.redirect(`${baseUrl}/login?error=GoogleAuthDibatalkan`);
+    const desc = searchParams.get('error_description') || errorParam;
+    return NextResponse.redirect(`${baseUrl}/login?error=${encodeURIComponent(errorParam)}&desc=${encodeURIComponent(desc)}`);
   }
 
   const code = searchParams.get('code');
@@ -40,16 +73,16 @@ export async function GET(req: Request) {
   }
 
   try {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const { clientId, clientSecret } = getGoogleCredentials();
 
     if (!clientId || !clientSecret) {
-      return NextResponse.redirect(`${baseUrl}/login?error=GoogleConfigError`);
+      console.error('Google credentials missing in callback:', { clientId: !!clientId, clientSecret: !!clientSecret });
+      return NextResponse.redirect(`${baseUrl}/login?error=GoogleConfigError&desc=Kredensial+Google+belum+lengkap+di+.env`);
     }
 
     const redirectUri = `${baseUrl}/api/auth/google/callback`;
 
-    // 1. Tukar authorization code dengan access token
+    // 2. Tukar authorization code dengan access token
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -65,10 +98,12 @@ export async function GET(req: Request) {
     const tokenData = await tokenResponse.json();
     if (!tokenResponse.ok || !tokenData.access_token) {
       console.error('Error fetching Google token:', tokenData);
-      return NextResponse.redirect(`${baseUrl}/login?error=GagalOtentikasiGoogle`);
+      const errReason = tokenData.error || 'TokenExchangeFailed';
+      const errDesc = tokenData.error_description || 'Gagal menukar token dengan Google.';
+      return NextResponse.redirect(`${baseUrl}/login?error=${encodeURIComponent(errReason)}&desc=${encodeURIComponent(errDesc)}`);
     }
 
-    // 2. Ambil data profil dari Google
+    // 3. Ambil data profil dari Google
     const profileResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
@@ -83,7 +118,7 @@ export async function GET(req: Request) {
     const name = googleUser.name || 'Pengguna Bizkit';
     const avatarUrl = googleUser.picture || null;
 
-    // 3. Cek apakah user sudah terdaftar di database
+    // 4. Cek apakah user sudah terdaftar di database
     const userQuery = await pool.query(
       `SELECT u.*, bp."namaUsaha"
        FROM "User" u
@@ -94,11 +129,9 @@ export async function GET(req: Request) {
     );
 
     let user = userQuery.rows[0];
-    let isNewUser = false;
 
     if (!user) {
       // User baru: Daftarkan otomatis dan berikan masa trial 7 hari
-      isNewUser = true;
       const newUserId = uuidv4();
       const randomPassword = await bcrypt.hash(uuidv4(), 10);
       const trialDays = 7;
@@ -107,7 +140,7 @@ export async function GET(req: Request) {
 
       await pool.query(
         `INSERT INTO "User" (
-          id, email, name, password, "isVerified", role, "avatarUrl", "trialEndsAt", "trialGrantedDays", "createdAt", "updatedAt"
+          id, email, name, password, "isVerified", role, avatarurl, "trialEndsAt", "trialGrantedDays", "createdAt", "updatedAt"
         ) VALUES ($1, $2, $3, $4, true, $5, $6, $7, $8, NOW(), NOW())`,
         [
           newUserId,
@@ -144,18 +177,18 @@ export async function GET(req: Request) {
       );
       user = newUserQuery.rows[0];
     } else {
-      // User sudah ada: Pastikan status terverifikasi dan update foto profil jika ada
+      // User sudah ada: Pastikan status terverifikasi dan update avatarurl jika belum ada
       await pool.query(
         `UPDATE "User"
          SET "isVerified" = true,
-             "avatarUrl" = COALESCE("avatarUrl", $1),
+             avatarurl = COALESCE(avatarurl, $1),
              "updatedAt" = NOW()
          WHERE id = $2`,
         [avatarUrl, user.id]
       );
     }
 
-    // 4. Hitung role dan masa trial
+    // 5. Hitung role dan masa trial
     let userRole = (user.email?.toLowerCase() === 'radiaakbarradia@gmail.com') ? 'admin' : (user.role || 'free');
     let isTrialActive = false;
     let daysLeft = 0;
@@ -182,7 +215,7 @@ export async function GET(req: Request) {
       name: user.name || name,
       email: user.email,
       role: userRole,
-      avatarUrl: user.avatarUrl || avatarUrl,
+      avatarUrl: user.avatarurl || avatarUrl,
       daysLeft: daysLeft,
       trialEndsAt: user.trialEndsAt || null,
       namaUsaha: user.namaUsaha || null,
@@ -192,7 +225,7 @@ export async function GET(req: Request) {
       ? '/admin' 
       : (userRole === 'premium' || userRole === 'trial' ? '/dashboard' : '/');
 
-    // 5. Render halaman transisi HTML untuk menyimpan session ke localStorage
+    // 6. Render halaman transisi HTML untuk menyimpan session ke localStorage
     const html = `
       <!DOCTYPE html>
       <html lang="id">
@@ -277,6 +310,6 @@ export async function GET(req: Request) {
     });
   } catch (error: any) {
     console.error('Error handling Google OAuth callback:', error);
-    return NextResponse.redirect(`${baseUrl}/login?error=TerjadiKesalahanServer`);
+    return NextResponse.redirect(`${baseUrl}/login?error=TerjadiKesalahanServer&desc=${encodeURIComponent(error?.message || 'Database error')}`);
   }
 }
