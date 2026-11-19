@@ -16,8 +16,8 @@ import {
   IconBell,
   IconSettings,
   IconHelpCircle,
-  IconSun,
-  IconMoon,
+  IconWorld,
+  IconArrowUpRight,
   IconDots,
   IconLayoutSidebar,
   IconSparkles,
@@ -46,7 +46,6 @@ export default function DashboardLayout({
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [lockReason, setLockReason] = useState<'free_plan' | 'trial_expired' | 'locked' | null>(null);
   const [lockMessage, setLockMessage] = useState<string>('');
-  const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [unreadNotifCount, setUnreadNotifCount] = useState<number>(0);
@@ -441,6 +440,7 @@ export default function DashboardLayout({
           {/* Notifications */}
           <Link
             href="/dashboard/notifikasi"
+            onClick={() => setIsMobileMenuOpen(false)}
             className={`group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium transition-all ${
               pathname === '/dashboard/notifikasi'
                 ? 'bg-[#18181b] text-white shadow-xs'
@@ -467,6 +467,7 @@ export default function DashboardLayout({
           {/* Settings */}
           <Link
             href="/dashboard/pengaturan"
+            onClick={() => setIsMobileMenuOpen(false)}
             className={`group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium transition-all ${
               pathname === '/dashboard/pengaturan'
                 ? 'bg-[#18181b] text-white shadow-xs'
@@ -481,48 +482,44 @@ export default function DashboardLayout({
             {!isCollapsed && <span className="truncate">Settings</span>}
           </Link>
 
-          {/* Help / Landing */}
+          {/* Help */}
           <Link
-            href="/"
-            className="group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80 transition-all"
-            title="Help & Beranda"
+            href="/dashboard/help"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium transition-all ${
+              pathname === '/dashboard/help'
+                ? 'bg-[#18181b] text-white shadow-xs'
+                : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
+            }`}
+            title="Pusat Bantuan & Dukungan"
           >
             <IconHelpCircle 
-              className="w-[18px] h-[18px] shrink-0 text-zinc-400 group-hover:text-zinc-700" 
+              className={`w-[18px] h-[18px] shrink-0 ${pathname === '/dashboard/help' ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-700'}`} 
               stroke={1.75} 
             />
             {!isCollapsed && <span className="truncate">Help</span>}
           </Link>
 
-          {/* Theme Switch Pill */}
-          {!isCollapsed && (
-            <div className="bg-[#f4f4f5] p-1 rounded-2xl flex items-center gap-1 my-2.5 text-xs font-medium">
-              <button
-                type="button"
-                onClick={() => setThemeMode('light')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-xl transition-all ${
-                  themeMode === 'light'
-                    ? 'bg-white text-zinc-800 shadow-2xs font-semibold'
-                    : 'text-zinc-400 hover:text-zinc-600'
-                }`}
-              >
-                <IconSun className="w-3.5 h-3.5" stroke={2} />
-                <span>Light</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setThemeMode('dark')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-xl transition-all ${
-                  themeMode === 'dark'
-                    ? 'bg-[#18181b] text-white shadow-2xs font-semibold'
-                    : 'text-zinc-400 hover:text-zinc-600'
-                }`}
-              >
-                <IconMoon className="w-3.5 h-3.5" stroke={2} />
-                <span>Dark</span>
-              </button>
-            </div>
-          )}
+          {/* Landing Page Navigation Button */}
+          <Link
+            href="/"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`group flex items-center gap-3 px-3 py-2 my-1 rounded-2xl text-[13px] font-medium text-zinc-600 hover:text-zinc-900 bg-zinc-50 hover:bg-zinc-100/90 border border-zinc-200/70 transition-all shadow-2xs ${
+              isCollapsed ? 'justify-center px-2' : ''
+            }`}
+            title="Kunjungi Landing Page"
+          >
+            <IconWorld 
+              className="w-[18px] h-[18px] shrink-0 text-zinc-500 group-hover:text-blue-600 transition-colors" 
+              stroke={1.75} 
+            />
+            {!isCollapsed && (
+              <div className="flex items-center justify-between w-full min-w-0">
+                <span className="truncate font-semibold text-zinc-700 group-hover:text-zinc-900">Landing Page</span>
+                <IconArrowUpRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700" stroke={2} />
+              </div>
+            )}
+          </Link>
 
           {/* Profile Card */}
           <div className="pt-1">
