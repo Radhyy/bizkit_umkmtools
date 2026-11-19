@@ -21,6 +21,7 @@ import {
   IconChartBar,
   IconShoppingCart,
   IconTag,
+  IconBrandWhatsapp,
 } from '@tabler/icons-react';
 
 export default function AdminLayout({
@@ -112,6 +113,7 @@ export default function AdminLayout({
     { href: '/admin/pengguna', icon: IconUsers, label: 'Pengguna' },
     { href: '/admin/pembelian', icon: IconShoppingCart, label: 'Pembelian' },
     { href: '/admin/diskon', icon: IconTag, label: 'Kode Diskon' },
+    { href: '/admin/whatsapp', icon: IconBrandWhatsapp, label: 'WhatsApp Bot' },
     { href: '/admin#paket', icon: IconSparkles, label: 'Paket & MRR' },
     { href: '/admin/laporan', icon: IconChartBar, label: 'Laporan Finansial' },
   ];
