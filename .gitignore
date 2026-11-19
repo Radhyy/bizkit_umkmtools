@@ -42,3 +42,4 @@ next-env.d.ts
 
 # local test scripts
 test-db.js
+wa_auth/

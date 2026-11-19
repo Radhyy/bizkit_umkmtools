@@ -20,6 +20,9 @@ import {
   IconFileTypeCsv,
   IconSearch,
   IconReceipt2,
+  IconBrandWhatsapp,
+  IconCopy,
+  IconExternalLink,
 } from '@tabler/icons-react';
 import { exportToPDF, exportToExcel, exportToCSV } from '@/lib/exportUtils';
 
@@ -104,6 +107,13 @@ export default function KeuanganPage() {
   // Modal Unduh Laporan
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
+  // Modal Key WhatsApp & Bot Integration
+  const [isWaModalOpen, setIsWaModalOpen] = useState(false);
+  const [userWaToken, setUserWaToken] = useState<string>('');
+  const [botPhoneNumber, setBotPhoneNumber] = useState<string | null>(null);
+  const [isBotConnected, setIsBotConnected] = useState<boolean>(false);
+  const [hasCopiedWaKey, setHasCopiedWaKey] = useState(false);
+
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => {
@@ -133,6 +143,28 @@ export default function KeuanganPage() {
     }
   };
 
+  const fetchWaInfo = async (userId: string) => {
+    try {
+      const [statusRes, botRes] = await Promise.all([
+        fetch(`/api/auth/check-status?userId=${encodeURIComponent(userId)}`),
+        fetch('/api/whatsapp/bot-info')
+      ]);
+
+      const statusData = await statusRes.json();
+      if (statusData?.waToken || statusData?.user?.waToken) {
+        setUserWaToken(statusData.waToken || statusData.user.waToken);
+      }
+
+      const botData = await botRes.json();
+      if (botData?.success) {
+        setIsBotConnected(!!botData.isConnected);
+        setBotPhoneNumber(botData.botPhoneNumber);
+      }
+    } catch (e) {
+      console.error('Error loading WA info:', e);
+    }
+  };
+
   useEffect(() => {
     const raw = typeof window !== 'undefined' ? localStorage.getItem("user") : null;
     if (!raw) {
@@ -147,6 +179,7 @@ export default function KeuanganPage() {
       }
       setCurrentUser(u);
       fetchKeuanganData(u.id);
+      fetchWaInfo(u.id);
     } catch {
       router.push("/login");
     }
@@ -314,6 +347,16 @@ export default function KeuanganPage() {
             className="p-2 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs disabled:opacity-50"
           >
             <IconRefresh className={`w-4 h-4 ${loading ? 'animate-spin text-blue-600' : 'text-zinc-500'}`} />
+          </button>
+
+          {/* Tombol Key WhatsApp (Di sebelah kiri Unduh Laporan) */}
+          <button 
+            type="button"
+            onClick={() => setIsWaModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 border border-emerald-200/90 rounded-xl text-emerald-800 font-semibold hover:bg-emerald-100/90 transition-colors shadow-2xs cursor-pointer"
+          >
+            <IconBrandWhatsapp className="w-4 h-4 text-emerald-600" />
+            <span>Key WhatsApp</span>
           </button>
 
           {/* Unduh Laporan */}
@@ -935,6 +978,152 @@ export default function KeuanganPage() {
                 Tutup
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL KEY WHATSAPP & PANDUAN ASISTEN AI                   */}
+      {/* ======================================================== */}
+      {isWaModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in font-jakarta">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-zinc-200/90 transform transition-all text-xs">
+            
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-zinc-100 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 shrink-0">
+                  <IconBrandWhatsapp className="w-6 h-6" stroke={2.2} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-zinc-900 leading-tight">Key WhatsApp & Panduan Asisten AI</h3>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">Catat pembukuan keuangan toko langsung lewat chat WhatsApp</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setIsWaModalOpen(false)}
+                className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-xl hover:bg-zinc-100 transition-colors"
+              >
+                <IconX className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Token / Key Box */}
+            <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200/70 mb-4">
+              <div className="text-[11px] font-semibold text-emerald-900 mb-1.5 flex items-center justify-between">
+                <span>Key Otentikasi WhatsApp Anda:</span>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold">Rahasia</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="flex-1 py-2 px-3.5 bg-white rounded-xl border border-emerald-200 font-mono text-sm font-bold text-emerald-800 tracking-wider shadow-2xs select-all">
+                  {userWaToken || 'BIZ-...'}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (userWaToken) {
+                      navigator.clipboard.writeText(userWaToken);
+                      setHasCopiedWaKey(true);
+                      setTimeout(() => setHasCopiedWaKey(false), 2500);
+                    }
+                  }}
+                  className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
+                >
+                  {hasCopiedWaKey ? (
+                    <>
+                      <IconCheck className="w-3.5 h-3.5" />
+                      <span>Tersalin!</span>
+                    </>
+                  ) : (
+                    <>
+                      <IconCopy className="w-3.5 h-3.5" />
+                      <span>Salin Key</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-[10px] text-emerald-700/80 mt-2">
+                Kirimkan Key ini saat pertama kali menghubungi nomor bot untuk menautkan akun toko Anda.
+              </p>
+            </div>
+
+            {/* Step-by-Step Tutorial */}
+            <div className="space-y-2 mb-4">
+              <div className="text-[11px] font-bold text-zinc-800 uppercase tracking-wider">
+                Cara Menggunakan Asisten WhatsApp:
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200/70 flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-lg bg-zinc-900 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                <div>
+                  <div className="font-semibold text-zinc-900">Buka Chat WhatsApp Bot</div>
+                  <div className="text-[11px] text-zinc-500">Klik tombol hijau di bawah untuk langsung membuka chat WhatsApp dengan pesan Key otomatis terisi.</div>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200/70 flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-lg bg-zinc-900 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                <div>
+                  <div className="font-semibold text-zinc-900">Kirimkan Key & Tunggu Konfirmasi</div>
+                  <div className="text-[11px] text-zinc-500">Bot AI akan membaca Key Anda dan mengonfirmasi akun toko Anda telah terhubung.</div>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200/70 flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-lg bg-zinc-900 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                <div>
+                  <div className="font-semibold text-zinc-900">Catat Bahasa Sehari-hari</div>
+                  <div className="text-[11px] text-zinc-500">Ketik bebas: <em>"Beli bumbu dapur 45rb"</em>, <em>"Omset penjualan 200rb"</em>, atau <em>"Laporan hari ini"</em>.</div>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200/70 flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-lg bg-zinc-900 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">4</span>
+                <div>
+                  <div className="font-semibold text-zinc-900">Konfirmasi Verifikasi Transaksi</div>
+                  <div className="text-[11px] text-zinc-500">Bot akan merangkum nominal & kategori, lalu ketik <strong>YA</strong> untuk menyimpan ke pembukuan.</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Direct WhatsApp Action Button */}
+            <div className="pt-3 border-t border-zinc-100 flex flex-col gap-2">
+              {botPhoneNumber ? (
+                <>
+                  <div className="flex items-center justify-between text-[11px] text-zinc-500 px-1">
+                    <span>Nomor Bot Terhubung:</span>
+                    <span className="font-mono font-bold text-emerald-700">+{botPhoneNumber.replace(/[^0-9]/g, '')}</span>
+                  </div>
+                  <a
+                    href={`https://wa.me/${botPhoneNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Halo Bizkit, ini Key WhatsApp saya: ${userWaToken}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <IconBrandWhatsapp className="w-4 h-4" />
+                    <span>Chat Bot WhatsApp Sekarang</span>
+                    <IconExternalLink className="w-3.5 h-3.5 opacity-80" />
+                  </a>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <div className="p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-[11px] leading-relaxed">
+                    ⚠️ <strong>Bot WhatsApp Sedang Menunggu Scan Admin:</strong> Nomor bot resmi platform belum aktif. Begitu admin memindai barcode di menu <em>Admin WhatsApp</em>, tombol di sini akan otomatis terhubung ke nomor bot tersebut.
+                  </div>
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-2.5 px-4 bg-zinc-100 text-zinc-400 rounded-xl text-xs font-semibold cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <IconBrandWhatsapp className="w-4 h-4" />
+                    <span>Menunggu Nomor Bot Terhubung</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       )}

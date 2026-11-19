@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getWhatsAppKeyPoolStatus } from '@/lib/groqWhatsAppClient';
 import { handleIncomingWhatsAppMessage, cleanWhatsAppNumber } from '@/lib/whatsappMessageHandler';
+import QRCode from 'qrcode';
 
 // GET: Ambil status bot WA dari database & pool load balancer 5 key Groq
 export async function GET() {
@@ -23,8 +24,24 @@ export async function GET() {
     }
 
     const keyPool = getWhatsAppKeyPoolStatus();
+    const qrString = sessionData?.qrCode || `2@BIZKIT-WA-AUTH-${Date.now()}-SESSION,${Math.random().toString(36).substring(2, 10)}`;
+    
+    // Generate QR Code standar normal berkualitas tinggi
+    let qrCodeDataUrl = '';
+    try {
+      qrCodeDataUrl = await QRCode.toDataURL(qrString, {
+        width: 320,
+        margin: 1,
+        color: {
+          dark: '#18181b',
+          light: '#ffffff'
+        },
+        errorCorrectionLevel: 'M'
+      });
+    } catch (e) {
+      console.error('Failed to generate QR data URL:', e);
+    }
 
-    // Fallback jika belum terisi
     const session = sessionData ? {
       status: sessionData.status,
       phoneNumber: sessionData.phoneNumber || '+62 821-4567-8900',
@@ -32,7 +49,8 @@ export async function GET() {
       deviceInfo: 'WhatsApp Web (Chrome / Windows)',
       connectedAt: sessionData.connectedAt,
       lastPingAt: sessionData.lastActiveAt,
-      qrCodeString: sessionData.qrCode || `BIZKIT-WA-AUTH-${Date.now()}-ACTIVE`,
+      qrCodeString: qrString,
+      qrCodeDataUrl,
       qrExpiresAt: sessionData.qrExpiresAt ? new Date(sessionData.qrExpiresAt).getTime() : Date.now() + 60000,
       totalMessagesReceived: sessionData.totalMessages || 0,
       totalTransactionsProcessed: sessionData.totalTransactions || 0,
@@ -44,7 +62,8 @@ export async function GET() {
       deviceInfo: 'WhatsApp Web (Chrome / Windows)',
       connectedAt: null,
       lastPingAt: new Date().toISOString(),
-      qrCodeString: `BIZKIT-WA-AUTH-${Date.now()}-ACTIVE`,
+      qrCodeString: qrString,
+      qrCodeDataUrl,
       qrExpiresAt: Date.now() + 60000,
       totalMessagesReceived: 0,
       totalTransactionsProcessed: 0,
@@ -72,7 +91,7 @@ export async function POST(req: Request) {
 
     try {
       if (action === 'refresh_qr') {
-        const newQr = `BIZKIT-WA-AUTH-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+        const newQr = `2@BIZKIT-WA-AUTH-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
         const newExpiry = new Date(Date.now() + 60000);
 
         await client.query(
@@ -82,10 +101,23 @@ export async function POST(req: Request) {
           [newQr, newExpiry]
         );
 
+        let qrCodeDataUrl = '';
+        try {
+          qrCodeDataUrl = await QRCode.toDataURL(newQr, {
+            width: 320,
+            margin: 1,
+            color: { dark: '#18181b', light: '#ffffff' },
+            errorCorrectionLevel: 'M'
+          });
+        } catch (e) {
+          console.error(e);
+        }
+
         return NextResponse.json({ 
           success: true, 
           message: 'QR Code berhasil diperbarui di database',
           qrCodeString: newQr,
+          qrCodeDataUrl,
           qrExpiresAt: newExpiry.getTime()
         });
       }

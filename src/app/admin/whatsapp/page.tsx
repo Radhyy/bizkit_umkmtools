@@ -40,6 +40,7 @@ interface WASession {
   connectedAt: string | null;
   lastPingAt: string | null;
   qrCodeString: string;
+  qrCodeDataUrl?: string;
   qrExpiresAt: number;
   totalMessagesReceived: number;
   totalTransactionsProcessed: number;
@@ -128,7 +129,13 @@ export default function AdminWhatsAppPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setSession(data.session);
+        setSession(prev => prev ? ({
+          ...prev,
+          status: 'waiting_scan',
+          qrCodeString: data.qrCodeString || prev.qrCodeString,
+          qrCodeDataUrl: data.qrCodeDataUrl || prev.qrCodeDataUrl,
+          qrExpiresAt: data.qrExpiresAt || Date.now() + 60000,
+        }) : data.session);
         setQrCountdown(60);
         showToast('success', 'Kode QR berhasil diperbarui.');
       }
@@ -347,95 +354,27 @@ export default function AdminWhatsAppPage() {
             </div>
 
             {/* QR Box Container */}
-            <div className="relative bg-gradient-to-b from-zinc-50 to-zinc-100/60 rounded-2xl border border-zinc-200/80 p-6 flex flex-col items-center justify-center min-h-[300px] overflow-hidden">
+            <div className="bg-zinc-50 rounded-2xl border border-zinc-200/80 p-6 flex flex-col items-center justify-center min-h-[300px]">
               
               {!isConnected ? (
                 <>
-                  {/* Subtle animated scan line */}
-                  <div className="absolute inset-x-8 top-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent shadow-[0_0_12px_#10b981] animate-bounce opacity-80" />
-
-                  {/* High Fidelity SVG QR Code */}
-                  <div className="bg-white p-4 rounded-2xl shadow-md border border-zinc-200/80 transition-all hover:scale-[1.02]">
-                    <svg
-                      viewBox="0 0 160 160"
-                      className="w-48 h-48 sm:w-52 sm:h-52 select-none"
-                    >
-                      {/* Background */}
-                      <rect width="160" height="160" fill="#ffffff" />
-                      
-                      {/* Top-Left Finder */}
-                      <rect x="10" y="10" width="40" height="40" rx="6" fill="#18181b" />
-                      <rect x="16" y="16" width="28" height="28" rx="4" fill="#ffffff" />
-                      <rect x="22" y="22" width="16" height="16" rx="3" fill="#18181b" />
-
-                      {/* Top-Right Finder */}
-                      <rect x="110" y="10" width="40" height="40" rx="6" fill="#18181b" />
-                      <rect x="116" y="16" width="28" height="28" rx="4" fill="#ffffff" />
-                      <rect x="122" y="22" width="16" height="16" rx="3" fill="#18181b" />
-
-                      {/* Bottom-Left Finder */}
-                      <rect x="10" y="110" width="40" height="40" rx="6" fill="#18181b" />
-                      <rect x="16" y="116" width="28" height="28" rx="4" fill="#ffffff" />
-                      <rect x="22" y="122" width="16" height="16" rx="3" fill="#18181b" />
-
-                      {/* Authentic QR Grid Pattern */}
-                      <g fill="#18181b">
-                        <rect x="60" y="15" width="8" height="8" rx="1.5" />
-                        <rect x="75" y="15" width="8" height="8" rx="1.5" />
-                        <rect x="90" y="15" width="8" height="8" rx="1.5" />
-                        
-                        <rect x="60" y="30" width="8" height="8" rx="1.5" />
-                        <rect x="80" y="35" width="12" height="6" rx="1.5" />
-                        
-                        <rect x="15" y="60" width="8" height="8" rx="1.5" />
-                        <rect x="30" y="60" width="8" height="8" rx="1.5" />
-                        <rect x="45" y="60" width="8" height="8" rx="1.5" />
-                        <rect x="60" y="60" width="8" height="8" rx="1.5" />
-                        <rect x="75" y="60" width="8" height="8" rx="1.5" />
-                        <rect x="90" y="60" width="8" height="8" rx="1.5" />
-                        <rect x="105" y="60" width="8" height="8" rx="1.5" />
-                        <rect x="120" y="60" width="8" height="8" rx="1.5" />
-                        <rect x="135" y="60" width="8" height="8" rx="1.5" />
-
-                        <rect x="15" y="75" width="8" height="8" rx="1.5" />
-                        <rect x="35" y="75" width="16" height="8" rx="1.5" />
-                        <rect x="110" y="75" width="10" height="8" rx="1.5" />
-                        <rect x="130" y="75" width="15" height="8" rx="1.5" />
-
-                        <rect x="15" y="90" width="8" height="8" rx="1.5" />
-                        <rect x="30" y="90" width="8" height="8" rx="1.5" />
-                        <rect x="45" y="90" width="8" height="8" rx="1.5" />
-                        <rect x="105" y="90" width="8" height="8" rx="1.5" />
-                        <rect x="120" y="90" width="8" height="8" rx="1.5" />
-                        <rect x="135" y="90" width="8" height="8" rx="1.5" />
-
-                        <rect x="60" y="105" width="8" height="8" rx="1.5" />
-                        <rect x="75" y="105" width="10" height="8" rx="1.5" />
-                        <rect x="95" y="105" width="8" height="8" rx="1.5" />
-
-                        <rect x="60" y="120" width="14" height="8" rx="1.5" />
-                        <rect x="85" y="120" width="8" height="8" rx="1.5" />
-                        <rect x="105" y="120" width="10" height="8" rx="1.5" />
-                        <rect x="125" y="120" width="16" height="8" rx="1.5" />
-
-                        <rect x="60" y="135" width="8" height="8" rx="1.5" />
-                        <rect x="80" y="135" width="14" height="8" rx="1.5" />
-                        <rect x="110" y="135" width="8" height="8" rx="1.5" />
-                        <rect x="130" y="135" width="12" height="8" rx="1.5" />
-                      </g>
-
-                      {/* Center WhatsApp Brand Badge */}
-                      <circle cx="80" cy="80" r="16" fill="#ffffff" />
-                      <circle cx="80" cy="80" r="13" fill="#10b981" />
-                      <path
-                        d="M74 84l.8-2.6a5.5 5.5 0 1 1 2.2 2.2L74 84zm3.2-3.1a3.6 3.6 0 0 0 4.2-.7.6.6 0 0 0-.2-.9l-1-.5a.6.6 0 0 0-.7.2l-.4.5a3.8 3.8 0 0 1-1.4-1.4l.5-.4a.6.6 0 0 0 .2-.7l-.5-1a.6.6 0 0 0-.9-.2 3.6 3.6 0 0 0-.7 4.2v.2z"
-                        fill="#ffffff"
+                  {/* Normal Standard Scannable QR Code */}
+                  <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-zinc-200/90 transition-all flex items-center justify-center">
+                    {session?.qrCodeDataUrl ? (
+                      <img
+                        src={session.qrCodeDataUrl}
+                        alt="WhatsApp QR Code"
+                        className="w-52 h-52 sm:w-56 sm:h-56 object-contain rounded-md select-none"
                       />
-                    </svg>
+                    ) : (
+                      <div className="w-52 h-52 sm:w-56 sm:h-56 bg-zinc-100 animate-pulse rounded-md flex items-center justify-center text-xs text-zinc-400">
+                        Memuat QR Code...
+                      </div>
+                    )}
                   </div>
 
                   <p className="text-[11px] font-medium text-zinc-500 mt-4 text-center">
-                    Kedaluwarsa dalam <span className="font-bold text-emerald-600">{qrCountdown} detik</span>. Kode akan refresh otomatis.
+                    Kedaluwarsa dalam <span className="font-bold text-zinc-800">{qrCountdown} detik</span>. Kode akan refresh otomatis.
                   </p>
                 </>
               ) : (
