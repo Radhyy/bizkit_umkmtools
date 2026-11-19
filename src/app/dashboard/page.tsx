@@ -209,81 +209,82 @@ export default function DashboardPage() {
   }, [transactions]);
 
   return (
-    <div className="p-5 sm:p-8 max-w-[1280px] mx-auto space-y-6 font-jakarta">
+    <div className="p-3.5 sm:p-8 max-w-[1280px] mx-auto space-y-4 sm:space-y-6 font-jakarta">
       
       {/* Header Row: Overview + Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Overview</h1>
-          <p className="text-xs text-zinc-400 mt-0.5">Ringkasan performa dan pembukuan bisnis UMKM Anda secara real-time</p>
+          <h1 className="text-xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Overview</h1>
+          <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">Ringkasan performa dan pembukuan bisnis UMKM Anda secara real-time</p>
         </div>
 
         {/* Right Controls */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 text-xs no-scrollbar">
           {/* Date Picker Button */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 font-medium shadow-2xs">
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 font-medium shadow-2xs whitespace-nowrap shrink-0">
             <IconCalendarEvent className="w-3.5 h-3.5 text-zinc-400" />
             <span>Tahun Ini</span>
-            <span className="text-zinc-400">1 Jan – 31 Des {new Date().getFullYear()}</span>
+            <span className="text-zinc-400 hidden xs:inline">1 Jan – 31 Des {new Date().getFullYear()}</span>
           </div>
 
           {/* Grain Selector */}
-          <div className="flex items-center gap-1 px-3 py-1.5 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 font-medium shadow-2xs">
+          <div className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 font-medium shadow-2xs whitespace-nowrap shrink-0">
             <span>Bulanan</span>
           </div>
 
           {/* Comparison */}
-          <div className="flex items-center gap-1 text-zinc-500 font-medium px-1.5 py-1">
-            <span>Bandingkan: <strong className="text-zinc-700 font-semibold">Tahun Lalu</strong></span>
+          <div className="flex items-center gap-1 text-zinc-500 font-medium px-2 py-1.5 bg-zinc-100/80 sm:bg-transparent rounded-xl whitespace-nowrap shrink-0 text-[11px] sm:text-xs">
+            <span>vs <strong className="text-zinc-700 font-semibold">Tahun Lalu</strong></span>
           </div>
         </div>
       </div>
 
       {/* 5-Column Metric Cards in One Bordered Container */}
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs overflow-hidden">
+        {/* Mobile: 2x2 Clean Grid | Desktop: 5-Col Grid */}
         <div className="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-zinc-200/80">
           
           {/* 1. Total Pemasukan */}
-          <div className="p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-zinc-500">Total Pemasukan</span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50/80 px-1.5 py-0.5 rounded">
+          <div className="p-3.5 sm:p-5 flex flex-col justify-between border-r md:border-r-0 border-zinc-200/80">
+            <div className="flex items-center justify-between gap-1 mb-1.5">
+              <span className="text-[11px] sm:text-xs font-medium text-zinc-500 truncate">Total Pemasukan</span>
+              <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-[11px] font-semibold text-emerald-600 bg-emerald-50/80 px-1.5 py-0.5 rounded shrink-0">
                 <IconArrowUpRight className="w-3 h-3" /> Kas Masuk
               </span>
             </div>
             <div>
-              <div className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
+              <div className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight">
                 {formatRupiah(summary.totalPemasukan)}
               </div>
-              <div className="text-[11px] text-zinc-400 mt-1">
+              <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 sm:mt-1 truncate">
                 {pemasukanCount > 0 ? `${pemasukanCount} transaksi masuk` : 'Belum ada transaksi'}
               </div>
             </div>
           </div>
 
           {/* 2. Total Pengeluaran */}
-          <div className="p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-zinc-500">Total Pengeluaran</span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-rose-500 bg-rose-50/80 px-1.5 py-0.5 rounded">
+          <div className="p-3.5 sm:p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1 mb-1.5">
+              <span className="text-[11px] sm:text-xs font-medium text-zinc-500 truncate">Total Pengeluaran</span>
+              <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-[11px] font-semibold text-rose-500 bg-rose-50/80 px-1.5 py-0.5 rounded shrink-0">
                 <IconArrowDownRight className="w-3 h-3" /> Kas Keluar
               </span>
             </div>
             <div>
-              <div className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
+              <div className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight">
                 {formatRupiah(summary.totalPengeluaran)}
               </div>
-              <div className="text-[11px] text-zinc-400 mt-1">
+              <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 sm:mt-1 truncate">
                 {pengeluaranCount > 0 ? `${pengeluaranCount} transaksi keluar` : 'Belum ada pengeluaran'}
               </div>
             </div>
           </div>
 
           {/* 3. Laba Bersih */}
-          <div className="p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-zinc-500">Laba Bersih</span>
-              <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded ${
+          <div className="p-3.5 sm:p-5 flex flex-col justify-between border-r md:border-r-0 border-zinc-200/80">
+            <div className="flex items-center justify-between gap-1 mb-1.5">
+              <span className="text-[11px] sm:text-xs font-medium text-zinc-500 truncate">Laba Bersih</span>
+              <span className={`inline-flex items-center gap-0.5 text-[10px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${
                 summary.saldo >= 0 ? 'text-emerald-600 bg-emerald-50/80' : 'text-rose-500 bg-rose-50/80'
               }`}>
                 {summary.saldo >= 0 ? <IconArrowUpRight className="w-3 h-3" /> : <IconArrowDownRight className="w-3 h-3" />}
@@ -291,35 +292,35 @@ export default function DashboardPage() {
               </span>
             </div>
             <div>
-              <div className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
+              <div className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight">
                 {formatRupiah(summary.saldo)}
               </div>
-              <div className="text-[11px] text-zinc-400 mt-1">
+              <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 sm:mt-1 truncate">
                 {summary.totalPemasukan > 0 ? `${marginPercentage}% margin laba` : 'Saldo kas terdata'}
               </div>
             </div>
           </div>
 
           {/* 4. Total Transaksi */}
-          <div className="p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-zinc-500">Total Transaksi</span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-zinc-600 bg-zinc-100 px-1.5 py-0.5 rounded">
+          <div className="p-3.5 sm:p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1 mb-1.5">
+              <span className="text-[11px] sm:text-xs font-medium text-zinc-500 truncate">Total Transaksi</span>
+              <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-[11px] font-semibold text-zinc-600 bg-zinc-100 px-1.5 py-0.5 rounded shrink-0">
                 {summary.totalTransaksi} Trx
               </span>
             </div>
             <div>
-              <div className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
+              <div className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight">
                 {summary.totalTransaksi}
               </div>
-              <div className="text-[11px] text-zinc-400 mt-1">
+              <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 sm:mt-1 truncate">
                 Riwayat pembukuan aktif
               </div>
             </div>
           </div>
 
-          {/* 5. Margin Keuntungan */}
-          <div className="p-4 sm:p-5 flex flex-col justify-between col-span-2 md:col-span-1">
+          {/* 5. Margin Keuntungan (Desktop View Only - in Mobile, rendered as full-width sleek bottom strip) */}
+          <div className="hidden md:flex p-5 flex-col justify-between">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-medium text-zinc-500">Margin Keuntungan</span>
               <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded ${
@@ -330,7 +331,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <div>
-              <div className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
+              <div className="text-2xl font-bold text-zinc-900 tracking-tight">
                 {marginPercentage}%
               </div>
               <div className="text-[11px] text-zinc-400 mt-1">
@@ -340,26 +341,43 @@ export default function DashboardPage() {
           </div>
 
         </div>
+
+        {/* Mobile Summary Strip: Margin Keuntungan & Status Finansial */}
+        <div className="md:hidden px-3.5 py-2.5 bg-zinc-50/80 border-t border-zinc-200/80 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-medium text-zinc-500">Margin Keuntungan:</span>
+            <span className="text-xs font-bold text-zinc-900">{marginPercentage}%</span>
+          </div>
+          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+            Number(marginPercentage) >= 0 ? 'text-emerald-700 bg-emerald-100/80' : 'text-rose-600 bg-rose-100/80'
+          }`}>
+            {Number(marginPercentage) >= 0 ? <IconArrowUpRight className="w-3 h-3" /> : <IconArrowDownRight className="w-3 h-3" />}
+            {Number(marginPercentage) >= 0 ? 'Stabil & Sehat' : 'Perlu Perhatian'}
+          </span>
+        </div>
       </div>
 
       {/* Middle Section: Orders/Revenue Chart (Left) + Revenue by Category (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
         
         {/* Left Column: Line Chart */}
-        <div className="lg:col-span-8 bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-2xs">
+        <div className="lg:col-span-8 bg-white p-4 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs">
           
           {/* Header of Chart Card */}
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-zinc-900">
-              {chartMetric === 'pemasukan' ? 'Tren Pemasukan per Bulan' : 'Tren Transaksi per Bulan'}
-            </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-sm sm:text-base font-bold text-zinc-900">
+                {chartMetric === 'pemasukan' ? 'Tren Pemasukan per Bulan' : 'Tren Transaksi per Bulan'}
+              </h2>
+              <p className="text-[11px] text-zinc-400 mt-0.5">Grafik performa pembukuan tahun {new Date().getFullYear()}</p>
+            </div>
 
             {/* Segmented Switch: Pemasukan | Transaksi */}
-            <div className="bg-[#f4f4f5] p-0.5 rounded-xl flex items-center text-xs font-medium">
+            <div className="bg-[#f4f4f5] p-0.5 rounded-xl flex items-center text-xs font-medium w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setChartMetric('pemasukan')}
-                className={`px-3 py-1 rounded-lg transition-all ${
+                className={`flex-1 sm:flex-initial px-3 py-1.5 sm:py-1 rounded-lg transition-all text-center ${
                   chartMetric === 'pemasukan' 
                     ? 'bg-white text-zinc-900 font-semibold shadow-2xs' 
                     : 'text-zinc-500 hover:text-zinc-800'
@@ -370,7 +388,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setChartMetric('transaksi')}
-                className={`px-3 py-1 rounded-lg transition-all ${
+                className={`flex-1 sm:flex-initial px-3 py-1.5 sm:py-1 rounded-lg transition-all text-center ${
                   chartMetric === 'transaksi' 
                     ? 'bg-white text-zinc-900 font-semibold shadow-2xs' 
                     : 'text-zinc-500 hover:text-zinc-800'
@@ -382,23 +400,23 @@ export default function DashboardPage() {
           </div>
 
           {/* Legend Items */}
-          <div className="flex items-center gap-5 mb-5 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-0.5 bg-[#2563eb] rounded-full inline-block"></span>
+          <div className="flex flex-wrap items-center gap-3 sm:gap-5 mb-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-0.5 bg-[#2563eb] rounded-full inline-block"></span>
               <span className="font-medium text-zinc-700">
-                Tahun ini {chartMetric === 'pemasukan' ? formatRupiah(summary.totalPemasukan) : `${summary.totalTransaksi} trx`}
+                Tahun ini: {chartMetric === 'pemasukan' ? formatRupiah(summary.totalPemasukan) : `${summary.totalTransaksi} trx`}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-0.5 border-t border-dashed border-zinc-400 inline-block"></span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-0.5 border-t border-dashed border-zinc-400 inline-block"></span>
               <span className="text-zinc-400">
-                Tahun lalu {chartMetric === 'pemasukan' ? 'Rp 0' : '0 trx'}
+                Tahun lalu: {chartMetric === 'pemasukan' ? 'Rp 0' : '0 trx'}
               </span>
             </div>
           </div>
 
           {/* Recharts Curve Line */}
-          <div className="h-[230px] w-full">
+          <div className="h-[200px] sm:h-[230px] w-full -ml-3 sm:ml-0">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart 
                 data={monthlyChartData} 
@@ -408,13 +426,13 @@ export default function DashboardPage() {
                   dataKey="month" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#a1a1aa', fontSize: 11 }} 
-                  dy={10} 
+                  tick={{ fill: '#a1a1aa', fontSize: 10 }} 
+                  dy={8} 
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#a1a1aa', fontSize: 11 }}
+                  tick={{ fill: '#a1a1aa', fontSize: 10 }}
                   tickFormatter={(val) => {
                     if (chartMetric === 'transaksi') return `${val}`;
                     if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(0)}Jt`;
@@ -450,23 +468,23 @@ export default function DashboardPage() {
         </div>
 
         {/* Right Column: Revenue by Category Progress Bars */}
-        <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-2xs flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-white p-4 sm:p-6 rounded-2xl border border-zinc-200/80 shadow-2xs flex flex-col justify-between">
           <div>
-            <h2 className="text-base font-bold text-zinc-900 mb-5">Pemasukan per kategori</h2>
+            <h2 className="text-sm sm:text-base font-bold text-zinc-900 mb-4 sm:mb-5">Pemasukan per kategori</h2>
             
             {categoryData.length === 0 ? (
-              <div className="py-12 text-center text-xs text-zinc-400">
+              <div className="py-8 sm:py-12 text-center text-xs text-zinc-400">
                 Belum ada data pemasukan kategori di database.
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {categoryData.map((cat) => (
                   <div key={cat.name} className="flex items-center text-xs">
                     {/* Category Name */}
-                    <span className="font-medium text-zinc-700 w-32 truncate">{cat.name}</span>
+                    <span className="font-medium text-zinc-700 w-24 sm:w-32 truncate">{cat.name}</span>
                     
                     {/* Progress Bar */}
-                    <div className="flex-1 mx-3 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                    <div className="flex-1 mx-2.5 sm:mx-3 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-[#2563eb] rounded-full transition-all duration-500" 
                         style={{ width: `${Math.min(cat.percentage, 100)}%` }}
@@ -474,9 +492,9 @@ export default function DashboardPage() {
                     </div>
                     
                     {/* Revenue Value & Percentage */}
-                    <div className="flex items-center gap-2.5 shrink-0 tabular-nums">
-                      <span className="font-semibold text-zinc-900 whitespace-nowrap text-right min-w-[56px]">{cat.revenue}</span>
-                      <span className="text-zinc-400 text-right w-8">{cat.percentage}%</span>
+                    <div className="flex items-center gap-2 shrink-0 tabular-nums">
+                      <span className="font-semibold text-zinc-900 whitespace-nowrap text-right min-w-[50px] sm:min-w-[56px] text-[11px] sm:text-xs">{cat.revenue}</span>
+                      <span className="text-zinc-400 text-right w-7 sm:w-8 text-[10px] sm:text-xs">{cat.percentage}%</span>
                     </div>
                   </div>
                 ))}
@@ -484,7 +502,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className="pt-4 border-t border-zinc-100 mt-5 flex items-center justify-between text-[11px] text-zinc-400">
+          <div className="pt-3.5 sm:pt-4 border-t border-zinc-100 mt-4 sm:mt-5 flex items-center justify-between text-[11px] text-zinc-400">
             <span>{categoryData.length} Kategori Aktif</span>
             <Link href="/dashboard/laporan" className="text-blue-600 font-semibold hover:underline flex items-center gap-0.5">
               <span>Laporan Lengkap</span>
@@ -497,14 +515,14 @@ export default function DashboardPage() {
 
       {/* Bottom Section: 4 Laporan Keuangan Terakhir */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-4 mb-3 sm:mb-4">
           <div>
-            <h2 className="text-base font-bold text-zinc-900">4 Laporan Keuangan Terakhir</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">Riwayat pencatatan transaksi kas masuk dan kas keluar terbaru dari database</p>
+            <h2 className="text-sm sm:text-base font-bold text-zinc-900">4 Laporan Keuangan Terakhir</h2>
+            <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">Riwayat pencatatan transaksi kas masuk dan kas keluar terbaru</p>
           </div>
           <Link 
             href="/dashboard/keuangan"
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline self-start sm:self-auto"
           >
             <span>Buka Semua Pembukuan</span>
             <IconArrowRight className="w-3.5 h-3.5" />
@@ -512,7 +530,54 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
+          
+          {/* Mobile Card List View (< sm) */}
+          <div className="sm:hidden divide-y divide-zinc-100">
+            {recentTransactions.length === 0 ? (
+              <div className="p-6 text-center text-xs text-zinc-400">
+                Belum ada transaksi tercatat di database.
+              </div>
+            ) : (
+              recentTransactions.map((trx, index) => (
+                <div key={trx.id || index} className="p-3.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                      trx.tipe === 'masuk' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
+                    }`}>
+                      {trx.tipe === 'masuk' ? (
+                        <IconArrowDownLeft className="w-4 h-4" stroke={2.5} />
+                      ) : (
+                        <IconArrowUpRight className="w-4 h-4" stroke={2.5} />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-zinc-900 text-xs truncate">
+                        {trx.deskripsi}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mt-0.5">
+                        <span className="px-1.5 py-0.2 bg-zinc-100 rounded text-zinc-600 font-medium">{trx.kategori}</span>
+                        <span>•</span>
+                        <span>{formatDateIndo(trx.tanggal)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className={`font-bold text-xs ${
+                      trx.tipe === 'masuk' ? 'text-emerald-600' : 'text-rose-500'
+                    }`}>
+                      {trx.tipe === 'masuk' ? '+' : '-'}{formatRupiah(trx.jumlah)}
+                    </span>
+                    <span className="block text-[10px] text-zinc-400 mt-0.5">
+                      {trx.metode || 'Tercatat'}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View (>= sm) */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="text-zinc-400 font-medium border-b border-zinc-100 bg-zinc-50/50">
                 <tr>
