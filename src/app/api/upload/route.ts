@@ -67,12 +67,12 @@ export async function POST(req: Request) {
       success: true,
       url: uploadResult.url,
       key: uploadResult.key,
-      message: 'Foto berhasil disimpan ke KilatStorage S3.',
+      message: 'Foto berhasil disimpan.',
     });
   } catch (error: any) {
     console.error('Error in /api/upload:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan saat mengunggah berkas ke S3.' },
+      { error: error?.message || 'Terjadi kesalahan saat mengunggah berkas.' },
       { status: 500 }
     );
   }
@@ -97,11 +97,11 @@ export async function DELETE(req: Request) {
       );
     }
 
-    return NextResponse.json({ success: true, message: 'Berkas berhasil dihapus dari S3.' });
+    return NextResponse.json({ success: true, message: 'Berkas berhasil dihapus.' });
   } catch (error: any) {
     console.error('Error deleting from S3:', error);
     return NextResponse.json(
-      { error: error?.message || 'Gagal menghapus berkas dari S3.' },
+      { error: error?.message || 'Gagal menghapus berkas.' },
       { status: 500 }
     );
   }

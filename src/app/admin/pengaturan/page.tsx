@@ -106,13 +106,13 @@ export default function AdminPengaturanPage() {
       const data = await res.json();
       if (res.ok && data.url) {
         setAvatarUrl(data.url);
-        showToast('success', 'Foto profil admin berhasil diunggah ke KilatStorage S3!');
+        showToast('success', 'Foto profil admin berhasil disimpan!');
         if (currentUser) {
           const updated = { ...currentUser, avatarUrl: data.url };
           localStorage.setItem('user', JSON.stringify(updated));
         }
       } else {
-        showToast('error', data.error || 'Gagal mengunggah foto ke S3.');
+        showToast('error', data.error || 'Gagal mengunggah foto.');
       }
     } catch (err) {
       console.error(err);
@@ -327,12 +327,6 @@ export default function AdminPengaturanPage() {
                 <div className="space-y-1 flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-zinc-900">Foto Profil Administrator</span>
-                    {avatarUrl && (
-                      <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        S3 Aktif
-                      </span>
-                    )}
                   </div>
                   <p className="text-[11px] text-zinc-400">
                     Format gambar JPG, PNG, WEBP, atau SVG (Maksimal 5MB).

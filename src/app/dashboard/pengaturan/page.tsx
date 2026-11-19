@@ -168,9 +168,9 @@ export default function PengaturanPage() {
       const data = await res.json();
       if (res.ok && data.url) {
         setLogoUrl(data.url);
-        setToastMessage('Logo toko berhasil diunggah dan disimpan ke KilatStorage S3!');
+        setToastMessage('Logo toko berhasil disimpan!');
       } else {
-        setToastMessage(data.error || 'Gagal mengunggah logo ke S3.');
+        setToastMessage(data.error || 'Gagal mengunggah logo.');
       }
     } catch (err) {
       console.error('Error uploading logo:', err);
@@ -333,15 +333,9 @@ export default function PengaturanPage() {
               <div className="space-y-1.5 flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <div className="text-xs font-bold text-zinc-900">Logo Usaha</div>
-                  {logoUrl && (
-                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      Tersimpan di S3
-                    </span>
-                  )}
                 </div>
                 <p className="text-[11px] text-zinc-400 max-w-md leading-relaxed">
-                  Gunakan gambar berasio 1:1 format JPG, PNG, WEBP, atau SVG (Maks. 5MB). Logo otomatis disimpan aman di KilatStorage S3.
+                  Gunakan gambar berasio 1:1 format JPG, PNG, WEBP, atau SVG (Maksimal 5MB).
                 </p>
                 <div className="flex items-center gap-2 pt-0.5">
                   <input 
@@ -360,7 +354,7 @@ export default function PengaturanPage() {
                     {isUploadingLogo ? (
                       <>
                         <IconRefresh className="w-3.5 h-3.5 animate-spin text-blue-600" />
-                        <span>Mengunggah ke S3...</span>
+                        <span>Mengunggah...</span>
                       </>
                     ) : (
                       <>
