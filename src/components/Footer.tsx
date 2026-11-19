@@ -6,7 +6,7 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '
 
 export default function Footer() {
   return (
-    <footer id="footer" className="w-full bg-[#f4f8fb] py-16 md:py-24 border-t border-slate-200">
+    <footer id="footer" className="w-full bg-[#f4f8fb] pt-16 pb-28 md:py-24 border-t border-slate-200">
       <div className="max-w-7xl mx-auto px-6 md:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
           

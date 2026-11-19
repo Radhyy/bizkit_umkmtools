@@ -4,6 +4,14 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  IconHome,
+  IconSparkles,
+  IconTag,
+  IconBrandWhatsapp,
+  IconUser,
+  IconLayoutDashboard,
+} from '@tabler/icons-react';
 
 export default function Navbar() {
   const router = useRouter();
@@ -102,7 +110,8 @@ export default function Navbar() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+    <>
+      <header className="fixed top-0 left-0 right-0 z-50 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
       <div className="flex items-center gap-3 bg-white/70 backdrop-blur-md border border-gray-100 py-2 px-5 rounded-full shadow-sm">
         <Link href="/" className="flex items-center gap-3">
           <Image src="/PP-BizKit.png" alt="Bizkit" width={34} height={34} className="w-[34px] h-[34px] object-cover rounded-[10px] shadow-sm shrink-0" />
@@ -270,5 +279,136 @@ export default function Navbar() {
         </Link>
       )}
     </header>
+
+    {/* Floating Bottom App Navigation Bar (Khusus Mobile - Pill Style) */}
+    <nav 
+      aria-label="Mobile Navigation Dock"
+      className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-white/95 backdrop-blur-md border border-zinc-200/90 shadow-[0_10px_35px_rgba(0,0,0,0.12)] rounded-full px-2 py-1.5 flex items-center gap-1 sm:gap-2 max-w-[95vw] animate-in fade-in slide-in-from-bottom-3 duration-200"
+    >
+      {/* 1. Beranda */}
+      <Link
+        href="/"
+        className="relative group focus:outline-none active:scale-95 transition-transform"
+      >
+        {pathname === "/" && (
+          <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-white border border-zinc-200/90 rounded-xl shadow-md text-[11px] font-bold text-zinc-900 whitespace-nowrap pointer-events-none z-50 animate-in fade-in zoom-in-95 duration-150">
+            Beranda
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-zinc-200/90 rotate-45"></div>
+          </div>
+        )}
+        <div 
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            pathname === "/"
+              ? 'bg-zinc-100 text-zinc-950 shadow-2xs font-bold ring-1 ring-zinc-200/60'
+              : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/70'
+          }`}
+        >
+          <IconHome className="w-5 h-5" stroke={pathname === "/" ? 2.5 : 2} />
+        </div>
+      </Link>
+
+      {/* 2. Fitur */}
+      <Link
+        href="/fitur"
+        className="relative group focus:outline-none active:scale-95 transition-transform"
+      >
+        {pathname === "/fitur" && (
+          <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-white border border-zinc-200/90 rounded-xl shadow-md text-[11px] font-bold text-zinc-900 whitespace-nowrap pointer-events-none z-50 animate-in fade-in zoom-in-95 duration-150">
+            Fitur
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-zinc-200/90 rotate-45"></div>
+          </div>
+        )}
+        <div 
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            pathname === "/fitur"
+              ? 'bg-zinc-100 text-zinc-950 shadow-2xs font-bold ring-1 ring-zinc-200/60'
+              : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/70'
+          }`}
+        >
+          <IconSparkles className="w-5 h-5" stroke={pathname === "/fitur" ? 2.5 : 2} />
+        </div>
+      </Link>
+
+      {/* 3. Harga */}
+      <Link
+        href="/harga"
+        className="relative group focus:outline-none active:scale-95 transition-transform"
+      >
+        {pathname === "/harga" && (
+          <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-white border border-zinc-200/90 rounded-xl shadow-md text-[11px] font-bold text-zinc-900 whitespace-nowrap pointer-events-none z-50 animate-in fade-in zoom-in-95 duration-150">
+            Harga
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-zinc-200/90 rotate-45"></div>
+          </div>
+        )}
+        <div 
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            pathname === "/harga"
+              ? 'bg-zinc-100 text-zinc-950 shadow-2xs font-bold ring-1 ring-zinc-200/60'
+              : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/70'
+          }`}
+        >
+          <IconTag className="w-5 h-5" stroke={pathname === "/harga" ? 2.5 : 2} />
+        </div>
+      </Link>
+
+      {/* 4. Kontak / Bantuan WhatsApp */}
+      <a
+        href="https://wa.me/6285738804915?text=Halo%20Admin%20Bizkit%2C%20saya%20ingin%20tanya%20seputar%20fitur%20aplikasi%20Bizkit."
+        target="_blank"
+        rel="noopener noreferrer"
+        className="relative group focus:outline-none active:scale-95 transition-transform"
+        title="Bantuan WhatsApp (0857-3880-4915)"
+      >
+        <div className="w-10 h-10 rounded-full flex items-center justify-center text-emerald-600 hover:bg-emerald-50 transition-all relative">
+          <IconBrandWhatsapp className="w-5 h-5" stroke={2.2} />
+          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+        </div>
+      </a>
+
+      {/* Divider */}
+      <div className="w-px h-5 bg-zinc-200 mx-0.5" />
+
+      {/* 5. User / Dashboard / Login Button */}
+      {user ? (
+        <Link
+          href={user.role === 'admin' ? '/admin' : '/dashboard'}
+          className="relative group focus:outline-none active:scale-95 transition-transform"
+          title="Buka Dashboard"
+        >
+          {(pathname.startsWith('/dashboard') || pathname.startsWith('/admin')) && (
+            <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-white border border-zinc-200/90 rounded-xl shadow-md text-[11px] font-bold text-zinc-900 whitespace-nowrap pointer-events-none z-50 animate-in fade-in zoom-in-95 duration-150">
+              Dashboard
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-zinc-200/90 rotate-45"></div>
+            </div>
+          )}
+          <div className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-sm shadow-blue-500/20 transition-all">
+            <IconLayoutDashboard className="w-5 h-5" stroke={2} />
+          </div>
+        </Link>
+      ) : (
+        <Link
+          href="/login"
+          className="relative group focus:outline-none active:scale-95 transition-transform"
+          title="Masuk ke Akun"
+        >
+          {pathname === "/login" && (
+            <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-white border border-zinc-200/90 rounded-xl shadow-md text-[11px] font-bold text-zinc-900 whitespace-nowrap pointer-events-none z-50 animate-in fade-in zoom-in-95 duration-150">
+              Masuk
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-zinc-200/90 rotate-45"></div>
+            </div>
+          )}
+          <div 
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+              pathname === "/login"
+                ? 'bg-zinc-900 text-white shadow-2xs font-bold'
+                : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80 hover:text-zinc-900'
+            }`}
+          >
+            <IconUser className="w-5 h-5" stroke={2} />
+          </div>
+        </Link>
+      )}
+    </nav>
+  </>
   );
 }
