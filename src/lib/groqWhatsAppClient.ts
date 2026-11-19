@@ -23,10 +23,14 @@ export interface WAGroqOptions {
   max_tokens?: number;
 }
 
-// Inisialisasi pool khusus WhatsApp dari GROQ_WA_API_KEYS
+// Inisialisasi pool khusus WhatsApp dari GROQ_WA_API_KEYS atau fallback ke GROQ_API_KEYS
 function initKeyPool(): WAKeyState[] {
-  const raw = process.env.GROQ_WA_API_KEYS || '';
-  const keys = raw.split(',').map(k => k.trim()).filter(Boolean);
+  let raw = process.env.GROQ_WA_API_KEYS || process.env.GROQ_API_KEYS || '';
+  raw = raw.trim();
+  if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+    raw = raw.slice(1, -1);
+  }
+  const keys = raw.split(',').map(k => k.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
 
   return keys.map((key, index) => {
     const masked = key.length > 12 
@@ -52,6 +56,14 @@ let waKeyPool: WAKeyState[] = initKeyPool();
 let waPointer = 0;
 
 /**
+ * Reset seluruh status key pool (membersihkan cooldown & failure count)
+ */
+export function resetWhatsAppKeyPool() {
+  waKeyPool = initKeyPool();
+  return getWhatsAppKeyPoolStatus();
+}
+
+/**
  * Mendapatkan status seluruh pool key WhatsApp untuk Admin Dashboard
  */
 export function getWhatsAppKeyPoolStatus() {
@@ -61,16 +73,24 @@ export function getWhatsAppKeyPoolStatus() {
   }
 
   const now = Date.now();
-  return waKeyPool.map(k => ({
-    id: k.id,
-    maskedKey: k.maskedKey,
-    status: k.cooldownUntil > now ? 'cooling_down' : (k.failureCount > 3 ? 'error' : 'healthy'),
-    successCount: k.successCount,
-    failureCount: k.failureCount,
-    cooldownRemainingSec: Math.max(0, Math.ceil((k.cooldownUntil - now) / 1000)),
-    lastLatencyMs: k.lastLatencyMs,
-    lastUsedAt: k.lastUsedAt,
-  }));
+  return waKeyPool.map(k => {
+    const isCooling = k.cooldownUntil > now;
+    if (!isCooling && k.cooldownUntil > 0) {
+      k.failureCount = 0;
+      k.cooldownUntil = 0;
+      k.status = 'healthy';
+    }
+    return {
+      id: k.id,
+      maskedKey: k.maskedKey,
+      status: isCooling ? 'cooling_down' : (k.failureCount > 3 ? 'error' : 'healthy'),
+      successCount: k.successCount,
+      failureCount: k.failureCount,
+      cooldownRemainingSec: Math.max(0, Math.ceil((k.cooldownUntil - now) / 1000)),
+      lastLatencyMs: k.lastLatencyMs,
+      lastUsedAt: k.lastUsedAt,
+    };
+  });
 }
 
 /**
@@ -118,7 +138,7 @@ export async function chatWhatsAppGroq(
     throw new Error('Konfigurasi GROQ_WA_API_KEYS belum diatur di file .env');
   }
 
-  const defaultModel = process.env.GROQ_WA_MODEL || 'qwen/qwen3.8-27b';
+  const defaultModel = process.env.GROQ_WA_MODEL || 'llama-3.3-70b-versatile';
   const model = options.model || defaultModel;
   const maxAttempts = waKeyPool.length;
   let attempts = 0;

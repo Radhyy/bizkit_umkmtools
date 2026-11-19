@@ -49,7 +49,7 @@ interface WASession {
 export default function AdminWhatsAppPage() {
   const [session, setSession] = useState<WASession | null>(null);
   const [keyPool, setKeyPool] = useState<KeyPoolItem[]>([]);
-  const [model, setModel] = useState<string>('qwen/qwen3.8-27b');
+  const [model, setModel] = useState<string>('llama-3.3-70b-versatile');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshingQr, setIsRefreshingQr] = useState(false);
   const [qrCountdown, setQrCountdown] = useState<number>(60);
@@ -117,6 +117,28 @@ export default function AdminWhatsAppPage() {
 
     return () => clearInterval(timer);
   }, [session?.status]);
+
+  // Reset API Keys pool action
+  const [isResettingKeys, setIsResettingKeys] = useState(false);
+  const handleResetKeys = async () => {
+    setIsResettingKeys(true);
+    try {
+      const res = await fetch('/api/admin/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset_keys' })
+      });
+      const data = await res.json();
+      if (data.success && data.keyPool) {
+        setKeyPool(data.keyPool);
+        showToast('success', 'Status Pool API Key Groq berhasil disegarkan!');
+      }
+    } catch (err: any) {
+      showToast('error', 'Gagal mereset status pool key.');
+    } finally {
+      setIsResettingKeys(false);
+    }
+  };
 
   // Refresh QR code action
   const handleRefreshQr = async () => {
@@ -462,9 +484,21 @@ export default function AdminWhatsAppPage() {
                 </p>
               </div>
 
-              <span className="text-[10px] font-bold px-2 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 uppercase tracking-wider">
-                Round-Robin + Failover
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetKeys}
+                  disabled={isResettingKeys}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-zinc-600 hover:text-blue-600 bg-zinc-100 hover:bg-blue-50 border border-zinc-200 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                  title="Segarkan pool dan pulihkan status semua API key"
+                >
+                  <IconRefresh className={`w-3.5 h-3.5 ${isResettingKeys ? 'animate-spin' : ''}`} />
+                  Segarkan Pool
+                </button>
+                <span className="text-[10px] font-bold px-2 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 uppercase tracking-wider">
+                  Round-Robin + Failover
+                </span>
+              </div>
             </div>
 
             {/* List 5 API Keys */}

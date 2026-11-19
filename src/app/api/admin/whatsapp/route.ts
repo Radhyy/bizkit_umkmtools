@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { getWhatsAppKeyPoolStatus } from '@/lib/groqWhatsAppClient';
+import { getWhatsAppKeyPoolStatus, resetWhatsAppKeyPool } from '@/lib/groqWhatsAppClient';
 import { handleIncomingWhatsAppMessage, cleanWhatsAppNumber } from '@/lib/whatsappMessageHandler';
 import QRCode from 'qrcode';
 
@@ -74,7 +74,7 @@ export async function GET() {
       success: true,
       session,
       keyPool,
-      model: process.env.GROQ_WA_MODEL || 'qwen/qwen3.8-27b',
+      model: process.env.GROQ_WA_MODEL || 'llama-3.3-70b-versatile',
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
@@ -150,6 +150,15 @@ export async function POST(req: Request) {
           success: true, 
           message: 'Koneksi WhatsApp Bot telah diputus',
           status: 'disconnected'
+        });
+      }
+
+      if (action === 'reset_keys') {
+        const updatedPool = resetWhatsAppKeyPool();
+        return NextResponse.json({
+          success: true,
+          message: 'Pool API Key Groq berhasil disegarkan dan status dipulihkan!',
+          keyPool: updatedPool,
         });
       }
 

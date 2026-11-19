@@ -77,7 +77,7 @@ export async function groqChatCompletion(
     throw new Error('Tidak ada Groq API Key yang terkonfigurasi di GROQ_API_KEYS');
   }
 
-  const defaultModel = process.env.GROQ_DEFAULT_MODEL || 'qwen/qwen3.8-27b';
+  const defaultModel = process.env.GROQ_DEFAULT_MODEL || 'llama-3.3-70b-versatile';
   const model = options.model || defaultModel;
   const maxAttempts = keyPool.length;
   let attempts = 0;
