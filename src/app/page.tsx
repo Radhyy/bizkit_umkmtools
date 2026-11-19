@@ -607,14 +607,14 @@ export default function Home() {
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.2, ease: "easeOut" }}
             viewport={{ once: true }}
-            className="absolute top-0 -right-20 md:top-20 md:right-[-200px] w-[450px] h-[350px] bg-[#0047FF] rounded-[100%] blur-[100px] rotate-[30deg] pointer-events-none z-0"
+            className="absolute top-0 -right-36 sm:-right-20 md:top-20 md:right-[-200px] w-[320px] sm:w-[450px] md:w-[450px] h-[300px] sm:h-[350px] md:h-[350px] bg-[#0047FF] rounded-[100%] blur-[80px] sm:blur-[100px] rotate-[30deg] pointer-events-none z-0"
          ></motion.div>
          <motion.div 
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ duration: 1.5, delay: 0.3 }}
             viewport={{ once: true }}
-            className="absolute top-10 -right-20 md:top-28 md:right-[-250px] w-[400px] h-[400px] pointer-events-none z-0"
+            className="absolute top-10 -right-36 sm:-right-20 md:top-28 md:right-[-250px] w-[300px] sm:w-[400px] md:w-[400px] h-[300px] sm:h-[400px] md:h-[400px] pointer-events-none z-0"
             style={{ maskImage: 'radial-gradient(circle at top right, black 20%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle at top right, black 20%, transparent 70%)' }}
          >
             <div className="w-full h-full bg-white/5 backdrop-blur-[4px]" 
