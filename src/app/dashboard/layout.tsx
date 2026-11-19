@@ -40,6 +40,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ id?: string; name: string; email: string; role?: string; daysLeft?: number; trialEndsAt?: string } | null>(null);
+  const [businessName, setBusinessName] = useState<string>('');
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [lockReason, setLockReason] = useState<'free_plan' | 'trial_expired' | 'locked' | null>(null);
   const [lockMessage, setLockMessage] = useState<string>('');
@@ -75,6 +76,15 @@ export default function DashboardLayout({
     try {
       const u = JSON.parse(raw);
       
+      // Ambil nama usaha dari localStorage jika ada
+      const storedBp = localStorage.getItem("businessProfile");
+      if (storedBp) {
+        try {
+          const bp = JSON.parse(storedBp);
+          if (bp?.namaUsaha) setBusinessName(bp.namaUsaha);
+        } catch {}
+      }
+
       // Validasi status akun dan trial ke database
       fetch(`/api/auth/check-status?userId=${encodeURIComponent(u.id || '')}&email=${encodeURIComponent(u.email || '')}`)
         .then(res => res.json())
@@ -86,6 +96,9 @@ export default function DashboardLayout({
               daysLeft: data.daysLeft, 
               trialEndsAt: data.trialEndsAt 
             });
+            if (data.namaUsaha || data.user?.namaUsaha) {
+              setBusinessName(data.namaUsaha || data.user?.namaUsaha);
+            }
             setIsAuthorized(true);
             setLockReason(null);
             if (u.id) {
@@ -109,6 +122,18 @@ export default function DashboardLayout({
             setIsAuthorized(true);
           }
         });
+
+      // Sinkronisasi data profil bisnis (namaUsaha)
+      if (u.id) {
+        fetch(`/api/onboarding?userId=${encodeURIComponent(u.id)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data?.profile?.namaUsaha) {
+              setBusinessName(data.profile.namaUsaha);
+            }
+          })
+          .catch(() => {});
+      }
     } catch {
       router.push("/login");
     }
@@ -260,11 +285,11 @@ export default function DashboardLayout({
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-4">
         <div className="flex items-center gap-2.5">
           <Image 
-            src="/LogoToolsUmkm.png" 
+            src="/PP-BizKit.png" 
             alt="Bizkit Logo" 
             width={32} 
             height={32} 
-            className="w-8 h-8 object-contain shrink-0" 
+            className="w-8 h-8 object-cover rounded-[10px] shadow-sm shrink-0" 
             priority
           />
           <span className="text-xl font-bold text-slate-900 tracking-tight lowercase">
@@ -299,11 +324,11 @@ export default function DashboardLayout({
         <div className="flex items-center justify-between px-2 mb-4">
           <Link href="/dashboard" className="flex items-center gap-2.5 group">
             <Image 
-              src="/LogoToolsUmkm.png" 
+              src="/PP-BizKit.png" 
               alt="Bizkit Logo" 
               width={32} 
               height={32} 
-              className="w-8 h-8 object-contain shrink-0 transition-transform group-hover:scale-105" 
+              className="w-8 h-8 object-cover rounded-[10px] shadow-sm shrink-0 transition-transform group-hover:scale-105" 
               priority
             />
             {!isCollapsed && (
@@ -507,10 +532,10 @@ export default function DashboardLayout({
                 {!isCollapsed && (
                   <div className="flex flex-col min-w-0">
                     <span className="text-[13px] font-semibold text-zinc-900 leading-tight truncate">
-                      {currentUser?.name || "Mira Okafor"}
+                      {currentUser?.name || "Pengguna"}
                     </span>
-                    <span className="text-[11px] text-zinc-400 leading-tight truncate">
-                      {currentUser?.role === 'admin' ? 'Administrator' : 'Founder'}
+                    <span className="text-[11px] text-zinc-400 leading-tight truncate" title={businessName || 'Pemilik Usaha'}>
+                      {businessName || (currentUser?.role === 'admin' ? 'Administrator' : 'Pemilik Usaha')}
                     </span>
                   </div>
                 )}

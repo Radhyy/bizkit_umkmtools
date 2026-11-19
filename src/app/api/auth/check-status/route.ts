@@ -14,10 +14,16 @@ export async function GET(req: Request) {
     let query = '';
     let params: any[] = [];
     if (userId) {
-      query = `SELECT id, name, email, role, "isVerified", "isLocked", "trialEndsAt", "trialGrantedDays", "createdAt", "waToken", "waPhoneNumber", "isWaConnected" FROM "User" WHERE id = $1 LIMIT 1`;
+      query = `SELECT u.id, u.name, u.email, u.role, u."isVerified", u."isLocked", u."trialEndsAt", u."trialGrantedDays", u."createdAt", u."waToken", u."waPhoneNumber", u."isWaConnected", bp."namaUsaha" 
+               FROM "User" u 
+               LEFT JOIN "BusinessProfile" bp ON bp."userId" = u.id 
+               WHERE u.id = $1 LIMIT 1`;
       params = [userId];
     } else {
-      query = `SELECT id, name, email, role, "isVerified", "isLocked", "trialEndsAt", "trialGrantedDays", "createdAt", "waToken", "waPhoneNumber", "isWaConnected" FROM "User" WHERE LOWER(email) = LOWER($1) LIMIT 1`;
+      query = `SELECT u.id, u.name, u.email, u.role, u."isVerified", u."isLocked", u."trialEndsAt", u."trialGrantedDays", u."createdAt", u."waToken", u."waPhoneNumber", u."isWaConnected", bp."namaUsaha" 
+               FROM "User" u 
+               LEFT JOIN "BusinessProfile" bp ON bp."userId" = u.id 
+               WHERE LOWER(u.email) = LOWER($1) LIMIT 1`;
       params = [email];
     }
 
@@ -34,6 +40,7 @@ export async function GET(req: Request) {
       email: user.email,
       name: user.name,
       role: userRole,
+      namaUsaha: user.namaUsaha || null,
       waToken: user.waToken,
       waPhoneNumber: user.waPhoneNumber,
       isWaConnected: !!user.isWaConnected,
@@ -57,6 +64,7 @@ export async function GET(req: Request) {
       return NextResponse.json({
         authorized: true,
         role: 'admin',
+        namaUsaha: user.namaUsaha || null,
         user: userPayload,
         waToken: user.waToken,
         isWaConnected: !!user.isWaConnected,
@@ -68,6 +76,7 @@ export async function GET(req: Request) {
       return NextResponse.json({
         authorized: true,
         role: 'premium',
+        namaUsaha: user.namaUsaha || null,
         user: userPayload,
         waToken: user.waToken,
         isWaConnected: !!user.isWaConnected,
@@ -85,6 +94,7 @@ export async function GET(req: Request) {
         return NextResponse.json({
           authorized: true,
           role: 'trial',
+          namaUsaha: user.namaUsaha || null,
           daysLeft: Math.max(1, daysLeft),
           trialEndsAt: user.trialEndsAt,
           user: { ...userPayload, daysLeft, trialEndsAt: user.trialEndsAt },

@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   IconSearch,
@@ -128,17 +129,16 @@ export default function AdminLayout({
       {/* Mobile Top Bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19c0-5 3.5-9 8-9s8 4 8 9" />
-              <circle cx="12" cy="7" r="3" />
-            </svg>
-          </div>
+          <Image 
+            src="/PP-BizKit.png" 
+            alt="Bizkit Logo" 
+            width={32} 
+            height={32} 
+            className="w-8 h-8 object-cover rounded-[10px] shadow-sm shrink-0" 
+            priority
+          />
           <span className="text-xl font-bold text-slate-900 tracking-tight lowercase">
             bizkit
-          </span>
-          <span className="px-1.5 py-0.5 text-[9px] font-bold bg-blue-50 text-blue-600 rounded-md border border-blue-200 uppercase">
-            Admin
           </span>
         </div>
         <button 
@@ -168,21 +168,18 @@ export default function AdminLayout({
         {/* Top Header */}
         <div className="flex items-center justify-between px-2 mb-4">
           <Link href="/admin" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm shrink-0 transition-transform group-hover:scale-105">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 19c0-5 3.5-9 8-9s8 4 8 9" />
-                <circle cx="12" cy="7" r="3" />
-              </svg>
-            </div>
+            <Image 
+              src="/PP-BizKit.png" 
+              alt="Bizkit Logo" 
+              width={32} 
+              height={32} 
+              className="w-8 h-8 object-cover rounded-[10px] shadow-sm shrink-0 transition-transform group-hover:scale-105" 
+              priority
+            />
             {!isCollapsed && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xl font-bold text-slate-900 tracking-tight lowercase">
-                  bizkit
-                </span>
-                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-blue-50 text-blue-600 rounded-md border border-blue-200 uppercase">
-                  Admin
-                </span>
-              </div>
+              <span className="text-xl font-bold text-slate-900 tracking-tight lowercase">
+                bizkit
+              </span>
             )}
           </Link>
 

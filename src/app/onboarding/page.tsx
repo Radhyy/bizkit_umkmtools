@@ -234,7 +234,7 @@ export default function OnboardingPage() {
       {/* Top Navbar Header */}
       <header className="relative z-10 max-w-4xl mx-auto w-full px-4 sm:px-6 pt-5 sm:pt-8 pb-3 sm:pb-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/LogoToolsUmkm.png" alt="Bizkit" width={32} height={32} className="w-8 h-8 object-contain" />
+          <Image src="/PP-BizKit.png" alt="Bizkit" width={32} height={32} className="w-8 h-8 object-cover rounded-[10px] shadow-xs" priority />
           <span className={`text-xl font-bold text-slate-900 tracking-tight ${poppins.className}`}>bizkit</span>
         </Link>
 

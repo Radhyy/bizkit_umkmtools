@@ -138,7 +138,7 @@ export default function RegisterPage() {
       >
         <div className="flex flex-col items-center justify-center mb-8">
           <Link href="/" className="flex items-center gap-3 mb-2 hover:opacity-80 transition-opacity">
-            <Image src="/LogoToolsUmkm.png" alt="Bizkit" width={36} height={36} className="w-9 h-9 object-contain" />
+            <Image src="/PP-BizKit.png" alt="Bizkit" width={36} height={36} className="w-9 h-9 object-cover rounded-[10px] shadow-xs" priority />
             <span className="text-2xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: "'Sparling Demo', sans-serif" }}>Bizkit</span>
           </Link>
           <p className="text-slate-500 text-sm font-medium text-center">
