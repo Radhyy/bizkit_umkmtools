@@ -39,7 +39,8 @@ export async function POST(req: Request) {
       platformFokus, 
       gayaPromosi, 
       budgetPromosi, 
-      kotaLokasi 
+      kotaLokasi,
+      logoUrl 
     } = body;
 
     if (!userId || !namaUsaha || !kategoriBisnis || !targetAudiens || !platformFokus || !gayaPromosi) {
@@ -67,8 +68,9 @@ export async function POST(req: Request) {
              "gayaPromosi" = $6, 
              "budgetPromosi" = $7, 
              "kotaLokasi" = $8, 
+             "logoUrl" = COALESCE($9, "logoUrl"),
              "updatedAt" = NOW()
-         WHERE "userId" = $9
+         WHERE "userId" = $10
          RETURNING *`,
         [
           namaUsaha.trim(),
@@ -79,6 +81,7 @@ export async function POST(req: Request) {
           gayaPromosi,
           budgetPromosi || null,
           kotaLokasi ? kotaLokasi.trim() : null,
+          logoUrl !== undefined ? logoUrl : null,
           userId
         ]
       );
@@ -87,8 +90,8 @@ export async function POST(req: Request) {
       const id = uuidv4();
       const insertRes = await pool.query(
         `INSERT INTO "BusinessProfile" 
-         ("id", "userId", "namaUsaha", "kategoriBisnis", "deskripsiBisnis", "targetAudiens", "platformFokus", "gayaPromosi", "budgetPromosi", "kotaLokasi", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+         ("id", "userId", "namaUsaha", "kategoriBisnis", "deskripsiBisnis", "targetAudiens", "platformFokus", "gayaPromosi", "budgetPromosi", "kotaLokasi", "logoUrl", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
          RETURNING *`,
         [
           id,
@@ -100,7 +103,8 @@ export async function POST(req: Request) {
           platformFokus,
           gayaPromosi,
           budgetPromosi || null,
-          kotaLokasi ? kotaLokasi.trim() : null
+          kotaLokasi ? kotaLokasi.trim() : null,
+          logoUrl || null
         ]
       );
       savedProfile = insertRes.rows[0];

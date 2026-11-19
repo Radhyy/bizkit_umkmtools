@@ -42,6 +42,7 @@ export default function DashboardLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ id?: string; name: string; email: string; role?: string; daysLeft?: number; trialEndsAt?: string } | null>(null);
   const [businessName, setBusinessName] = useState<string>('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [lockReason, setLockReason] = useState<'free_plan' | 'trial_expired' | 'locked' | null>(null);
   const [lockMessage, setLockMessage] = useState<string>('');
@@ -131,6 +132,9 @@ export default function DashboardLayout({
           .then(data => {
             if (data?.profile?.namaUsaha) {
               setBusinessName(data.profile.namaUsaha);
+            }
+            if (data?.profile?.logoUrl) {
+              setLogoUrl(data.profile.logoUrl);
             }
           })
           .catch(() => {});
@@ -524,12 +528,22 @@ export default function DashboardLayout({
           <div className="pt-1">
             <div className="flex items-center justify-between p-1.5 rounded-2xl hover:bg-zinc-100/80 transition-colors cursor-pointer group">
               <div className="flex items-center gap-2.5 min-w-0">
-                {/* Pixel/Modern Avatar */}
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 via-orange-400 to-blue-500 p-0.5 shrink-0 shadow-2xs flex items-center justify-center overflow-hidden">
-                  <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-white text-[11px] font-bold">
-                    {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'M'}
+                {/* Pixel/Modern Avatar or S3 Store Logo */}
+                {logoUrl ? (
+                  <div className="w-8 h-8 rounded-xl overflow-hidden border border-zinc-200/80 shrink-0 shadow-2xs bg-white flex items-center justify-center p-0.5">
+                    <img 
+                      src={logoUrl} 
+                      alt={businessName || "Logo"} 
+                      className="w-full h-full object-contain rounded-[10px]" 
+                    />
                   </div>
-                </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 via-orange-400 to-blue-500 p-0.5 shrink-0 shadow-2xs flex items-center justify-center overflow-hidden">
+                    <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-white text-[11px] font-bold">
+                      {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'M'}
+                    </div>
+                  </div>
+                )}
                 {!isCollapsed && (
                   <div className="flex flex-col min-w-0">
                     <span className="text-[13px] font-semibold text-zinc-900 leading-tight truncate">

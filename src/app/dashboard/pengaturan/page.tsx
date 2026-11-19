@@ -20,6 +20,8 @@ import {
   IconArrowRight,
   IconBrandWhatsapp,
   IconCopy,
+  IconRefresh,
+  IconTrash,
 } from '@tabler/icons-react';
 
 export default function PengaturanPage() {
@@ -60,6 +62,11 @@ export default function PengaturanPage() {
   const [isWaConnected, setIsWaConnected] = useState<boolean>(false);
   const [waPhoneNumber, setWaPhoneNumber] = useState<string | null>(null);
   const [copiedWaToken, setCopiedWaToken] = useState<boolean>(false);
+
+  // Logo Toko S3 Integration
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState<boolean>(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -117,6 +124,7 @@ export default function PengaturanPage() {
                 if (data.profile.kategoriBisnis) setBusinessCategory(data.profile.kategoriBisnis);
                 if (data.profile.kotaLokasi) setAddress(data.profile.kotaLokasi);
                 if (data.profile.deskripsiBisnis) setDescription(data.profile.deskripsiBisnis);
+                if (data.profile.logoUrl) setLogoUrl(data.profile.logoUrl);
               }
             })
             .catch(() => {});
@@ -126,6 +134,77 @@ export default function PengaturanPage() {
       console.error(e);
     }
   }, []);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setToastMessage('Harap pilih berkas gambar (JPG, PNG, WEBP, atau SVG).');
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setToastMessage('Ukuran berkas maksimal 5MB.');
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'logos');
+      if (currentUser?.id) {
+        formData.append('userId', currentUser.id);
+      }
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setLogoUrl(data.url);
+        setToastMessage('Logo toko berhasil diunggah dan disimpan ke KilatStorage S3!');
+      } else {
+        setToastMessage(data.error || 'Gagal mengunggah logo ke S3.');
+      }
+    } catch (err) {
+      console.error('Error uploading logo:', err);
+      setToastMessage('Terjadi kesalahan saat mengunggah logo.');
+    } finally {
+      setIsUploadingLogo(false);
+      setTimeout(() => setToastMessage(null), 3500);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!logoUrl) return;
+    setIsUploadingLogo(true);
+    try {
+      const res = await fetch(
+        `/api/upload?url=${encodeURIComponent(logoUrl)}&userId=${encodeURIComponent(currentUser?.id || '')}`,
+        { method: 'DELETE' }
+      );
+      if (res.ok) {
+        setLogoUrl(null);
+        setToastMessage('Logo toko berhasil dihapus.');
+      } else {
+        setToastMessage('Gagal menghapus logo.');
+      }
+    } catch {
+      setToastMessage('Terjadi kesalahan saat menghapus logo.');
+    } finally {
+      setIsUploadingLogo(false);
+      setTimeout(() => setToastMessage(null), 3000);
+    }
+  };
 
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -144,6 +223,7 @@ export default function PengaturanPage() {
             platformFokus: 'Instagram & TikTok',
             gayaPromosi: 'Review Jujur & Cicip Rasa',
             kotaLokasi: address,
+            logoUrl: logoUrl,
           }),
         });
       }
@@ -229,26 +309,79 @@ export default function PengaturanPage() {
           <div className="space-y-5">
             {/* Logo Section */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="w-20 h-20 rounded-2xl bg-zinc-900 text-white flex items-center justify-center font-bold text-xl shrink-0 shadow-2xs border border-zinc-200/80">
-                TM
+              <div className="relative group shrink-0">
+                {logoUrl ? (
+                  <div className="w-20 h-20 rounded-2xl overflow-hidden border border-zinc-200/90 shadow-2xs bg-white flex items-center justify-center p-1">
+                    <img 
+                      src={logoUrl} 
+                      alt="Logo Toko" 
+                      className="w-full h-full object-contain rounded-xl" 
+                    />
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-2xl bg-zinc-900 text-white flex items-center justify-center font-bold text-xl shrink-0 shadow-2xs border border-zinc-200/80">
+                    {storeName ? storeName.slice(0, 2).toUpperCase() : 'TM'}
+                  </div>
+                )}
+                {isUploadingLogo && (
+                  <div className="absolute inset-0 bg-black/50 backdrop-blur-xs rounded-2xl flex items-center justify-center text-white">
+                    <IconRefresh className="w-5 h-5 animate-spin" />
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-1.5">
-                <div className="text-xs font-bold text-zinc-900">Logo Usaha</div>
-                <p className="text-[11px] text-zinc-400 max-w-md">
-                  Gunakan gambar berasio 1:1 format JPG, PNG, atau SVG. Ukuran maksimal 2MB.
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="text-xs font-bold text-zinc-900">Logo Usaha</div>
+                  {logoUrl && (
+                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      Tersimpan di S3
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-zinc-400 max-w-md leading-relaxed">
+                  Gunakan gambar berasio 1:1 format JPG, PNG, WEBP, atau SVG (Maks. 5MB). Logo otomatis disimpan aman di KilatStorage S3.
                 </p>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setToastMessage('Fitur unggah logo siap digunakan.');
-                    setTimeout(() => setToastMessage(null), 2500);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200/90 rounded-xl text-xs font-semibold text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors cursor-pointer"
-                >
-                  <IconUpload className="w-3.5 h-3.5 text-zinc-500" />
-                  <span>Unggah Logo Baru</span>
-                </button>
+                <div className="flex items-center gap-2 pt-0.5">
+                  <input 
+                    ref={fileInputRef}
+                    type="file" 
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml" 
+                    onChange={handleLogoUpload} 
+                    className="hidden" 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingLogo}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-zinc-200/90 rounded-xl text-xs font-semibold text-zinc-700 hover:bg-zinc-50 active:bg-zinc-100 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {isUploadingLogo ? (
+                      <>
+                        <IconRefresh className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                        <span>Mengunggah ke S3...</span>
+                      </>
+                    ) : (
+                      <>
+                        <IconUpload className="w-3.5 h-3.5 text-zinc-500" />
+                        <span>{logoUrl ? 'Ganti Logo' : 'Unggah Logo Baru'}</span>
+                      </>
+                    )}
+                  </button>
+
+                  {logoUrl && !isUploadingLogo && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveLogo}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                      title="Hapus Logo"
+                    >
+                      <IconTrash className="w-3.5 h-3.5" />
+                      <span>Hapus</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
