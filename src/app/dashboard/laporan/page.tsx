@@ -17,6 +17,7 @@ import {
   IconSearch,
   IconDots,
   IconCalendarEvent,
+  IconChevronRight,
 } from '@tabler/icons-react';
 import { exportToPDF, exportToExcel, exportToCSV } from '@/lib/exportUtils';
 import PdfSignatureModal from '@/components/PdfSignatureModal';
@@ -122,6 +123,7 @@ export default function LaporanPage() {
   const [categoryFilter, setCategoryFilter] = useState<'semua' | 'masuk' | 'keluar'>('semua');
   const [tableFilterType, setTableFilterType] = useState<'semua' | 'masuk' | 'keluar'>('semua');
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileDetailTrx, setMobileDetailTrx] = useState<Transaction | null>(null);
 
   // Fetch data real dari backend
   const fetchReportData = async (userId: string) => {
@@ -697,9 +699,13 @@ export default function LaporanPage() {
             </div>
           ) : (
             filteredTransactions.map((trx, index) => (
-              <div key={trx.id || index} className="p-3.5 flex items-center justify-between gap-3 hover:bg-zinc-50/60 transition-colors">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+              <div 
+                key={trx.id || index} 
+                onClick={() => setMobileDetailTrx(trx)}
+                className="p-3.5 flex items-center justify-between gap-3 hover:bg-zinc-50/80 active:bg-zinc-100/70 transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                     trx.tipe === 'masuk' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
                   }`}>
                     {trx.tipe === 'masuk' ? (
@@ -708,27 +714,32 @@ export default function LaporanPage() {
                       <IconArrowUpRight className="w-4 h-4" stroke={2.5} />
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-zinc-900 text-xs truncate">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-zinc-900 text-xs truncate leading-snug group-hover:text-blue-600 transition-colors">
                       {trx.deskripsi}
                     </p>
-                    <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mt-0.5">
-                      <span className="px-1.5 py-0.2 bg-zinc-100 rounded text-zinc-600 font-medium">{trx.kategori}</span>
+                    <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mt-1">
+                      <span className="inline-block whitespace-nowrap px-1.5 py-0.5 bg-zinc-100 rounded text-zinc-600 font-medium">
+                        {trx.kategori}
+                      </span>
                       <span>•</span>
-                      <span>{formatDateIndo(trx.tanggal)}</span>
+                      <span className="whitespace-nowrap">{formatDateIndo(trx.tanggal)}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="text-right shrink-0">
-                  <span className={`font-bold text-xs ${
-                    trx.tipe === 'masuk' ? 'text-emerald-600' : 'text-rose-500'
-                  }`}>
-                    {trx.tipe === 'masuk' ? '+' : '-'}{formatRupiah(trx.jumlah)}
-                  </span>
-                  <span className="block text-[10px] text-zinc-400 mt-0.5">
-                    {trx.tipe === 'masuk' ? 'Kas Masuk' : 'Kas Keluar'}
-                  </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="text-right">
+                    <span className={`font-bold text-xs ${
+                      trx.tipe === 'masuk' ? 'text-emerald-600' : 'text-rose-500'
+                    }`}>
+                      {trx.tipe === 'masuk' ? '+' : '-'}{formatRupiah(trx.jumlah)}
+                    </span>
+                    <span className="block text-[10px] text-zinc-400 mt-0.5">
+                      {trx.tipe === 'masuk' ? 'Kas Masuk' : 'Kas Keluar'}
+                    </span>
+                  </div>
+                  <IconChevronRight className="w-4 h-4 text-zinc-300 group-hover:text-zinc-500 transition-colors shrink-0" />
                 </div>
               </div>
             ))
@@ -847,6 +858,119 @@ export default function LaporanPage() {
           </table>
         </div>
       </div>
+
+      {/* ======================================================== */}
+      {/* MODAL DETAIL TRANSAKSI (KHUSUS MOBILE)                   */}
+      {/* ======================================================== */}
+      {mobileDetailTrx && (
+        <div 
+          className="sm:hidden fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-xs p-0 animate-fade-in font-jakarta"
+          onClick={() => setMobileDetailTrx(null)}
+        >
+          <div 
+            className="bg-white rounded-t-3xl w-full max-w-lg p-5 shadow-2xl border-t border-zinc-200/80 animate-in slide-in-from-bottom duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Handle Bar */}
+            <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-4"></div>
+
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  mobileDetailTrx.tipe === 'masuk' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
+                }`}>
+                  {mobileDetailTrx.tipe === 'masuk' ? (
+                    <IconArrowDownLeft className="w-5 h-5" stroke={2.5} />
+                  ) : (
+                    <IconArrowUpRight className="w-5 h-5" stroke={2.5} />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900 leading-tight">Detail Transaksi</h3>
+                  <p className="text-[11px] text-zinc-400">
+                    {mobileDetailTrx.tipe === 'masuk' ? 'Arus Kas Masuk' : 'Arus Kas Keluar'}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setMobileDetailTrx(null)}
+                className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors"
+              >
+                <IconX className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Nominal Banner */}
+            <div className={`mt-3.5 p-4 rounded-2xl flex flex-col items-center justify-center text-center ${
+              mobileDetailTrx.tipe === 'masuk' ? 'bg-emerald-50/70 border border-emerald-100' : 'bg-rose-50/70 border border-rose-100'
+            }`}>
+              <span className="text-[11px] font-medium text-zinc-500 mb-1">Total Nominal</span>
+              <span className={`text-2xl font-extrabold tracking-tight ${
+                mobileDetailTrx.tipe === 'masuk' ? 'text-emerald-600' : 'text-rose-600'
+              }`}>
+                {mobileDetailTrx.tipe === 'masuk' ? '+' : '-'}{formatRupiah(mobileDetailTrx.jumlah)}
+              </span>
+              <span className={`mt-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                mobileDetailTrx.tipe === 'masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+              }`}>
+                {mobileDetailTrx.tipe === 'masuk' ? 'Kas Masuk' : 'Kas Keluar'}
+              </span>
+            </div>
+
+            {/* Detail Information */}
+            <div className="mt-3.5 space-y-3 bg-zinc-50/80 p-3.5 rounded-2xl border border-zinc-100 text-xs">
+              <div>
+                <span className="text-[10px] font-medium text-zinc-400 block mb-0.5">Keterangan / Deskripsi</span>
+                <p className="font-semibold text-zinc-900 break-words leading-relaxed text-xs">
+                  {mobileDetailTrx.deskripsi}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-zinc-200/60">
+                <div>
+                  <span className="text-[10px] font-medium text-zinc-400 block mb-0.5">Kategori</span>
+                  <span className="inline-block px-2 py-0.5 bg-white border border-zinc-200 rounded-md text-zinc-700 font-semibold text-[11px]">
+                    {mobileDetailTrx.kategori}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-medium text-zinc-400 block mb-0.5">Tanggal Pembukuan</span>
+                  <p className="font-semibold text-zinc-800 text-[11px]">
+                    {formatDateIndo(mobileDetailTrx.tanggal)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2.5 border-t border-zinc-200/60 flex items-center justify-between text-[11px]">
+                <span className="text-zinc-400">Status Pencatatan</span>
+                <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-600">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Tercatat Resmi
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center gap-2">
+              <Link
+                href="/dashboard/keuangan"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#18181b] hover:bg-zinc-800 text-white rounded-xl font-semibold text-xs transition-colors shadow-xs"
+              >
+                <span>Kelola di Keuangan & Kas</span>
+                <IconArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMobileDetailTrx(null)}
+                className="py-2.5 px-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-semibold text-xs transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ======================================================== */}
       {/* MODAL PILIH FORMAT UNDUH (PDF, EXCEL SPREADSHEET, CSV)   */}
