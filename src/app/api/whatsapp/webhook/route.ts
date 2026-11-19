@@ -29,10 +29,31 @@ export async function POST(req: Request) {
 
     const result = await handleIncomingWhatsAppMessage(phoneNumber, messageText);
 
+    // Kirim via Fonnte API jika FONNTE_TOKEN dikonfigurasi di .env (Kompatibel 100% Netlify Serverless)
+    if (process.env.FONNTE_TOKEN && result.reply) {
+      try {
+        const formData = new URLSearchParams();
+        formData.append('target', cleanWhatsAppNumber(phoneNumber));
+        formData.append('message', result.reply);
+
+        await fetch('https://api.fonnte.com/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': process.env.FONNTE_TOKEN.trim(),
+          },
+          body: formData,
+        });
+      } catch (fonnteErr) {
+        console.error('Gagal mengirim via Fonnte API:', fonnteErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       sender: cleanWhatsAppNumber(phoneNumber),
       reply: result.reply,
+      message: result.reply,
+      response: result.reply,
       actionTaken: result.actionTaken,
       keyUsedId: result.keyUsedId,
       latencyMs: result.latencyMs,

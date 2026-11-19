@@ -109,8 +109,11 @@ async function startWhatsAppBot() {
       const senderPhone = remoteJid.split('@')[0];
       console.log(`[WA-Service] Pesan masuk dari ${senderPhone}: "${text}"`);
 
+      const webhookUrl = process.env.WA_WEBHOOK_URL || 
+        (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/webhook` : 'http://localhost:3000/api/whatsapp/webhook');
+
       try {
-        const response = await fetch('http://localhost:3000/api/whatsapp/webhook', {
+        const response = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sender: senderPhone, message: text })
@@ -131,3 +134,4 @@ async function startWhatsAppBot() {
 startWhatsAppBot().catch(err => {
   console.error('[WA-Service] Fatal error:', err);
 });
+
