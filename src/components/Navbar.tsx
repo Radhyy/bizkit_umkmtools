@@ -8,7 +8,6 @@ import {
   IconHome,
   IconSparkles,
   IconTag,
-  IconBrandWhatsapp,
   IconUser,
   IconLayoutDashboard,
 } from '@tabler/icons-react';
@@ -351,24 +350,10 @@ export default function Navbar() {
         </div>
       </Link>
 
-      {/* 4. Kontak / Bantuan WhatsApp */}
-      <a
-        href="https://wa.me/6285738804915?text=Halo%20Admin%20Bizkit%2C%20saya%20ingin%20tanya%20seputar%20fitur%20aplikasi%20Bizkit."
-        target="_blank"
-        rel="noopener noreferrer"
-        className="relative group focus:outline-none active:scale-95 transition-transform"
-        title="Bantuan WhatsApp (0857-3880-4915)"
-      >
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-emerald-600 hover:bg-emerald-50 transition-all relative">
-          <IconBrandWhatsapp className="w-5 h-5" stroke={2.2} />
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
-        </div>
-      </a>
-
       {/* Divider */}
       <div className="w-px h-5 bg-zinc-200 mx-0.5" />
 
-      {/* 5. User / Dashboard / Login Button */}
+      {/* 4. User / Dashboard / Login Button */}
       {user ? (
         <Link
           href={user.role === 'admin' ? '/admin' : '/dashboard'}

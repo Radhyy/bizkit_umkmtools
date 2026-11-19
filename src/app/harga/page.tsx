@@ -90,17 +90,17 @@ export default function HargaPage() {
   };
 
   return (
-    <div className={`min-h-screen bg-[#F4F8FB] text-slate-800 ${jakarta.className} selection:bg-blue-600 selection:text-white pt-28 pb-20`}>
+    <div className={`min-h-screen bg-[#F4F8FB] text-slate-800 ${jakarta.className} selection:bg-blue-600 selection:text-white pt-24 sm:pt-28 pb-28 md:pb-20`}>
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-6 md:px-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
         {/* Header Hero Section */}
-        <div className="text-center max-w-4xl mx-auto pt-6 pb-14 flex flex-col items-center">
+        <div className="text-center max-w-4xl mx-auto pt-4 sm:pt-6 pb-10 sm:pb-14 flex flex-col items-center">
           <motion.div
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100/80 text-blue-600 text-sm font-semibold mb-6 shadow-sm"
+            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100/80 text-blue-600 text-xs sm:text-sm font-semibold mb-4 sm:mb-6 shadow-sm"
           >
             <IconSparkles className="w-4 h-4 text-blue-600" />
             <span className={poppins.className}>Pilihan Paket Fleksibel</span>
@@ -110,42 +110,17 @@ export default function HargaPage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.3] mb-6"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.25] mb-4 sm:mb-6"
           >
             Investasi Cerdas untuk <br className="hidden sm:inline" />
-            <span className="text-blue-600 inline-block">
-              Pertumbuhan{" "}
-              <span className="relative inline-block mx-1.5 -rotate-2 select-none align-baseline">
-                {/* Figma Selection Bounding Box */}
-                <span className="absolute -inset-1 border-[1.5px] border-blue-600 rounded-[2px] pointer-events-none" />
-                
-                {/* 4 Corner Square Handles */}
-                <span className="absolute -top-2 -left-2 w-2.5 h-2.5 bg-white border-[1.5px] border-blue-600 pointer-events-none z-20" />
-                <span className="absolute -top-2 -right-2 w-2.5 h-2.5 bg-white border-[1.5px] border-blue-600 pointer-events-none z-20" />
-                <span className="absolute -bottom-2 -left-2 w-2.5 h-2.5 bg-white border-[1.5px] border-blue-600 pointer-events-none z-20" />
-                <span className="absolute -bottom-2 -right-2 w-2.5 h-2.5 bg-white border-[1.5px] border-blue-600 pointer-events-none z-20" />
-                
-                {/* Figma Collaborator Cursor Tag at bottom-right */}
-                <span className="absolute -bottom-5 -right-8 z-30 flex items-center gap-1.5 bg-blue-600 text-white rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide shadow-md pointer-events-none select-none">
-                  <svg className="w-2.5 h-2.5 fill-current shrink-0" viewBox="0 0 24 24">
-                    <path d="M3 3l7 18 3-7 7-3L3 3z" />
-                  </svg>
-                  <span className="tracking-widest font-medium">Bizkit</span>
-                </span>
-
-                <span className="relative z-10 px-1 text-blue-600">
-                  Bisnis
-                </span>
-              </span>{" "}
-              UMKM Anda
-            </span>
+            <span className="text-blue-600">Pertumbuhan Bisnis UMKM Anda</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-base md:text-lg text-slate-600 max-w-2xl leading-relaxed mb-10"
+            className="text-sm sm:text-base md:text-lg text-slate-600 max-w-2xl leading-relaxed mb-8 sm:mb-10 px-2"
           >
             Pilih paket yang sesuai dengan tahapan usaha Anda. Dapatkan kendali penuh atas arus kas, laporan otomatis, dan kecerdasan buatan dalam satu platform terpadu.
           </motion.p>
@@ -155,11 +130,12 @@ export default function HargaPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="inline-flex items-center gap-3 p-1.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm"
+            className="inline-flex items-center gap-1.5 sm:gap-3 p-1.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm max-w-full"
           >
             <button
+              type="button"
               onClick={() => setIsYearly(false)}
-              className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${
+              className={`px-3.5 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 !isYearly
                   ? "bg-slate-900 text-white shadow-md"
                   : "text-slate-600 hover:text-slate-900"
@@ -168,15 +144,16 @@ export default function HargaPage() {
               Tagihan Bulanan
             </button>
             <button
+              type="button"
               onClick={() => setIsYearly(true)}
-              className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+              className={`px-3.5 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
                 isYearly
                   ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              Tagihan Tahunan
-              <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full transition-colors ${
+              <span>Tagihan Tahunan</span>
+              <span className={`text-[10px] sm:text-[11px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-full transition-colors ${
                 isYearly ? "bg-white text-blue-700" : "bg-emerald-100 text-emerald-700 border border-emerald-200"
               }`}>
                 Hemat 20%
@@ -186,14 +163,14 @@ export default function HargaPage() {
         </div>
 
         {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-20 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto mb-16 sm:mb-20 items-stretch">
           
           {/* Card 1: Free Plan */}
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white/90 backdrop-blur-md rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative"
+            className="bg-white/90 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative"
           >
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -297,7 +274,7 @@ export default function HargaPage() {
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-white rounded-3xl p-8 border border-slate-200 shadow-md flex flex-col justify-between hover:shadow-lg transition-all relative"
+            className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md flex flex-col justify-between hover:shadow-lg transition-all relative"
           >
             <div>
               <div className="flex items-center justify-between mb-4">
