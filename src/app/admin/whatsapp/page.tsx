@@ -49,7 +49,7 @@ interface WASession {
 export default function AdminWhatsAppPage() {
   const [session, setSession] = useState<WASession | null>(null);
   const [keyPool, setKeyPool] = useState<KeyPoolItem[]>([]);
-  const [model, setModel] = useState<string>('llama-3.3-70b-versatile');
+  const [model, setModel] = useState<string>('qwen/qwen3.8-27b');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshingQr, setIsRefreshingQr] = useState(false);
   const [qrCountdown, setQrCountdown] = useState<number>(60);

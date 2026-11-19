@@ -138,7 +138,7 @@ export async function chatWhatsAppGroq(
     throw new Error('Konfigurasi GROQ_WA_API_KEYS belum diatur di file .env');
   }
 
-  const defaultModel = process.env.GROQ_WA_MODEL || 'llama-3.3-70b-versatile';
+  const defaultModel = process.env.GROQ_WA_MODEL || 'qwen/qwen3.8-27b';
   const model = options.model || defaultModel;
   const maxAttempts = waKeyPool.length;
   let attempts = 0;

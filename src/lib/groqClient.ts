@@ -9,19 +9,26 @@ interface KeyState {
 }
 
 // Inisialisasi pool API key dari environment variables
-const rawKeys = (process.env.GROQ_API_KEYS || '').split(',').map(k => k.trim()).filter(Boolean);
+function initGroqKeyPool(): KeyState[] {
+  let raw = process.env.GROQ_API_KEYS || process.env.GROQ_WA_API_KEYS || '';
+  raw = raw.trim();
+  if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+    raw = raw.slice(1, -1);
+  }
+  const rawKeys = raw.split(',').map(k => k.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+  const fallbackSingleKey = process.env.GROQ_API_KEY?.trim()?.replace(/^["']|["']$/g, '');
+  const allKeys = rawKeys.length > 0 ? rawKeys : (fallbackSingleKey ? [fallbackSingleKey] : []);
 
-const fallbackSingleKey = process.env.GROQ_API_KEY?.trim();
-const allKeys = rawKeys.length > 0 ? rawKeys : (fallbackSingleKey ? [fallbackSingleKey] : []);
+  return allKeys.map((key, index) => ({
+    key,
+    id: index + 1,
+    failureCount: 0,
+    cooldownUntil: 0,
+    successCount: 0,
+  }));
+}
 
-const keyPool: KeyState[] = allKeys.map((key, index) => ({
-  key,
-  id: index + 1,
-  failureCount: 0,
-  cooldownUntil: 0,
-  successCount: 0,
-}));
-
+let keyPool: KeyState[] = initGroqKeyPool();
 let currentPointer = 0;
 
 /**
@@ -29,7 +36,10 @@ let currentPointer = 0;
  * Mengabaikan key yang sedang dalam masa cooldown akibat error sebelumnya.
  */
 function getNextHealthyKey(): KeyState | null {
-  if (keyPool.length === 0) return null;
+  if (keyPool.length === 0) {
+    keyPool = initGroqKeyPool();
+    if (keyPool.length === 0) return null;
+  }
 
   const now = Date.now();
   for (let i = 0; i < keyPool.length; i++) {
@@ -77,7 +87,7 @@ export async function groqChatCompletion(
     throw new Error('Tidak ada Groq API Key yang terkonfigurasi di GROQ_API_KEYS');
   }
 
-  const defaultModel = process.env.GROQ_DEFAULT_MODEL || 'llama-3.3-70b-versatile';
+  const defaultModel = process.env.GROQ_DEFAULT_MODEL || 'qwen/qwen3.8-27b';
   const model = options.model || defaultModel;
   const maxAttempts = keyPool.length;
   let attempts = 0;

@@ -74,7 +74,7 @@ export async function GET() {
       success: true,
       session,
       keyPool,
-      model: process.env.GROQ_WA_MODEL || 'llama-3.3-70b-versatile',
+      model: process.env.GROQ_WA_MODEL || 'qwen/qwen3.8-27b',
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
