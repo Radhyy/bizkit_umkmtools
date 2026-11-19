@@ -103,8 +103,14 @@ export default function Home() {
 
 
 
+        {/* Pill Badge (Style matched to screenshot) */}
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-slate-200/70 shadow-xs text-xs sm:text-[13px] font-medium text-slate-700 mt-2 sm:mt-6 mb-3 sm:mb-5 animate-fade-in-up opacity-0 [animation-delay:50ms] hover:bg-white hover:shadow-sm transition-all select-none">
+          <span>Platform Bisnis UMKM</span>
+          <span className="text-blue-600 font-bold text-xs leading-none">◆</span>
+        </div>
+
         {/* Main Headline */}
-        <h1 className={`text-4xl md:text-[52px] lg:text-[64px] xl:text-[72px] font-bold text-slate-900 tracking-tight leading-[1.15] mt-16 md:mt-[66px] mb-6 w-full mx-auto ${poppins.className} animate-fade-in-up opacity-0 [animation-delay:100ms]`}>
+        <h1 className={`text-4xl md:text-[52px] lg:text-[64px] xl:text-[72px] font-bold text-slate-900 tracking-tight leading-[1.15] mb-6 w-full mx-auto ${poppins.className} animate-fade-in-up opacity-0 [animation-delay:100ms]`}>
           Kelola bisnis lebih baik <br className="hidden md:block" /> dengan akses yang lebih mudah
         </h1>
 
