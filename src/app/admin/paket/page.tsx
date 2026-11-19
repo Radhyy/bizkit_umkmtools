@@ -224,19 +224,12 @@ export default function AdminPaketPage() {
         {/* Top Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
-                <IconSparkles className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                  Paket & MRR
-                </h1>
-                <p className="text-sm text-slate-500">
-                  Kelola harga paket langganan Bizkit dan pantau pendapatan berulang (MRR) dengan in-memory cache.
-                </p>
-              </div>
-            </div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Paket & MRR
+            </h1>
+            <p className="text-sm text-slate-500">
+              Kelola harga paket langganan Bizkit dan pantau pendapatan berulang (MRR).
+            </p>
           </div>
 
           {/* Action Buttons & Cache Status Indicator */}
@@ -333,39 +326,6 @@ export default function AdminPaketPage() {
             </div>
             <div className="text-xs text-slate-600">
               Setara <strong>{formatRupiah(Math.round(stats.yearlyPrice / 12))}</strong> /bulan
-            </div>
-          </div>
-        </div>
-
-        {/* In-Memory Caching Architecture Information Banner */}
-        <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white rounded-3xl p-6 mb-8 shadow-md relative overflow-hidden">
-          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-blue-500/20 to-transparent pointer-events-none"></div>
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0 text-blue-300">
-                <IconBolt className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-base font-bold text-white">
-                    Sistem In-Memory Cache Terpadu (Ultra-Fast Response)
-                  </h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                    AKTIF &bull; 0ms Delay
-                  </span>
-                </div>
-                <p className="text-xs text-blue-100/90 max-w-2xl leading-relaxed">
-                  Harga paket diambil dari database PostgreSQL Neon dan disimpan langsung di otak cache RAM server. Ketika Anda mengubah harga di bawah ini, memori cache otomatis terupdate secara instan sehingga pengunjung di halaman <strong>/harga</strong> dan <strong>/checkout</strong> tidak membuat server melakukan query berulang.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0 self-end md:self-center bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10">
-              <IconDatabase className="w-5 h-5 text-emerald-400" />
-              <div className="text-left text-xs">
-                <div className="text-white font-bold">{cacheMetrics?.hits || 0} Permintaan Cepat</div>
-                <div className="text-blue-200 text-[11px]">Database Misses: {cacheMetrics?.misses || 0}</div>
-              </div>
             </div>
           </div>
         </div>
@@ -671,3 +631,4 @@ export default function AdminPaketPage() {
     </div>
   );
 }
+
