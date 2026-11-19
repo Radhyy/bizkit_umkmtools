@@ -274,11 +274,15 @@ export default function AdminLayout({
         <div className="pt-2 mt-auto border-t border-zinc-100 flex flex-col gap-0.5">
           {/* Notifications */}
           <Link
-            href="/dashboard/notifikasi"
-            className="group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80 transition-all"
+            href="/admin/notifikasi"
+            className={`group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium transition-all ${
+              pathname === '/admin/notifikasi'
+                ? 'bg-zinc-900 text-white'
+                : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
+            }`}
             title="Notifications"
           >
-            <IconBell className="w-[18px] h-[18px] shrink-0 text-zinc-400 group-hover:text-zinc-700" stroke={1.75} />
+            <IconBell className={`w-[18px] h-[18px] shrink-0 ${pathname === '/admin/notifikasi' ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-700'}`} stroke={1.75} />
             {!isCollapsed && (
               <>
                 <span className="truncate">Notifications</span>
@@ -291,11 +295,15 @@ export default function AdminLayout({
 
           {/* Settings */}
           <Link
-            href="/dashboard/pengaturan"
-            className="group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80 transition-all"
+            href="/admin/pengaturan"
+            className={`group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium transition-all ${
+              pathname === '/admin/pengaturan'
+                ? 'bg-zinc-900 text-white'
+                : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
+            }`}
             title="Settings"
           >
-            <IconSettings className="w-[18px] h-[18px] shrink-0 text-zinc-400 group-hover:text-zinc-700" stroke={1.75} />
+            <IconSettings className={`w-[18px] h-[18px] shrink-0 ${pathname === '/admin/pengaturan' ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-700'}`} stroke={1.75} />
             {!isCollapsed && <span className="truncate">Settings</span>}
           </Link>
 
