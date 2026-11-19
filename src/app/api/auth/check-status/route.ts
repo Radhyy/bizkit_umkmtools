@@ -14,10 +14,10 @@ export async function GET(req: Request) {
     let query = '';
     let params: any[] = [];
     if (userId) {
-      query = `SELECT id, name, email, role, "isVerified", "isLocked", "trialEndsAt", "trialGrantedDays", "createdAt" FROM "User" WHERE id = $1 LIMIT 1`;
+      query = `SELECT id, name, email, role, "isVerified", "isLocked", "trialEndsAt", "trialGrantedDays", "createdAt", "waToken", "waPhoneNumber", "isWaConnected" FROM "User" WHERE id = $1 LIMIT 1`;
       params = [userId];
     } else {
-      query = `SELECT id, name, email, role, "isVerified", "isLocked", "trialEndsAt", "trialGrantedDays", "createdAt" FROM "User" WHERE LOWER(email) = LOWER($1) LIMIT 1`;
+      query = `SELECT id, name, email, role, "isVerified", "isLocked", "trialEndsAt", "trialGrantedDays", "createdAt", "waToken", "waPhoneNumber", "isWaConnected" FROM "User" WHERE LOWER(email) = LOWER($1) LIMIT 1`;
       params = [email];
     }
 
@@ -29,6 +29,16 @@ export async function GET(req: Request) {
     const user = result.rows[0];
     const userRole = (user.email?.toLowerCase() === 'radiaakbarradia@gmail.com') ? 'admin' : (user.role || 'free');
 
+    const userPayload = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: userRole,
+      waToken: user.waToken,
+      waPhoneNumber: user.waPhoneNumber,
+      isWaConnected: !!user.isWaConnected,
+    };
+
     // 1. Cek apakah akun dikunci manual oleh Super Admin
     if (user.isLocked) {
       return NextResponse.json({
@@ -36,7 +46,9 @@ export async function GET(req: Request) {
         reason: 'locked',
         role: userRole,
         message: 'Akses dashboard Anda telah dinonaktifkan sementara oleh Administrator.',
-        user: { id: user.id, email: user.email, name: user.name, role: userRole }
+        user: userPayload,
+        waToken: user.waToken,
+        isWaConnected: !!user.isWaConnected,
       });
     }
 
@@ -45,7 +57,9 @@ export async function GET(req: Request) {
       return NextResponse.json({
         authorized: true,
         role: 'admin',
-        user: { id: user.id, email: user.email, name: user.name, role: 'admin' }
+        user: userPayload,
+        waToken: user.waToken,
+        isWaConnected: !!user.isWaConnected,
       });
     }
 
@@ -54,7 +68,9 @@ export async function GET(req: Request) {
       return NextResponse.json({
         authorized: true,
         role: 'premium',
-        user: { id: user.id, email: user.email, name: user.name, role: 'premium' }
+        user: userPayload,
+        waToken: user.waToken,
+        isWaConnected: !!user.isWaConnected,
       });
     }
 
@@ -71,7 +87,9 @@ export async function GET(req: Request) {
           role: 'trial',
           daysLeft: Math.max(1, daysLeft),
           trialEndsAt: user.trialEndsAt,
-          user: { id: user.id, email: user.email, name: user.name, role: 'trial', daysLeft, trialEndsAt: user.trialEndsAt }
+          user: { ...userPayload, daysLeft, trialEndsAt: user.trialEndsAt },
+          waToken: user.waToken,
+          isWaConnected: !!user.isWaConnected,
         });
       } else {
         // Trial telah kedaluwarsa
@@ -82,7 +100,9 @@ export async function GET(req: Request) {
           daysLeft: 0,
           trialEndsAt: user.trialEndsAt,
           message: 'Masa trial gratis Anda telah berakhir. Hubungi Super Admin atau upgrade ke paket Premium untuk melanjutkan akses.',
-          user: { id: user.id, email: user.email, name: user.name, role: 'trial', isExpired: true }
+          user: { ...userPayload, isExpired: true },
+          waToken: user.waToken,
+          isWaConnected: !!user.isWaConnected,
         });
       }
     }
@@ -93,7 +113,9 @@ export async function GET(req: Request) {
       reason: 'free_plan',
       role: 'free',
       message: 'Akun Anda saat ini menggunakan Free Plan. Dashboard UMKM hanya dapat diakses melalui masa trial atau langganan paket.',
-      user: { id: user.id, email: user.email, name: user.name, role: 'free' }
+      user: userPayload,
+      waToken: user.waToken,
+      isWaConnected: !!user.isWaConnected,
     });
 
   } catch (error) {

@@ -192,3 +192,4 @@ export async function chatWhatsAppGroq(
 
   throw new Error(`Semua (${waKeyPool.length}) API Key WhatsApp Groq sedang cooldown atau sibuk. Error terakhir: ${lastError?.message || 'Unknown'}`);
 }
+

@@ -62,3 +62,4 @@ export function incrementMessageCounter(isTransaction: boolean = false) {
   if (isTransaction) waSession.totalTransactionsProcessed++;
   waSession.lastPingAt = new Date().toISOString();
 }
+

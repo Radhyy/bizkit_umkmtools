@@ -229,22 +229,12 @@ export default function AdminWhatsAppPage() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200/80">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-md shadow-emerald-600/20">
-              <IconBrandWhatsapp className="w-5 h-5" stroke={2.2} />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
-                WhatsApp Bot & Gateway
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  AI Assistant
-                </span>
-              </h1>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Scan barcode untuk menghubungkan nomor WhatsApp resmi platform Bizkit dengan 5 Groq AI Key Load Balancer.
-              </p>
-            </div>
-          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
+            WhatsApp Bot & Gateway
+          </h1>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Scan barcode untuk menghubungkan nomor WhatsApp resmi platform Bizkit dengan 5 Groq AI Key Load Balancer.
+          </p>
         </div>
 
         {/* Status Indicator & Controls */}
@@ -674,3 +664,4 @@ export default function AdminWhatsAppPage() {
     </div>
   );
 }
+

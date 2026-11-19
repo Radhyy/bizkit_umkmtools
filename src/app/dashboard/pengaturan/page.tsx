@@ -17,7 +17,9 @@ import {
   IconClock,
   IconSparkles,
   IconLock,
-  IconArrowRight
+  IconArrowRight,
+  IconBrandWhatsapp,
+  IconCopy,
 } from '@tabler/icons-react';
 
 export default function PengaturanPage() {
@@ -53,6 +55,12 @@ export default function PengaturanPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // WhatsApp Assistant integration state
+  const [waToken, setWaToken] = useState<string | null>(null);
+  const [isWaConnected, setIsWaConnected] = useState<boolean>(false);
+  const [waPhoneNumber, setWaPhoneNumber] = useState<string | null>(null);
+  const [copiedWaToken, setCopiedWaToken] = useState<boolean>(false);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem('user');
@@ -84,6 +92,13 @@ export default function PengaturanPage() {
                   trialEndsAt: data.trialEndsAt || null,
                   isLocked: !!data.isLocked
                 });
+                if (data.waToken || data.user?.waToken) {
+                  setWaToken(data.waToken || data.user?.waToken);
+                }
+                setIsWaConnected(!!(data.isWaConnected || data.user?.isWaConnected));
+                if (data.waPhoneNumber || data.user?.waPhoneNumber) {
+                  setWaPhoneNumber(data.waPhoneNumber || data.user?.waPhoneNumber);
+                }
                 if (data.role && data.role !== u.role) {
                   const updated = { ...u, role: data.role, isTrialActive: data.isTrialActive, daysLeft: data.daysLeft };
                   localStorage.setItem('user', JSON.stringify(updated));
@@ -391,6 +406,87 @@ export default function PengaturanPage() {
               <IconDeviceFloppy className="w-4 h-4" />
               <span>Simpan Pengaturan</span>
             </button>
+          </div>
+        </div>
+
+        {/* Card: Integrasi Asisten WhatsApp & Token Pribadi */}
+        <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs p-5 sm:p-6 overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <IconBrandWhatsapp className="w-4 h-4" />
+                </div>
+                <h2 className="text-base font-bold text-zinc-900">Integrasi Asisten WhatsApp</h2>
+                {isWaConnected ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span>TERHUBUNG</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-600 border border-zinc-200">
+                    <span>BELUM TERHUBUNG</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-zinc-400">
+                Catat pemasukan dan pengeluaran toko langsung lewat pesan WhatsApp tanpa perlu membuka website
+              </p>
+            </div>
+
+            {/* Token Badge & Copy */}
+            <div className="flex items-center gap-2">
+              <div className="px-3.5 py-2 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center gap-2 font-mono text-xs font-bold text-zinc-900 shadow-2xs">
+                <span className="text-[11px] text-zinc-400 font-sans font-normal">Token Anda:</span>
+                <span className="text-emerald-700 tracking-wider">{waToken || 'BIZ-...' }</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (waToken) {
+                    navigator.clipboard.writeText(waToken);
+                    setCopiedWaToken(true);
+                    setTimeout(() => setCopiedWaToken(false), 2500);
+                  }
+                }}
+                className="p-2 rounded-xl border border-zinc-200 hover:bg-zinc-50 text-zinc-700 transition-colors cursor-pointer"
+                title="Salin Token"
+              >
+                {copiedWaToken ? <IconCheck className="w-4 h-4 text-emerald-600" /> : <IconCopy className="w-4 h-4 text-zinc-500" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div className="p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/70">
+              <div className="font-semibold text-zinc-900 mb-1 flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] flex items-center justify-center font-bold">1</span>
+                <span>Kirim Pesan ke Bot</span>
+              </div>
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                Chat nomor resmi WhatsApp bot Bizkit dan kirimkan token <strong className="text-zinc-700">{waToken || 'BIZ-...'}</strong> untuk otentikasi akun.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/70">
+              <div className="font-semibold text-zinc-900 mb-1 flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] flex items-center justify-center font-bold">2</span>
+                <span>Catat Bahasa Sehari-hari</span>
+              </div>
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                Contoh: <em>"Beli bumbu dapur 45rb"</em> atau <em>"Omset hari ini 350.000"</em>.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-zinc-50/80 border border-zinc-200/70">
+              <div className="font-semibold text-zinc-900 mb-1 flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] flex items-center justify-center font-bold">3</span>
+                <span>Verifikasi Aman</span>
+              </div>
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                AI akan menampilkan rincian dan meminta konfirmasi <strong>YA / BATAL</strong> sebelum data disimpan ke pembukuan.
+              </p>
+            </div>
           </div>
         </div>
 
