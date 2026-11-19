@@ -262,9 +262,11 @@ export default function AdminDashboardPage() {
           
           {/* 1. Pendapatan Bersih (Net Revenue) */}
           <div className="p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-zinc-500">Pendapatan Bersih</span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50/80 px-1.5 py-0.5 rounded">
+            <div className="flex items-center justify-between gap-1 mb-2 h-6">
+              <span className="text-xs font-medium text-zinc-500 truncate" title="Pendapatan Bersih">
+                Pendapatan Bersih
+              </span>
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 bg-emerald-50/80 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
                 <IconArrowUpRight className="w-3 h-3" /> Realtime
               </span>
             </div>
@@ -272,7 +274,7 @@ export default function AdminDashboardPage() {
               <div className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight">
                 {formatRupiah(metrics.totalNetRevenue)}
               </div>
-              <div className="text-[11px] text-zinc-400 mt-1">
+              <div className="text-[11px] text-zinc-400 mt-1 truncate">
                 Bruto: {formatRupiah(metrics.totalGrossRevenue)}
               </div>
             </div>
@@ -280,9 +282,11 @@ export default function AdminDashboardPage() {
 
           {/* 2. Total Transaksi (Orders) */}
           <div className="p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-zinc-500">Transaksi Lunas</span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded">
+            <div className="flex items-center justify-between gap-1 mb-2 h-6">
+              <span className="text-xs font-medium text-zinc-500 truncate" title="Transaksi Lunas">
+                Transaksi Lunas
+              </span>
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
                 <IconShoppingBag className="w-3 h-3" /> Sukses
               </span>
             </div>
@@ -290,25 +294,27 @@ export default function AdminDashboardPage() {
               <div className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight">
                 {metrics.totalOrders} <span className="text-xs font-medium text-zinc-500">order</span>
               </div>
-              <div className="text-[11px] text-zinc-400 mt-1">
-                {metrics.monthlyOrdersCount} Bln / {metrics.yearlyOrdersCount} Thn
+              <div className="text-[11px] text-zinc-400 mt-1 truncate">
+                {metrics.monthlyOrdersCount} Bln • {metrics.yearlyOrdersCount} Thn
               </div>
             </div>
           </div>
 
-          {/* 3. Avg. order value (AOV) */}
+          {/* 3. Avg. order value (AOV) - Rapi & Tidak Wrapping */}
           <div className="p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-zinc-500">Rata-rata Order (AOV)</span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-zinc-600 bg-zinc-100 px-1.5 py-0.5 rounded">
-                Per Transaksi
+            <div className="flex items-center justify-between gap-1 mb-2 h-6">
+              <span className="text-xs font-medium text-zinc-500 truncate" title="Rata-rata Order">
+                Rata-rata Order
+              </span>
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-zinc-600 bg-zinc-100 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
+                AOV
               </span>
             </div>
             <div>
               <div className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight">
                 {formatRupiah(metrics.aov)}
               </div>
-              <div className="text-[11px] text-zinc-400 mt-1">
+              <div className="text-[11px] text-zinc-400 mt-1 truncate">
                 Diskon: {formatRupiah(metrics.totalDiscountGiven)}
               </div>
             </div>
@@ -316,9 +322,11 @@ export default function AdminDashboardPage() {
 
           {/* 4. Estimasi MRR */}
           <div className="p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-zinc-500">Estimasi MRR</span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-indigo-600 bg-indigo-50/80 px-1.5 py-0.5 rounded">
+            <div className="flex items-center justify-between gap-1 mb-2 h-6">
+              <span className="text-xs font-medium text-zinc-500 truncate" title="Estimasi MRR">
+                Estimasi MRR
+              </span>
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-indigo-600 bg-indigo-50/80 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
                 <IconCrown className="w-3 h-3" /> Berulang
               </span>
             </div>
@@ -326,7 +334,7 @@ export default function AdminDashboardPage() {
               <div className="text-lg sm:text-2xl font-bold text-indigo-600 tracking-tight">
                 {formatRupiah(metrics.mrr)}
               </div>
-              <div className="text-[11px] text-zinc-400 mt-1">
+              <div className="text-[11px] text-zinc-400 mt-1 truncate">
                 ARR: {formatRupiah(metrics.arr)}
               </div>
             </div>
@@ -334,17 +342,19 @@ export default function AdminDashboardPage() {
 
           {/* 5. Profit Bersih */}
           <div className="p-4 sm:p-5 flex flex-col justify-between col-span-2 md:col-span-1">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-zinc-500">Laba Bersih Diterima</span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50/80 px-1.5 py-0.5 rounded">
-                Net Margin
+            <div className="flex items-center justify-between gap-1 mb-2 h-6">
+              <span className="text-xs font-medium text-zinc-500 truncate" title="Laba Bersih">
+                Laba Bersih
+              </span>
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 bg-emerald-50/80 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
+                Net Profit
               </span>
             </div>
             <div>
               <div className="text-lg sm:text-2xl font-bold text-emerald-700 tracking-tight">
                 {formatRupiah(metrics.netProfit)}
               </div>
-              <div className="text-[11px] text-zinc-400 mt-1">
+              <div className="text-[11px] text-zinc-400 mt-1 truncate">
                 Gateway fee: {formatRupiah(metrics.estimatedGatewayFee)}
               </div>
             </div>
