@@ -71,7 +71,7 @@ export default function RiwayatTransaksiPage() {
             <div className="p-1.5 bg-blue-600 text-white rounded-lg shadow-sm">
               <IconReceipt2 className="w-5 h-5" />
             </div>
-            <h1 className="text-3xl font-bold text-[#0f172a]">Riwayat Transaksi</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Riwayat Transaksi</h1>
           </div>
           <p className="text-gray-500 text-sm mt-1">
             Kelola dan pantau seluruh catatan transaksi bisnis Anda secara komprehensif.

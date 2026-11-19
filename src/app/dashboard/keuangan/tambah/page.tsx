@@ -118,7 +118,7 @@ export default function TambahKeuanganPage() {
           <IconArrowLeft className="w-4 h-4 stroke-[2.5]" />
         </Link>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">Catat Laporan Keuangan</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Catat Laporan Keuangan</h1>
           <p className="text-xs text-zinc-400 mt-0.5">Tambahkan rekap pemasukan atau pengeluaran baru.</p>
         </div>
       </div>

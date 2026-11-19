@@ -297,7 +297,7 @@ export default function LaporanPage() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Laporan Keuangan Bisnis</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Laporan Keuangan Bisnis</h1>
           <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
             Pantau ringkasan pendapatan, pengeluaran, dan laba rugi real-time berdasarkan data transaksi Anda.
           </p>

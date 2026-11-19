@@ -37,7 +37,7 @@ export default function InventarisPage() {
             <div className="p-1.5 bg-blue-600 text-white rounded-lg shadow-sm">
               <IconBox className="w-5 h-5" />
             </div>
-            <h1 className="text-3xl font-bold text-[#0f172a]">Inventaris & Stok</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Inventaris & Stok</h1>
           </div>
           <p className="text-gray-500 text-sm mt-1">
             Kelola persediaan barang dan pantau pergerakan stok secara real-time.

@@ -352,7 +352,7 @@ export default function KeuanganPage() {
       {/* Header Section: Title + Action Buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Keuangan & Kas</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Keuangan & Kas</h1>
           <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">Pantau arus kas masuk, pengeluaran, dan pembukuan bisnis Anda secara terinci.</p>
         </div>
 

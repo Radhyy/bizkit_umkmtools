@@ -236,7 +236,7 @@ export default function AdminWhatsAppPage() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200/80">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">
             WhatsApp Bot & Gateway
           </h1>
           <p className="text-xs text-zinc-500 mt-0.5">

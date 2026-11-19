@@ -214,7 +214,7 @@ export default function DashboardPage() {
       {/* Header Row: Overview + Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Overview</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Overview</h1>
           <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">Ringkasan performa dan pembukuan bisnis UMKM Anda secara real-time</p>
         </div>
 
