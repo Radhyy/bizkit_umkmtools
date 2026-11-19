@@ -16,6 +16,8 @@ export interface ExportSummary {
   periode?: string;
   docNumber?: string;
   dataType?: 'semua' | 'masuk' | 'keluar';
+  staffName?: string;
+  ownerName?: string;
 }
 
 const formatRupiah = (value: number) => {
@@ -74,6 +76,8 @@ export function exportToPDF(transactions: ExportTransaction[], summary: ExportSu
   });
 
   const businessName = summary.businessName || 'Usaha Anda';
+  const staffName = summary.staffName?.trim() || 'Staff Administrasi';
+  const ownerName = summary.ownerName?.trim() || businessName;
   const periode = summary.periode || 'Semua Periode';
   const docTitle = getDocTitle(summary.dataType);
   const docRef = summary.docNumber || `REF/BZK/${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}/${Math.floor(100 + Math.random() * 900)}`;
@@ -289,14 +293,14 @@ export function exportToPDF(transactions: ExportTransaction[], summary: ExportSu
         <div class="sign-box">
           <p style="color: #64748b; margin: 0 0 5px 0;">Disiapkan Oleh,</p>
           <div class="sign-space"></div>
-          <div class="sign-name">Staff Administrasi</div>
-          <p style="color: #94a3b8; margin: 4px 0 0 0; font-size: 9px;">Sistem Bizkit Otomatis</p>
+          <div class="sign-name">${escapeXml(staffName)}</div>
+          <p style="color: #94a3b8; margin: 4px 0 0 0; font-size: 9px;">Staff Administrasi / Pembuat Dokumen</p>
         </div>
         <div class="sign-box">
           <p style="color: #64748b; margin: 0 0 5px 0;">Disetujui Oleh,</p>
           <div class="sign-space"></div>
-          <div class="sign-name">${businessName}</div>
-          <p style="color: #94a3b8; margin: 4px 0 0 0; font-size: 9px;">Pemilik Usaha / Penanggung Jawab</p>
+          <div class="sign-name">${escapeXml(ownerName)}</div>
+          <p style="color: #94a3b8; margin: 4px 0 0 0; font-size: 9px;">Pemilik Usaha / Penanggung Jawab (${escapeXml(businessName)})</p>
         </div>
       </div>
 
@@ -335,6 +339,8 @@ export function exportToExcel(transactions: ExportTransaction[], summary: Export
   });
 
   const businessName = summary.businessName || 'Usaha Anda';
+  const staffName = summary.staffName?.trim() || 'Staff Administrasi';
+  const ownerName = summary.ownerName?.trim() || businessName;
   const periode = summary.periode || 'Semua Periode';
   const docTitle = getDocTitle(summary.dataType);
 
@@ -522,6 +528,8 @@ export function exportToCSV(transactions: ExportTransaction[], summary: ExportSu
   });
 
   const businessName = summary.businessName || 'Usaha Anda';
+  const staffName = summary.staffName?.trim() || 'Staff Administrasi';
+  const ownerName = summary.ownerName?.trim() || businessName;
   const periode = summary.periode || 'Semua Periode';
   const docTitle = getDocTitle(summary.dataType);
 

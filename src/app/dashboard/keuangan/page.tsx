@@ -25,6 +25,7 @@ import {
   IconExternalLink,
 } from '@tabler/icons-react';
 import { exportToPDF, exportToExcel, exportToCSV } from '@/lib/exportUtils';
+import PdfSignatureModal from '@/components/PdfSignatureModal';
 
 interface Transaction {
   id: string;
@@ -104,8 +105,10 @@ export default function KeuanganPage() {
   // Toast Notifikasi
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Modal Unduh Laporan
+  // Modal Unduh Laporan & Tanda Tangan PDF
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isPdfSignModalOpen, setIsPdfSignModalOpen] = useState(false);
+  const [businessName, setBusinessName] = useState<string>('Nescafe');
 
   // Modal Key WhatsApp & Bot Integration
   const [isWaModalOpen, setIsWaModalOpen] = useState(false);
@@ -180,6 +183,18 @@ export default function KeuanganPage() {
       setCurrentUser(u);
       fetchKeuanganData(u.id);
       fetchWaInfo(u.id);
+
+      // Ambil nama usaha dari profil bisnis untuk kop & ttd laporan
+      fetch(`/api/onboarding?userId=${u.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data?.profile?.namaUsaha) {
+            setBusinessName(data.profile.namaUsaha);
+          } else if (u.name) {
+            setBusinessName(u.name);
+          }
+        })
+        .catch(() => {});
     } catch {
       router.push("/login");
     }
@@ -899,9 +914,8 @@ export default function KeuanganPage() {
               <button
                 type="button"
                 onClick={() => {
-                  exportToPDF(transactions, summary);
                   setIsExportModalOpen(false);
-                  showToast('Laporan PDF berhasil diunduh!', 'success');
+                  setIsPdfSignModalOpen(true);
                 }}
                 className="flex items-start gap-3 p-3 rounded-xl border border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all text-left group"
               >
@@ -981,6 +995,26 @@ export default function KeuanganPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Pengaturan Tanda Tangan PDF (Staff & Owner) */}
+      <PdfSignatureModal
+        isOpen={isPdfSignModalOpen}
+        onClose={() => setIsPdfSignModalOpen(false)}
+        businessName={businessName}
+        defaultStaffName={currentUser?.name || 'Staff Administrasi'}
+        defaultOwnerName={businessName}
+        onConfirm={(staffName, ownerName) => {
+          exportToPDF(transactions, {
+            ...summary,
+            businessName,
+            staffName,
+            ownerName,
+            periode: 'November 2026'
+          });
+          setIsPdfSignModalOpen(false);
+          showToast('Laporan PDF dengan tanda tangan resmi berhasil disiapkan!', 'success');
+        }}
+      />
 
       {/* ======================================================== */}
       {/* MODAL KEY WHATSAPP & PANDUAN ASISTEN AI                   */}

@@ -267,3 +267,4 @@ export function getPlanCacheMetrics() {
     cachedPlansCount: cacheState.plans?.length || 0
   };
 }
+

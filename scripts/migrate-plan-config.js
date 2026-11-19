@@ -105,3 +105,4 @@ migrate().catch(e => {
   pool.end();
   process.exit(1);
 });
+

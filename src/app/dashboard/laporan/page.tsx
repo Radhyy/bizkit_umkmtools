@@ -19,6 +19,7 @@ import {
   IconCalendarEvent,
 } from '@tabler/icons-react';
 import { exportToPDF, exportToExcel, exportToCSV } from '@/lib/exportUtils';
+import PdfSignatureModal from '@/components/PdfSignatureModal';
 import {
   BarChart,
   Bar,
@@ -113,6 +114,8 @@ export default function LaporanPage() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<{ id: string; name?: string; email: string } | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isPdfSignModalOpen, setIsPdfSignModalOpen] = useState(false);
+  const [businessName, setBusinessName] = useState<string>('Nescafe');
 
   // Filter & tampilan
   const [chartView, setChartView] = useState<'bulanan' | 'harian'>('bulanan');
@@ -153,6 +156,17 @@ export default function LaporanPage() {
       }
       setCurrentUser(u);
       fetchReportData(u.id);
+
+      fetch(`/api/onboarding?userId=${u.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data?.profile?.namaUsaha) {
+            setBusinessName(data.profile.namaUsaha);
+          } else if (u.name) {
+            setBusinessName(u.name);
+          }
+        })
+        .catch(() => {});
     } catch {
       router.push("/login");
     }
@@ -799,8 +813,8 @@ export default function LaporanPage() {
               <button
                 type="button"
                 onClick={() => {
-                  exportToPDF(transactions, summary);
                   setIsExportModalOpen(false);
+                  setIsPdfSignModalOpen(true);
                 }}
                 className="flex items-start gap-3 p-3 rounded-xl border border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all text-left group"
               >
@@ -878,6 +892,25 @@ export default function LaporanPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Pengaturan Tanda Tangan PDF (Staff & Owner) */}
+      <PdfSignatureModal
+        isOpen={isPdfSignModalOpen}
+        onClose={() => setIsPdfSignModalOpen(false)}
+        businessName={businessName}
+        defaultStaffName={currentUser?.name || 'Staff Administrasi'}
+        defaultOwnerName={businessName}
+        onConfirm={(staffName, ownerName) => {
+          exportToPDF(transactions, {
+            ...summary,
+            businessName,
+            staffName,
+            ownerName,
+            periode: 'November 2026'
+          });
+          setIsPdfSignModalOpen(false);
+        }}
+      />
 
     </div>
   );

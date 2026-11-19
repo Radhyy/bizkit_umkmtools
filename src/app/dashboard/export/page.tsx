@@ -17,6 +17,7 @@ import {
   IconDatabase
 } from '@tabler/icons-react';
 import { exportToPDF, exportToExcel, exportToCSV, ExportTransaction, ExportSummary } from '@/lib/exportUtils';
+import PdfSignatureModal from '@/components/PdfSignatureModal';
 
 interface HistoryItem {
   id: string;
@@ -34,6 +35,7 @@ export default function ExportDataPage() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<{ id: string; name?: string; email: string } | null>(null);
   const [businessName, setBusinessName] = useState<string>('Usaha Anda');
+  const [isPdfSignModalOpen, setIsPdfSignModalOpen] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
 
@@ -195,8 +197,8 @@ export default function ExportDataPage() {
     };
   }, [filteredData, dateRange, currentMonthName, prevMonthName, currentYear, customStartDate, customEndDate]);
 
-  // Handler Tombol Export
-  const handleExport = async () => {
+  // Eksekusi Export Data
+  const executeExport = async (staffName?: string, ownerName?: string) => {
     if (!currentUser?.id) return;
     setIsExporting(true);
 
@@ -213,6 +215,8 @@ export default function ExportDataPage() {
       businessName,
       periode: summaryCalculated.periode,
       dataType,
+      staffName,
+      ownerName
     };
 
     setTimeout(async () => {
@@ -259,7 +263,17 @@ export default function ExportDataPage() {
         setIsExporting(false);
         setTimeout(() => setToastMessage(null), 3500);
       }
-    }, 800);
+    }, 600);
+  };
+
+  // Handler Tombol Export
+  const handleExport = () => {
+    if (!currentUser?.id) return;
+    if (selectedFormat === 'pdf') {
+      setIsPdfSignModalOpen(true);
+    } else {
+      executeExport();
+    }
   };
 
   // Re-download dari Riwayat Terakhir
@@ -681,6 +695,19 @@ export default function ExportDataPage() {
         </div>
 
       </div>
+
+      {/* Modal Tanda Tangan PDF */}
+      <PdfSignatureModal
+        isOpen={isPdfSignModalOpen}
+        onClose={() => setIsPdfSignModalOpen(false)}
+        businessName={businessName}
+        defaultStaffName={currentUser?.name || 'Staff Administrasi'}
+        defaultOwnerName={businessName}
+        onConfirm={(staffName, ownerName) => {
+          executeExport(staffName, ownerName);
+          setIsPdfSignModalOpen(false);
+        }}
+      />
 
     </div>
   );
