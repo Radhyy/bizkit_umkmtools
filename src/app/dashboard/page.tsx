@@ -13,6 +13,17 @@ import {
   IconArrowRight,
   IconArrowDownLeft,
   IconRefresh,
+  IconInfoCircle,
+  IconX,
+  IconWallet,
+  IconShieldLock,
+  IconAlertCircle,
+  IconBulb,
+  IconCheck,
+  IconCashBanknote,
+  IconShieldCheck,
+  IconBuildingStore,
+  IconPigMoney
 } from '@tabler/icons-react';
 
 interface TransactionItem {
@@ -96,6 +107,80 @@ export default function DashboardPage() {
     totalTransaksi: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  // Modal Alokasi Kas (Bisa Digunakan vs Jangan Digunakan)
+  const [isAllocationModalOpen, setIsAllocationModalOpen] = useState(false);
+  const [allocationStrategy, setAllocationStrategy] = useState<'balanced' | 'conservative' | 'growth'>('balanced');
+
+  // Perhitungan Alokasi Uang yang Bisa Digunakan vs Jangan Digunakan
+  const cashAllocation = useMemo(() => {
+    const rawSaldo = summary.saldo;
+    const isDeficit = rawSaldo < 0;
+    const effectiveSaldo = Math.max(0, rawSaldo);
+
+    // Persentase berdasarkan strategi yang dipilih
+    let safePercent = 50;
+    let holdPercent = 50;
+    let privePercent = 40;
+    let reinvestPercent = 10;
+    let emergencyPercent = 30;
+    let operationalBufferPercent = 20;
+
+    if (allocationStrategy === 'conservative') {
+      safePercent = 40;
+      holdPercent = 60;
+      privePercent = 30;
+      reinvestPercent = 10;
+      emergencyPercent = 35;
+      operationalBufferPercent = 25;
+    } else if (allocationStrategy === 'growth') {
+      safePercent = 60;
+      holdPercent = 40;
+      privePercent = 45;
+      reinvestPercent = 15;
+      emergencyPercent = 20;
+      operationalBufferPercent = 20;
+    }
+
+    const safeAmount = Math.round((effectiveSaldo * safePercent) / 100);
+    const holdAmount = Math.max(0, effectiveSaldo - safeAmount);
+
+    return {
+      isDeficit,
+      rawSaldo,
+      effectiveSaldo,
+      safePercent,
+      holdPercent,
+      safeAmount,
+      holdAmount,
+      breakdown: {
+        prive: {
+          percent: privePercent,
+          amount: Math.round((effectiveSaldo * privePercent) / 100),
+          title: 'Laba Pemilik (Prive / Gaji Owner)',
+          desc: 'Aman ditarik ke rekening pribadi untuk kebutuhan harian atau reward hasil usaha Anda.'
+        },
+        reinvest: {
+          percent: reinvestPercent,
+          amount: Math.round((effectiveSaldo * reinvestPercent) / 100),
+          title: 'Eksperimen & Promosi Bebas',
+          desc: 'Budget bebas untuk uji coba menu baru, riset produk, atau pasang iklan promosi.'
+        },
+        emergency: {
+          percent: emergencyPercent,
+          amount: Math.round((effectiveSaldo * emergencyPercent) / 100),
+          title: 'Dana Cadangan Darurat (Buffer Kas)',
+          desc: 'Jaga-jaga jika terjadi hari sepi, musibah, atau peralatan toko mendadak rusak.'
+        },
+        operationalBuffer: {
+          percent: operationalBufferPercent,
+          amount: Math.round((effectiveSaldo * operationalBufferPercent) / 100),
+          title: 'Buffer Modal & Tagihan Rutin',
+          desc: 'Wajib tetap mengendap untuk bayar listrik, wifi, sewa, atau kulakan bahan baku bulan depan.'
+        }
+      }
+    };
+  }, [summary.saldo, allocationStrategy]);
 
   // Ambil data real transaksi dari PostgreSQL via /api/keuangan
   const fetchDashboardData = async (userId: string) => {
@@ -281,9 +366,16 @@ export default function DashboardPage() {
           </div>
 
           {/* 3. Laba Bersih */}
-          <div className="p-3.5 sm:p-5 flex flex-col justify-between border-r md:border-r-0 border-zinc-200/80">
+          <div 
+            onClick={() => setIsAllocationModalOpen(true)}
+            className="p-3.5 sm:p-5 flex flex-col justify-between border-r md:border-r-0 border-zinc-200/80 hover:bg-blue-50/40 transition-all cursor-pointer group relative"
+            title="Klik untuk melihat berapa uang yang bisa digunakan & jangan digunakan"
+          >
             <div className="flex items-center justify-between gap-1 mb-1.5">
-              <span className="text-[11px] sm:text-xs font-medium text-zinc-500 truncate">Laba Bersih</span>
+              <span className="text-[11px] sm:text-xs font-medium text-zinc-500 group-hover:text-blue-700 transition-colors flex items-center gap-1 truncate">
+                Laba Bersih
+                <IconInfoCircle className="w-3.5 h-3.5 text-zinc-400 group-hover:text-blue-600 transition-colors shrink-0" />
+              </span>
               <span className={`inline-flex items-center gap-0.5 text-[10px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${
                 summary.saldo >= 0 ? 'text-emerald-600 bg-emerald-50/80' : 'text-rose-500 bg-rose-50/80'
               }`}>
@@ -292,11 +384,16 @@ export default function DashboardPage() {
               </span>
             </div>
             <div>
-              <div className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight">
+              <div className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight group-hover:text-blue-900 transition-colors">
                 {formatRupiah(summary.saldo)}
               </div>
-              <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 sm:mt-1 truncate">
-                {summary.totalPemasukan > 0 ? `${marginPercentage}% margin laba` : 'Saldo kas terdata'}
+              <div className="flex items-center justify-between mt-0.5 sm:mt-1 gap-1">
+                <span className="text-[10px] sm:text-[11px] text-zinc-400 truncate">
+                  {summary.totalPemasukan > 0 ? `${marginPercentage}% margin laba` : 'Saldo kas terdata'}
+                </span>
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 flex items-center gap-0.5 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
+                  Cek Alokasi &rarr;
+                </span>
               </div>
             </div>
           </div>
@@ -695,6 +792,313 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ======================================================== */}
+      {/* MODAL JENDELA ALOKASI KAS (BISA DIGUNAKAN VS JANGAN DIGUNAKAN) */}
+      {/* ======================================================== */}
+      {isAllocationModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-black/50 backdrop-blur-xs animate-fade-in font-jakarta"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsAllocationModalOpen(false);
+          }}
+        >
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full p-4 sm:p-7 shadow-2xl border border-zinc-200/90 max-h-[92vh] overflow-y-auto no-scrollbar transform transition-all space-y-5">
+            
+            {/* Header Modal */}
+            <div className="flex items-start justify-between gap-3 border-b border-zinc-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+                  <IconPigMoney className="w-6 h-6 stroke-[1.8]" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-zinc-900 tracking-tight flex items-center gap-2">
+                    Alokasi Kas Laba Bersih
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Smart Cash Split
+                    </span>
+                  </h3>
+                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
+                    Panduan finansial UMKM: berapa uang yang aman digunakan &amp; wajib ditahan agar kas usaha tidak bocor.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAllocationModalOpen(false)}
+                className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-full transition-colors shrink-0"
+                title="Tutup Jendela"
+              >
+                <IconX className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Total Laba Banner & Strategy Switcher */}
+            <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 text-white p-4 sm:p-5 rounded-2xl shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-[10px] sm:text-[11px] font-medium text-zinc-400 uppercase tracking-wider block">
+                    Laba Bersih Tersedia (Surplus Kas)
+                  </span>
+                  <div className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">
+                    {formatRupiah(summary.saldo)}
+                  </div>
+                  <div className="text-[11px] text-zinc-400 mt-1 flex items-center gap-2">
+                    <span>Margin: <strong className="text-emerald-400 font-semibold">{marginPercentage}%</strong></span>
+                    <span>•</span>
+                    <span>{summary.saldo >= 0 ? 'Kondisi Kas Sehat' : 'Kondisi Kas Defisit'}</span>
+                  </div>
+                </div>
+
+                {/* Strategy Selector */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-medium text-zinc-400 sm:text-right">Rasio Alokasi:</span>
+                  <div className="flex items-center gap-1 bg-zinc-800/80 p-1 rounded-xl border border-zinc-700/60 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setAllocationStrategy('balanced')}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                        allocationStrategy === 'balanced' 
+                          ? 'bg-blue-600 text-white shadow-xs' 
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                      title="50% Boleh Digunakan : 50% Wajib Ditahan"
+                    >
+                      50 : 50 (Ideal)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAllocationStrategy('conservative')}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                        allocationStrategy === 'conservative' 
+                          ? 'bg-blue-600 text-white shadow-xs' 
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                      title="40% Boleh Digunakan : 60% Wajib Ditahan"
+                    >
+                      40 : 60 (Aman)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAllocationStrategy('growth')}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                        allocationStrategy === 'growth' 
+                          ? 'bg-blue-600 text-white shadow-xs' 
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                      title="60% Boleh Digunakan : 40% Wajib Ditahan"
+                    >
+                      60 : 40 (Tumbuh)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Visual Split Bar */}
+              <div className="mt-4 pt-3.5 border-t border-zinc-700/70">
+                <div className="flex items-center justify-between text-[11px] font-semibold mb-1.5">
+                  <span className="text-emerald-400 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    Bisa Digunakan ({cashAllocation.safePercent}%)
+                  </span>
+                  <span className="text-rose-400 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+                    Jangan Digunakan ({cashAllocation.holdPercent}%)
+                  </span>
+                </div>
+                <div className="h-2.5 w-full bg-zinc-700 rounded-full overflow-hidden flex">
+                  <div 
+                    className="h-full bg-emerald-500 transition-all duration-300"
+                    style={{ width: `${cashAllocation.safePercent}%` }}
+                  />
+                  <div 
+                    className="h-full bg-rose-500 transition-all duration-300"
+                    style={{ width: `${cashAllocation.holdPercent}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Jika Terjadi Defisit */}
+            {cashAllocation.isDeficit && (
+              <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
+                <IconAlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-rose-800">
+                  <p className="font-bold">Arus Kas Sedang Defisit ({formatRupiah(summary.saldo)})</p>
+                  <p className="mt-0.5 text-rose-700 leading-relaxed">
+                    Pengeluaran bisnis saat ini melebihi pemasukan. Sangat disarankan untuk <strong>TIDAK mengambil uang laba/prive pribadi</strong> hingga kas toko kembali mencatatkan surplus.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* 2 Kotak Utama Alokasi: BISA DIGUNAKAN vs JANGAN DIGUNAKAN */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+              
+              {/* KOTAK HIJAU: UANG YANG BISA DIGUNAKAN */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200/90 flex flex-col justify-between shadow-2xs">
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <IconWallet className="w-4 h-4 stroke-[2]" />
+                      </div>
+                      <span className="text-xs font-bold text-emerald-950 uppercase tracking-wide">
+                        Bisa Digunakan
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      Aman Ditarik ({cashAllocation.safePercent}%)
+                    </span>
+                  </div>
+
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-700 tracking-tight mt-1">
+                    {formatRupiah(cashAllocation.safeAmount)}
+                  </div>
+
+                  <p className="text-[11px] text-emerald-800/90 mt-1.5 leading-relaxed font-medium">
+                    Dana ini aman Anda nikmati untuk dompet pribadi atau belanja tanpa mengganggu perputaran toko.
+                  </p>
+
+                  {/* Rincian Sub-pos */}
+                  <div className="mt-4 pt-3 border-t border-emerald-200/70 space-y-2.5">
+                    {/* Pos 1: Prive */}
+                    <div className="p-2.5 bg-white/90 rounded-xl border border-emerald-100">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-zinc-800 flex items-center gap-1">
+                          👤 {cashAllocation.breakdown.prive.title}
+                        </span>
+                        <span className="font-bold text-emerald-700">
+                          {formatRupiah(cashAllocation.breakdown.prive.amount)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">
+                        {cashAllocation.breakdown.prive.desc}
+                      </p>
+                    </div>
+
+                    {/* Pos 2: Reinvestasi / Promosi Bebas */}
+                    <div className="p-2.5 bg-white/90 rounded-xl border border-emerald-100">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-zinc-800 flex items-center gap-1">
+                          ✨ {cashAllocation.breakdown.reinvest.title}
+                        </span>
+                        <span className="font-bold text-emerald-700">
+                          {formatRupiah(cashAllocation.breakdown.reinvest.amount)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">
+                        {cashAllocation.breakdown.reinvest.desc}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3.5 pt-2 text-[10px] font-semibold text-emerald-800 flex items-center gap-1">
+                  <IconCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Tidak memicu defisit operasional toko</span>
+                </div>
+              </div>
+
+              {/* KOTAK MERAH / ORANYE: UANG YANG JANGAN DIGUNAKAN */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-rose-50/70 border border-rose-200/90 flex flex-col justify-between shadow-2xs">
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                        <IconShieldLock className="w-4 h-4 stroke-[2]" />
+                      </div>
+                      <span className="text-xs font-bold text-rose-950 uppercase tracking-wide">
+                        Jangan Digunakan
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300">
+                      Wajib Ditahan ({cashAllocation.holdPercent}%)
+                    </span>
+                  </div>
+
+                  <div className="text-2xl sm:text-3xl font-black text-rose-700 tracking-tight mt-1">
+                    {formatRupiah(cashAllocation.holdAmount)}
+                  </div>
+
+                  <p className="text-[11px] text-rose-800/90 mt-1.5 leading-relaxed font-medium">
+                    Wajib tetap mengendap di rekening toko! Mengambil uang ini berisiko membuat toko macet saat tagihan datang.
+                  </p>
+
+                  {/* Rincian Sub-pos */}
+                  <div className="mt-4 pt-3 border-t border-rose-200/70 space-y-2.5">
+                    {/* Pos 1: Emergency Fund */}
+                    <div className="p-2.5 bg-white/90 rounded-xl border border-rose-100">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-zinc-800 flex items-center gap-1">
+                          🛡️ {cashAllocation.breakdown.emergency.title}
+                        </span>
+                        <span className="font-bold text-rose-700">
+                          {formatRupiah(cashAllocation.breakdown.emergency.amount)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">
+                        {cashAllocation.breakdown.emergency.desc}
+                      </p>
+                    </div>
+
+                    {/* Pos 2: Modal Restock & Tagihan */}
+                    <div className="p-2.5 bg-white/90 rounded-xl border border-rose-100">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-zinc-800 flex items-center gap-1">
+                          📦 {cashAllocation.breakdown.operationalBuffer.title}
+                        </span>
+                        <span className="font-bold text-rose-700">
+                          {formatRupiah(cashAllocation.breakdown.operationalBuffer.amount)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">
+                        {cashAllocation.breakdown.operationalBuffer.desc}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3.5 pt-2 text-[10px] font-semibold text-rose-800 flex items-center gap-1">
+                  <IconAlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>Kunci sukses UMKM bertahan jangka panjang</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Pro Tip Callout */}
+            <div className="p-3.5 sm:p-4 bg-blue-50/70 border border-blue-200/80 rounded-2xl flex items-start gap-3">
+              <IconBulb className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+              <div className="text-[11px] sm:text-xs text-blue-900 leading-relaxed">
+                <span className="font-bold text-blue-950 block mb-0.5">💡 Tips Cerdas Manajemen Kas Bizkit:</span>
+                Pisahkan rekening bank pribadi dan rekening bank toko Anda. Saat akhir bulan atau evaluasi mingguan, hanya transfer bagian <strong>Uang yang Bisa Digunakan ({formatRupiah(cashAllocation.safeAmount)})</strong> ke rekening pribadi Anda. Sisanya tetap diamankan di rekening toko.
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5 pt-2 border-t border-zinc-100">
+              <Link
+                href="/dashboard/asisten"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 py-1"
+                onClick={() => setIsAllocationModalOpen(false)}
+              >
+                Konsultasikan dengan Asisten AI &rarr;
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setIsAllocationModalOpen(false)}
+                className="w-full sm:w-auto px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer text-center"
+              >
+                Mengerti, Simpan Panduan
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
