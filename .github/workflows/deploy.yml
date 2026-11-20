@@ -3,6 +3,7 @@ name: Auto Deploy to VPS
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -31,3 +32,4 @@ jobs:
             pm2 save
             
             echo "=== Deployment Completed Successfully! ==="
+
