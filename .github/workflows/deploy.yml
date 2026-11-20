@@ -21,6 +21,7 @@ jobs:
           script: |
             echo "=== Pulling latest changes from main ==="
             cd /root/bizkit_umkmtools
+            git checkout -- .
             git pull origin main
             
             echo "=== Building Next.js application ==="
