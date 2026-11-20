@@ -69,6 +69,16 @@ export default function HargaPage() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [monthlyPrice, setMonthlyPrice] = useState(49000);
   const [yearlyPrice, setYearlyPrice] = useState(468000);
+  const [user, setUser] = useState<{ id?: string; name?: string; role?: string } | null>(null);
+
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch (e) {}
+    }
+  }, []);
 
   useEffect(() => {
     fetch('/api/plans')
@@ -273,14 +283,14 @@ export default function HargaPage() {
 
             <div className="mt-auto pt-4">
               <Link
-                href="/register"
+                href={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : "/register"}
                 className="w-full h-[52px] px-6 text-center rounded-full font-bold text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all border border-slate-200 flex items-center justify-center shadow-sm hover:shadow"
               >
-                Mulai dengan Free Plan
+                {user ? "Akses Dashboard" : "Mulai dengan Free Plan"}
               </Link>
               <div className="flex items-center justify-center gap-2 text-xs text-slate-500 mt-3 font-medium">
                 <IconShieldCheck className="w-4 h-4 text-slate-400" />
-                <span>Akses gratis selamanya tanpa kartu kredit</span>
+                <span>{user ? "Anda sudah masuk ke akun Bizkit" : "Akses gratis selamanya tanpa kartu kredit"}</span>
               </div>
             </div>
           </motion.div>
@@ -541,17 +551,17 @@ export default function HargaPage() {
 
             <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
               <h3 className="text-2xl md:text-[30px] font-bold tracking-tight text-white leading-tight mb-2.5">
-                Mulai Kelola dan Kembangkan Bisnis UMKM Anda Sekarang.
+                {user ? "Siap Mengembangkan Bisnis Anda Lebih Jauh?" : "Mulai Kelola dan Kembangkan Bisnis UMKM Anda Sekarang."}
               </h3>
               <p className="text-white/85 text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-6 font-normal">
-                Daftar sekarang untuk kemudahan pencatatan kas, asisten AI 24/7, dan otomatisasi laporan keuangan.
+                {user ? "Akses dasbor bisnis terpadu, catat transaksi harian, dan gunakan asisten AI 24/7 kapan saja." : "Daftar sekarang untuk kemudahan pencatatan kas, asisten AI 24/7, dan otomatisasi laporan keuangan."}
               </p>
               
               <Link
-                href="/register"
+                href={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : "/register"}
                 className="inline-flex items-center justify-center gap-2.5 px-7 py-2.5 bg-white text-slate-900 rounded-full font-bold text-sm shadow-md hover:bg-slate-50 hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                <span>Daftar Sekarang</span>
+                <span>{user ? "Buka Dashboard" : "Daftar Sekarang"}</span>
                 <IconArrowRight className="w-4 h-4 stroke-[2.5]" />
               </Link>
             </div>

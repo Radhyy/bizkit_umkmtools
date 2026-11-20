@@ -22,6 +22,18 @@ export default function LoginPage() {
   const [unverifiedEmail, setUnverifiedEmail] = useState("");
 
   useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        const parsed = JSON.parse(userData);
+        if (parsed?.id || parsed?.email) {
+          router.replace(parsed.role === "admin" ? "/admin" : "/dashboard");
+        }
+      } catch (e) {}
+    }
+  }, [router]);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const err = params.get("error");
