@@ -48,11 +48,11 @@ export default function Home() {
       />
 
       {/* Blurred Center Glow (White) */}
-      <div className="absolute top-[-20%] left-[10%] w-[80%] h-[120%] bg-white blur-[140px] rounded-[100%] pointer-events-none z-0" />
+      <div className="absolute top-[-20%] left-[10%] w-[80%] h-[120%] bg-white blur-[50px] md:blur-[140px] rounded-[100%] pointer-events-none z-0 gpu-layer" />
       
       {/* Blurred Edge Glows (Blue) */}
-      <div className="absolute top-[30%] left-[-20%] w-[40%] h-[60%] bg-[#3b82f6] blur-[150px] rounded-[100%] pointer-events-none z-0" />
-      <div className="absolute top-[-10%] right-[-10%] w-[30%] h-[50%] bg-[#2563eb] blur-[130px] rounded-[100%] pointer-events-none z-0" />
+      <div className="absolute top-[30%] left-[-20%] w-[40%] h-[60%] bg-[#3b82f6] blur-[50px] md:blur-[150px] rounded-[100%] pointer-events-none z-0 gpu-layer" />
+      <div className="absolute top-[-10%] right-[-10%] w-[30%] h-[50%] bg-[#2563eb] blur-[45px] md:blur-[130px] rounded-[100%] pointer-events-none z-0 gpu-layer" />
 
       {/* Navbar */}
       <Navbar />
@@ -127,6 +127,7 @@ export default function Home() {
             alt="Dashboard Mobile View" 
             width={340} 
             height={680} 
+            priority
             className="absolute z-20 w-[240px] md:w-[320px] left-[10%] md:left-[22%] transform -translate-y-4 hover:-translate-y-8 transition-transform duration-500 drop-shadow-2xl rounded-[2rem]"
           />
           <Image 
@@ -134,6 +135,7 @@ export default function Home() {
             alt="Transaction Mobile View" 
             width={340} 
             height={680} 
+            priority
             className="absolute z-10 w-[220px] md:w-[280px] right-[10%] md:right-[26%] top-12 md:top-24 transform translate-y-4 hover:translate-y-0 transition-transform duration-500 drop-shadow-2xl rounded-[2rem]"
           />
         </div>
@@ -185,8 +187,8 @@ export default function Home() {
               className="w-full lg:w-1/2 relative flex justify-center lg:justify-end"
             >
               {/* Blurred Shapes Background */}
-              <div className="absolute top-1/2 left-[55%] -translate-x-1/2 -translate-y-1/2 w-[95%] h-[95%] bg-blue-600/70 blur-[120px] rounded-full pointer-events-none z-0" />
-              <div className="absolute top-1/2 left-[55%] -translate-x-1/2 -translate-y-1/2 w-[75%] h-[75%] bg-blue-500/80 blur-[90px] rounded-full pointer-events-none z-0" />
+              <div className="absolute top-1/2 left-[55%] -translate-x-1/2 -translate-y-1/2 w-[95%] h-[95%] bg-blue-600/70 blur-[40px] md:blur-[120px] rounded-full pointer-events-none z-0 gpu-layer" />
+              <div className="absolute top-1/2 left-[55%] -translate-x-1/2 -translate-y-1/2 w-[75%] h-[75%] bg-blue-500/80 blur-[35px] md:blur-[90px] rounded-full pointer-events-none z-0 gpu-layer" />
               
               {/* Dotted Grid Pattern */}
               <div className="absolute top-0 lg:top-1/2 left-1/2 -translate-x-1/2 translate-y-0 lg:-translate-y-1/2 w-[115%] sm:w-[125%] lg:w-[140%] h-[105%] lg:h-[140%] opacity-[0.9] pointer-events-none z-0" style={{
@@ -253,7 +255,7 @@ export default function Home() {
       {/* Section 3 - Core Features */}
       <section className="relative w-full py-20 bg-[#f4f8fc] overflow-hidden">
         {/* Background Blue Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[60%] bg-blue-500/20 blur-[120px] rounded-full pointer-events-none z-0" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[60%] bg-blue-500/20 blur-[40px] md:blur-[120px] rounded-full pointer-events-none z-0 gpu-layer" />
         
         <div className="relative z-10 max-w-7xl mx-auto px-6">
           {/* Header */}
@@ -606,7 +608,7 @@ export default function Home() {
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.2, ease: "easeOut" }}
             viewport={{ once: true }}
-            className="absolute top-0 -right-36 sm:-right-20 md:top-20 md:right-[-200px] w-[320px] sm:w-[450px] md:w-[450px] h-[300px] sm:h-[350px] md:h-[350px] bg-[#0047FF] rounded-[100%] blur-[80px] sm:blur-[100px] rotate-[30deg] pointer-events-none z-0"
+            className="absolute top-0 -right-36 sm:-right-20 md:top-20 md:right-[-200px] w-[320px] sm:w-[450px] md:w-[450px] h-[300px] sm:h-[350px] md:h-[350px] bg-[#0047FF] rounded-[100%] blur-[40px] sm:blur-[80px] md:blur-[100px] rotate-[30deg] pointer-events-none z-0 gpu-layer"
          ></motion.div>
          <motion.div 
             initial={{ opacity: 0 }}
@@ -702,14 +704,14 @@ export default function Home() {
             whileInView={{ opacity: 1 }}
             transition={{ duration: 1.2, ease: "easeOut" }}
             viewport={{ once: true }}
-            className="absolute bottom-[-200px] left-[-10%] w-[120%] h-[450px] bg-[#0047FF] opacity-50 blur-[120px] rounded-[100%] pointer-events-none z-0"
+            className="absolute bottom-[-200px] left-[-10%] w-[120%] h-[450px] bg-[#0047FF] opacity-50 blur-[45px] md:blur-[120px] rounded-[100%] pointer-events-none z-0 gpu-layer"
          ></motion.div>
          <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
             viewport={{ once: true }}
-            className="absolute bottom-[-100px] right-[-100px] w-[700px] h-[550px] bg-[#0047FF] opacity-90 blur-[130px] rounded-[100%] pointer-events-none z-0"
+            className="absolute bottom-[-100px] right-[-100px] w-[700px] h-[550px] bg-[#0047FF] opacity-90 blur-[50px] md:blur-[130px] rounded-[100%] pointer-events-none z-0 gpu-layer"
          ></motion.div>
 
          <motion.div 

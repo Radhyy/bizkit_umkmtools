@@ -23,6 +23,9 @@ jobs:
             cd /root/bizkit_umkmtools
             git checkout -- .
             git pull origin main
+
+            echo "=== Installing dependencies if needed ==="
+            npm install --production=false
             
             echo "=== Building Next.js application ==="
             npm run build

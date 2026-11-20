@@ -197,8 +197,8 @@ export default function AdminLayout({
                 className="w-8 h-8 object-cover rounded-[10px] shadow-sm shrink-0 transition-transform group-hover:scale-105" 
                 priority
               />
-              <span className="text-xl font-bold text-slate-900 tracking-tight lowercase">
-                bizkit
+              <span className="text-[22px] font-semibold text-slate-900 tracking-tight translate-y-[1px] leading-none" style={{ fontFamily: "'Sparling Demo', sans-serif" }}>
+                Bizkit
               </span>
             </Link>
 
