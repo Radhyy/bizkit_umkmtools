@@ -4,6 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Bizkit",
   description: "Platform digital terpadu untuk kelola bisnis UMKM",
+  icons: {
+    icon: "/PP-BizKit.png",
+    shortcut: "/PP-BizKit.png",
+    apple: "/PP-BizKit.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -13,6 +18,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className="h-full antialiased font-jakarta"
     >
       <head>
+        <link rel="icon" href="/PP-BizKit.png" type="image/png" />
+        <link rel="shortcut icon" href="/PP-BizKit.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/PP-BizKit.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link 
