@@ -1,0 +1,35 @@
+name: Auto Deploy to VPS
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Rumahweb VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Execute Remote SSH Commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 203.194.113.165
+          username: root
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            echo "=== Pulling latest changes from main ==="
+            cd /root/bizkit_umkmtools
+            git pull origin main
+            
+            echo "=== Building Next.js application ==="
+            npm run build
+            
+            echo "=== Reloading PM2 processes ==="
+            pm2 reload bizkit-web --update-env
+            pm2 reload bizkit-wa --update-env
+            pm2 save
+            
+            echo "=== Deployment Completed Successfully! ==="
+
