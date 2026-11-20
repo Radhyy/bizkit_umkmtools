@@ -455,7 +455,51 @@ Output HANYA satu baris JSON valid:
     }
 
     // =========================================================================
-    // 2.3 Permintaan Laporan Keuangan (Hari Ini / Kemarin / Bulan Ini / Umum)
+    // 2.3 Tanya Solusi Bisnis, Saran, Tips, atau Konsultasi AI
+    // =========================================================================
+    const isConsultation = /\b(solusi|saran|tips|gimana|bagaimana|cara|kenapa|mengapa|bantu|konsultasi|strategi|analisis|evaluasi|naikin|meningkatkan|ide)\b/i.test(lowerText);
+
+    if (isConsultation) {
+      try {
+        const financials = await getStoreFinancials(client, userId);
+        const bizCategory = currentUser.kategoriBisnis || 'Usaha Kuliner & Retail UMKM';
+        const targetAudience = currentUser.targetAudiens || 'Pelanggan Lokal';
+
+        const advisorySystemPrompt = `Anda adalah "Bizkit AI Advisor", konsultan bisnis dan keuangan terpercaya khusus UMKM Indonesia.
+Karakter: Ramah, solutif, memotivasi, praktis, to-the-point, dan profesional (menggunakan sapaan 'Kak' atau nama usaha).
+
+Konteks Bisnis Pengguna:
+- Nama Usaha: ${storeName}
+- Kategori Usaha: ${bizCategory}
+- Target Pelanggan: ${targetAudience}
+- Omset Bulan Ini: ${formatRupiah(financials.month.masuk)}
+- Pengeluaran Bulan Ini: ${formatRupiah(financials.month.keluar)}
+- Laba Bersih Bulan Ini: ${formatRupiah(financials.month.profit)}
+
+Tugas Anda:
+Berikan jawaban atau solusi bisnis yang praktis, aplikatif, dan mudah diterapkan oleh pemilik UMKM sesuai pertanyaan pengguna.
+Gunakan format rapi dengan poin-poin singkat (maksimal 3-4 poin solusi utama). Jangan terlalu panjang agar nyaman dibaca di WhatsApp.`;
+
+        const aiAdvice = await chatWhatsAppGroq(
+          [
+            { role: 'system', content: advisorySystemPrompt },
+            { role: 'user', content: text }
+          ],
+          { temperature: 0.7, max_tokens: 350 }
+        );
+
+        if (aiAdvice.text && aiAdvice.text.trim()) {
+          const reply = `💡 *Saran & Solusi dari Bizkit AI*\n🏪 *${storeName}*\n\n${aiAdvice.text.trim()}\n\n━━━━━━━━━━━━━━━━━━━━\n_Ketik transaksi kapan saja untuk dicatat, misal: "Jual 3 porsi 75rb"_`;
+          await logOutgoing(client, phoneNumber, userId, reply, aiAdvice.keyId, aiAdvice.latencyMs);
+          return { reply, userId, actionTaken: 'chat_replied', keyUsedId: aiAdvice.keyId, latencyMs: aiAdvice.latencyMs };
+        }
+      } catch (adviceErr) {
+        console.warn('[WA-Handler] AI Consultation call error:', adviceErr);
+      }
+    }
+
+    // =========================================================================
+    // 2.4 Permintaan Laporan Keuangan (Hari Ini / Kemarin / Bulan Ini / Umum)
     // =========================================================================
     const isReportQuery = /\b(laporan|ringkasan|rekap|kas|omset|omzet|saldo|keuntungan|laba|rugi|profit|cek\s*uang)\b/i.test(lowerText);
     const isTodayQuery = /\b(hari\s*ini|harian|today|sekarang)\b/i.test(lowerText);
@@ -494,50 +538,6 @@ Output HANYA satu baris JSON valid:
 
       await logOutgoing(client, phoneNumber, userId, reply);
       return { reply, userId, actionTaken: 'report_generated' };
-    }
-
-    // =========================================================================
-    // 2.4 Tanya Solusi Bisnis, Saran, Tips, atau Konsultasi AI
-    // =========================================================================
-    const isConsultation = /\b(solusi|saran|tips|gimana|bagaimana|cara|kenapa|mengapa|bantu|konsultasi|strategi|analisis|evaluasi|naikin|meningkatkan|ide)\b/i.test(lowerText);
-
-    if (isConsultation) {
-      try {
-        const financials = await getStoreFinancials(client, userId);
-        const bizCategory = currentUser.kategoriBisnis || 'Usaha Kuliner & Retail UMKM';
-        const targetAudience = currentUser.targetAudiens || 'Pelanggan Lokal';
-
-        const advisorySystemPrompt = `Anda adalah "Bizkit AI Advisor", konsultan bisnis dan keuangan terpercaya khusus UMKM Indonesia.
-Karakter: Ramah, solutif, memotivasi, praktis, to-the-point, dan profesional (menggunakan sapaan 'Kak' atau nama usaha).
-
-Konteks Bisnis Pengguna:
-- Nama Usaha: ${storeName}
-- Kategori Usaha: ${bizCategory}
-- Target Pelanggan: ${targetAudience}
-- Omset Bulan Ini: ${formatRupiah(financials.month.masuk)}
-- Pengeluaran Bulan Ini: ${formatRupiah(financials.month.keluar)}
-- Laba Bersih Bulan Ini: ${formatRupiah(financials.month.profit)}
-
-Tugas Anda:
-Berikan jawaban atau solusi bisnis yang praktis, aplikatif, dan mudah diterapkan oleh pemilik UMKM.
-Gunakan format rapi dengan poin-poin singkat (maksimal 3-4 poin solusi utama). Jangan terlalu panjang agar nyaman dibaca di WhatsApp.`;
-
-        const aiAdvice = await chatWhatsAppGroq(
-          [
-            { role: 'system', content: advisorySystemPrompt },
-            { role: 'user', content: text }
-          ],
-          { temperature: 0.7, max_tokens: 350 }
-        );
-
-        if (aiAdvice.text && aiAdvice.text.trim()) {
-          const reply = `💡 *Saran & Solusi dari Bizkit AI*\n🏪 *${storeName}*\n\n${aiAdvice.text.trim()}\n\n━━━━━━━━━━━━━━━━━━━━\n_Ketik transaksi kapan saja untuk dicatat, misal: "Jual 3 porsi 75rb"_`;
-          await logOutgoing(client, phoneNumber, userId, reply, aiAdvice.keyId, aiAdvice.latencyMs);
-          return { reply, userId, actionTaken: 'chat_replied', keyUsedId: aiAdvice.keyId, latencyMs: aiAdvice.latencyMs };
-        }
-      } catch (adviceErr) {
-        console.warn('[WA-Handler] AI Consultation call error:', adviceErr);
-      }
     }
 
     // =========================================================================
