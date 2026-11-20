@@ -1,226 +1,918 @@
 'use client';
-import React, { useState } from 'react';
-import { 
-  IconCheck, 
-  IconDeviceDesktop, 
+import React, { useState, useRef, useCallback } from 'react';
+import {
+  IconCheck,
+  IconDeviceDesktop,
   IconPlus,
   IconSparkles,
-  IconEye,
-  IconArrowRight,
-  IconX
+  IconX,
+  IconUpload,
+  IconPhoto,
+  IconDownload,
+  IconTrash,
+  IconAlertCircle,
+  IconLayoutGrid,
 } from '@tabler/icons-react';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface ProductSlot {
+  id: string;
+  file: File | null;
+  previewUrl: string | null;
+  uploadedUrl: string | null;
+  uploadedKey: string | null;
+  title: string;
+  description: string;
+  uploading: boolean;
+  error: string | null;
+}
+
+export interface CatalogTheme {
+  headerBg: string;
+  headerText: string;
+  accentColor: string;
+  cardBg: string;
+  canvasBg: string;
+}
+
+interface CatalogProductData {
+  imageUrl: string;
+  title: string;
+  description: string;
+  tagline?: string;
+  highlight: string;
+  badge: string;
+  imageEnhancePrompt?: string;
+}
+
+interface CatalogData {
+  shopName: string;
+  tagline: string;
+  layout: string;
+  headerSubtitle: string;
+  theme?: CatalogTheme;
+  products: CatalogProductData[];
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function uid(): string {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+/**
+ * Kompresi dan konversi foto produk ke format WebP secara client-side.
+ * Menghasilkan file yang sangat ringan (~30-70KB) dan sustainable untuk database & server.
+ */
+function compressToWebP(
+  file: File,
+  maxDimension = 1200,
+  quality = 0.82
+): Promise<{ blob: Blob; dataUrl: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          const ratio = Math.min(maxDimension / width, maxDimension / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas tidak dapat diinisialisasi'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Gagal mengompresi gambar ke WebP'));
+              return;
+            }
+            const dataUrl = canvas.toDataURL('image/webp', quality);
+            resolve({ blob, dataUrl });
+          },
+          'image/webp',
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error('Gagal memproses file gambar'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Gagal membaca file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function emptySlot(): ProductSlot {
+  return {
+    id: uid(),
+    file: null,
+    previewUrl: null,
+    uploadedUrl: null,
+    uploadedKey: null,
+    title: '',
+    description: '',
+    uploading: false,
+    error: null,
+  };
+}
+
+// ─── Canvas Catalog Renderer ─────────────────────────────────────────────────
+
+async function renderCatalogToCanvas(
+  catalog: CatalogData,
+  canvasRef: HTMLCanvasElement
+): Promise<void> {
+  // Tunggu kesiapan font Google Fonts jika tersedia di browser
+  if (typeof document !== 'undefined' && document.fonts) {
+    try {
+      await document.fonts.ready;
+    } catch {}
+  }
+
+  const W = 1200;
+  const H = 1600;
+  const ctx = canvasRef.getContext('2d')!;
+  canvasRef.width = W;
+  canvasRef.height = H;
+
+  // Terapkan skema warna Theme dinamis dari AI / JSON
+  const theme = catalog.theme || {
+    headerBg: '#1C1917',
+    headerText: '#FAF8F5',
+    accentColor: '#B45309',
+    cardBg: '#FFFFFF',
+    canvasBg: '#F5F2EB',
+  };
+
+  const CANVAS_BG = theme.canvasBg || '#F5F2EB';
+  const CARD_BG = theme.cardBg || '#FFFFFF';
+  const HEADER_BG = theme.headerBg || '#1C1917';
+  const HEADER_TEXT = theme.headerText || '#FAF8F5';
+  const ACCENT_COLOR = theme.accentColor || '#B45309';
+  const TEXT_DARK = '#1C1917';
+  const TEXT_MUTED = '#57534E';
+  const CARD_BORDER = '#E7E5E4';
+
+  // 1. Background Canvas
+  ctx.fillStyle = CANVAS_BG;
+  ctx.fillRect(0, 0, W, H);
+
+  // 2. Header Band
+  const headerH = 190;
+  ctx.fillStyle = HEADER_BG;
+  ctx.fillRect(0, 0, W, headerH);
+
+  // Accent Strip tipis di bawah Header
+  ctx.fillStyle = ACCENT_COLOR;
+  ctx.fillRect(0, headerH, W, 5);
+
+  // Header: Nama Toko / Brand (Font Editorial Serif Modern)
+  ctx.fillStyle = HEADER_TEXT;
+  ctx.font = `bold 54px "DM Serif Display", "Playfair Display", Georgia, serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  ctx.fillText(catalog.shopName || 'Katalog Produk', W / 2, 78);
+
+  // Header: Subtitle / Tagline (Font Sans-Serif Bersih)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.78)';
+  ctx.font = `500 20px "Plus Jakarta Sans", -apple-system, sans-serif`;
+  ctx.fillText(catalog.headerSubtitle || catalog.tagline || '', W / 2, 138);
+
+  const products = catalog.products;
+  const count = products.length;
+
+  // ── Layout Engine ─────────────────────────────────────────────────────────
+  const CONTENT_TOP = headerH + 5 + 32;
+  const CONTENT_BOTTOM = H - 68;
+  const CONTENT_H = CONTENT_BOTTOM - CONTENT_TOP;
+  const PAD = 36;
+  const INNER_W = W - PAD * 2;
+  const GAP = 24;
+  const RADIUS = 18;
+
+  function roundRect(
+    x: number, y: number, w: number, h: number, r: number,
+    fill?: string, stroke?: string
+  ) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); }
+  }
+
+  async function loadImage(url: string): Promise<HTMLImageElement | null> {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+
+  function drawProductCard(
+    x: number, y: number, w: number, h: number,
+    product: CatalogProductData,
+    img: HTMLImageElement | null,
+    featured = false
+  ) {
+    // Soft Card Drop Shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.05)';
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 6;
+    roundRect(x, y, w, h, RADIUS, CARD_BG, CARD_BORDER);
+    ctx.restore();
+
+    // Balanced Image Ratio (4:5 / 1:1, max 47% tinggi kartu) agar teks memiliki ruang lega
+    const imgH = Math.min(Math.round(h * 0.47), Math.round(w * 0.92));
+    ctx.save();
+    roundRect(x, y, w, imgH + RADIUS, RADIUS);
+    ctx.clip();
+
+    if (img) {
+      // Object-fit: cover dengan pemusatan gambar
+      const scale = Math.max(w / img.width, imgH / img.height);
+      const dw = img.width * scale;
+      const dh = img.height * scale;
+      const dx = x + (w - dw) / 2;
+      const dy = y + (imgH - dh) / 2;
+      ctx.drawImage(img, dx, dy, dw, dh);
+    } else {
+      ctx.fillStyle = '#E7E5E4';
+      ctx.fillRect(x, y, w, imgH);
+      ctx.fillStyle = '#78716C';
+      ctx.font = `500 16px "Plus Jakarta Sans", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Foto Produk', x + w / 2, y + imgH / 2);
+    }
+
+    // Gradient overlay lembut di bagian bawah foto
+    const grad = ctx.createLinearGradient(x, y + imgH - 50, x, y + imgH);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.18)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y + imgH - 50, w, 50);
+
+    ctx.restore();
+
+    // Badge promosi dengan warna theme accentColor
+    if (product.badge) {
+      const badgeX = x + 16;
+      const badgeY = y + 16;
+      ctx.font = `700 12px "Plus Jakarta Sans", sans-serif`;
+      const badgeText = product.badge.toUpperCase();
+      const bW = ctx.measureText(badgeText).width + 20;
+      const bH = 26;
+      roundRect(badgeX, badgeY, bW, bH, 6, ACCENT_COLOR);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(badgeText, badgeX + bW / 2, badgeY + bH / 2);
+    }
+
+    // Area teks dengan padding lega (22px)
+    const padX = 22;
+    const infoLeft = x + padX;
+    const infoRight = x + w - padX;
+    const infoW = infoRight - infoLeft;
+    let cy = y + imgH + 20;
+
+    ctx.textAlign = 'left';
+
+    // Judul Produk (Font Editorial Serif Modern)
+    const titleFontSize = featured ? 24 : 20;
+    ctx.font = `bold ${titleFontSize}px "DM Serif Display", "Playfair Display", Georgia, serif`;
+    ctx.fillStyle = TEXT_DARK;
+    ctx.textBaseline = 'top';
+
+    const titleText = product.title || product.tagline || 'Produk';
+    const titleLines = wrapText(ctx, titleText, infoW);
+    titleLines.slice(0, 2).forEach((line) => {
+      ctx.fillText(line, infoLeft, cy);
+      cy += titleFontSize * 1.25;
+    });
+
+    // Garis aksen pemisah tipis yang elegan di bawah judul
+    cy += 6;
+    ctx.fillStyle = ACCENT_COLOR;
+    ctx.fillRect(infoLeft, cy, 32, 2);
+    cy += 12;
+
+    // Highlight / deskripsi produk dengan line-height nyaman
+    if (product.highlight) {
+      const hlFontSize = featured ? 15 : 13.5;
+      ctx.font = `400 ${hlFontSize}px "Plus Jakarta Sans", -apple-system, sans-serif`;
+      ctx.fillStyle = TEXT_MUTED;
+      const hlLines = wrapText(ctx, product.highlight, infoW);
+      hlLines.slice(0, 3).forEach((line) => {
+        ctx.fillText(line, infoLeft, cy);
+        cy += hlFontSize * 1.45;
+      });
+    }
+  }
+
+  function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      const test = current ? current + ' ' + word : word;
+      if (ctx.measureText(test).width > maxW && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  // ── Load all images in parallel ─────────────────────────────────────────
+  const imgs = await Promise.all(
+    products.map((p) => (p.imageUrl ? loadImage(p.imageUrl) : Promise.resolve(null)))
+  );
+
+  // ── Draw layout ──────────────────────────────────────────────────────────
+  if (count === 1) {
+    // Single: big centered card
+    const cardH = CONTENT_H - 48;
+    const cardW = Math.round(INNER_W * 0.72);
+    const cx = PAD + (INNER_W - cardW) / 2;
+    drawProductCard(cx, CONTENT_TOP, cardW, cardH, products[0], imgs[0], true);
+
+  } else if (count === 2) {
+    // 2-col equal
+    const cardW = (INNER_W - GAP) / 2;
+    const cardH = CONTENT_H - 32;
+    [0, 1].forEach((i) => {
+      drawProductCard(PAD + i * (cardW + GAP), CONTENT_TOP, cardW, cardH, products[i], imgs[i]);
+    });
+
+  } else if (count === 3) {
+    // 3-col equal
+    const cardW = (INNER_W - GAP * 2) / 3;
+    const cardH = CONTENT_H - 32;
+    [0, 1, 2].forEach((i) => {
+      drawProductCard(PAD + i * (cardW + GAP), CONTENT_TOP, cardW, cardH, products[i], imgs[i]);
+    });
+
+  } else if (count <= 6) {
+    // Featured (top-left big) + rest in 2-col grid right / bottom
+    const featW = Math.round(INNER_W * 0.56);
+    const featH = Math.round(CONTENT_H * 0.52);
+    drawProductCard(PAD, CONTENT_TOP, featW, featH, products[0], imgs[0], true);
+
+    // Right column of 2 products beside featured
+    const rightCount = Math.min(2, count - 1);
+    const rightW = INNER_W - featW - GAP;
+    const rightH = (featH - GAP * (rightCount - 1)) / rightCount;
+    for (let i = 0; i < rightCount; i++) {
+      drawProductCard(
+        PAD + featW + GAP,
+        CONTENT_TOP + i * (rightH + GAP),
+        rightW,
+        rightH,
+        products[i + 1],
+        imgs[i + 1]
+      );
+    }
+
+    // Bottom row: remaining products
+    const remaining = count - 1 - rightCount;
+    if (remaining > 0) {
+      const rowTop = CONTENT_TOP + featH + GAP;
+      const rowH = CONTENT_BOTTOM - rowTop;
+      const cardW = (INNER_W - GAP * (remaining - 1)) / remaining;
+      for (let i = 0; i < remaining; i++) {
+        drawProductCard(
+          PAD + i * (cardW + GAP),
+          rowTop,
+          cardW,
+          rowH,
+          products[1 + rightCount + i],
+          imgs[1 + rightCount + i]
+        );
+      }
+    }
+
+  } else {
+    // 7–8: hero (full width, shorter) + 2 rows below
+    const heroH = Math.round(CONTENT_H * 0.36);
+    drawProductCard(PAD, CONTENT_TOP, INNER_W, heroH, products[0], imgs[0], true);
+
+    const rowTop = CONTENT_TOP + heroH + GAP;
+    const remaining = products.slice(1);
+    const rowCount = Math.ceil(remaining.length / 2);
+    const rowH = (CONTENT_BOTTOM - rowTop - GAP * (rowCount - 1)) / rowCount;
+    const colW = (INNER_W - GAP) / 2;
+
+    remaining.forEach((p, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      drawProductCard(
+        PAD + col * (colW + GAP),
+        rowTop + row * (rowH + GAP),
+        colW,
+        rowH,
+        p,
+        imgs[i + 1]
+      );
+    });
+  }
+
+  // ── Footer ─────────────────────────────────────────────────────────────────
+  const footerY = H - 62;
+  ctx.fillStyle = CANVAS_BG;
+  ctx.fillRect(0, footerY, W, 62);
+  ctx.fillStyle = '#D6D3D1';
+  ctx.fillRect(PAD, footerY, INNER_W, 1);
+
+  ctx.fillStyle = TEXT_MUTED;
+  ctx.font = `500 14px "Plus Jakarta Sans", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`© ${catalog.shopName} · Modern Clean Showcase · Dibuat dengan Bizkit`, W / 2, footerY + 31);
+}
+
+// ─── Main Page Component ──────────────────────────────────────────────────────
+
 export default function PageBuilder() {
-  const [selectedTemplate, setSelectedTemplate] = useState('template1');
   const [prompt, setPrompt] = useState('');
   const [shopName, setShopName] = useState('');
   const [shopDesc, setShopDesc] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [productSlots, setProductSlots] = useState<ProductSlot[]>([emptySlot()]);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const PROMPT_SUGGESTIONS = [
-    { label: 'Toko Kuliner & Minuman', text: 'Buatkan landing page kedai minuman jus buah dan jajanan kekinian dengan aksen warna segar, tombol order WhatsApp, dan galeri menu terlaris.' },
-    { label: 'Fashion & Aksesoris', text: 'Buatkan halaman toko pakaian muslim kasual dengan nuansa earth tone minimalis, katalog produk unggulan, dan testimoni pelanggan.' },
-    { label: 'Camilan & Snack UMKM', text: 'Buatkan katalog online untuk produk keripik dan camilan kemasan, fokus pada harga promo paket grosir dan kemudahan pemesanan.' }
+    { label: 'Kuliner & Minuman', text: 'Modern Clean Showcase dengan nuansa segar dan appetizing, tonjolkan visual produk utama dengan pencahayaan elegan.' },
+    { label: 'Fashion & Aksesoris', text: 'Editorial style, earth tone minimalis, foto produk terlihat mewah dan elegan dengan background bersih.' },
+    { label: 'Camilan & Snack', text: 'Vibrant dan cheerful, catalog yang eye-catching dengan produk terlihat renyah dan menggoda.' },
   ];
 
-  const handleGenerate = (e: React.FormEvent) => {
+  function showToast(text: string, type: 'success' | 'error' = 'success') {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 3500);
+  }
+
+  // ─── Slot management ──────────────────────────────────────────────────────
+
+  function addSlot() {
+    if (productSlots.length >= 8) {
+      showToast('Maksimal 8 produk per katalog.', 'error');
+      return;
+    }
+    setProductSlots((prev) => [...prev, emptySlot()]);
+  }
+
+  function removeSlot(id: string) {
+    const slot = productSlots.find((s) => s.id === id);
+    if (slot?.uploadedKey) {
+      fetch(`/api/upload/catalog?id=${encodeURIComponent(slot.uploadedKey)}`, {
+        method: 'DELETE',
+      }).catch(() => {});
+    }
+    setProductSlots((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  function updateSlot(id: string, patch: Partial<ProductSlot>) {
+    setProductSlots((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  }
+
+  const saveDebounceMap = useRef<Record<string, NodeJS.Timeout>>({});
+
+  function handleSlotTitleChange(slotId: string, title: string) {
+    updateSlot(slotId, { title });
+    const slot = productSlots.find((s) => s.id === slotId);
+    if (slot?.uploadedKey) {
+      if (saveDebounceMap.current[slotId]) {
+        clearTimeout(saveDebounceMap.current[slotId]);
+      }
+      saveDebounceMap.current[slotId] = setTimeout(() => {
+        fetch('/api/upload/catalog', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: slot.uploadedKey, title }),
+        }).catch(() => {});
+      }, 600);
+    }
+  }
+
+  function handleSlotDescChange(slotId: string, description: string) {
+    updateSlot(slotId, { description });
+    const slot = productSlots.find((s) => s.id === slotId);
+    if (slot?.uploadedKey) {
+      if (saveDebounceMap.current[slotId]) {
+        clearTimeout(saveDebounceMap.current[slotId]);
+      }
+      saveDebounceMap.current[slotId] = setTimeout(() => {
+        fetch('/api/upload/catalog', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: slot.uploadedKey, description }),
+        }).catch(() => {});
+      }, 600);
+    }
+  }
+
+  // ─── File selection & upload ───────────────────────────────────────────────
+
+  const handleFileSelect = useCallback(
+    async (slotId: string, file: File) => {
+      const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
+      if (!ALLOWED.includes(file.type)) {
+        updateSlot(slotId, { error: 'Format tidak didukung. Gunakan JPG, PNG, atau WEBP.' });
+        return;
+      }
+      if (file.size > 12 * 1024 * 1024) {
+        updateSlot(slotId, { error: 'Ukuran file maks 12 MB.' });
+        return;
+      }
+
+      updateSlot(slotId, { uploading: true, error: null });
+
+      try {
+        // Kompresi foto menjadi format WebP efisien & terstandardisasi
+        const { blob, dataUrl } = await compressToWebP(file, 1200, 0.82);
+        const webpFile = new File(
+          [blob],
+          file.name.replace(/\.[^/.]+$/, '') + '.webp',
+          { type: 'image/webp' }
+        );
+
+        updateSlot(slotId, { file: webpFile, previewUrl: dataUrl });
+
+        const fd = new FormData();
+        fd.append('files', webpFile);
+        const res = await fetch('/api/upload/catalog', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Upload gagal.');
+        }
+
+        const uploaded = data.files[0];
+        updateSlot(slotId, {
+          uploadedUrl: uploaded.url,
+          uploadedKey: uploaded.id,
+          uploading: false,
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Upload gagal.';
+        updateSlot(slotId, { uploading: false, error: msg });
+      }
+    },
+    []
+  );
+
+  function onDrop(slotId: string, e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(slotId, file);
+  }
+
+  // ─── Generate catalog ─────────────────────────────────────────────────────
+
+  async function handleGenerate(e: React.FormEvent) {
+    e.preventDefault();
+
     if (!shopName.trim()) {
-      setToastMessage('Harap masukkan nama toko atau brand Anda.');
-      setTimeout(() => setToastMessage(null), 3000);
+      showToast('Harap masukkan nama toko atau brand Anda.', 'error');
+      return;
+    }
+
+    const readySlots = productSlots.filter((s) => s.uploadedUrl);
+    if (readySlots.length === 0) {
+      showToast('Upload minimal 1 foto produk terlebih dahulu.', 'error');
+      return;
+    }
+
+    const stillUploading = productSlots.some((s) => s.uploading);
+    if (stillUploading) {
+      showToast('Tunggu hingga semua foto selesai diunggah.', 'error');
       return;
     }
 
     setIsGenerating(true);
-    setTimeout(() => {
-      setIsGenerating(false);
+
+    try {
+      // 1. Get AI catalog layout data
+      const aiRes = await fetch('/api/ai/catalog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          products: readySlots.map((s, idx) => ({
+            id: s.uploadedKey,
+            imageUrl: s.uploadedUrl,
+            title: s.title.trim() || `Produk ${idx + 1}`,
+            description: s.description.trim() || '',
+          })),
+          shopName,
+          tagline: shopDesc,
+          prompt,
+        }),
+      });
+
+      const aiData = await aiRes.json();
+      if (!aiRes.ok || !aiData.success) {
+        throw new Error(aiData.error || 'Gagal memproses AI.');
+      }
+
+      const catalogData: CatalogData = aiData.catalogData;
+
+      // 2. Render to canvas
+      if (!canvasRef.current) throw new Error('Canvas tidak tersedia.');
+      await renderCatalogToCanvas(catalogData, canvasRef.current);
+
+      // 3. Export to JPG data URL
+      const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.95);
+      setDownloadUrl(dataUrl);
       setIsPreviewModalOpen(true);
-      setToastMessage('Halaman toko online berhasil dibuat oleh AI!');
-      setTimeout(() => setToastMessage(null), 3500);
-    }, 1500);
-  };
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : 'Terjadi kesalahan saat membuat katalog.';
+      showToast(msg, 'error');
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  function downloadCatalog() {
+    if (!downloadUrl) return;
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `katalog-${shopName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.jpg`;
+    a.click();
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+
+  const uploadedCount = productSlots.filter((s) => s.uploadedUrl).length;
+  const totalSlots = productSlots.length;
 
   return (
     <div className="p-5 sm:p-8 max-w-[1280px] mx-auto space-y-6 font-jakarta">
-      
-      {/* Toast Notification */}
+
+      {/* Hidden canvas for rendering */}
+      <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
+
+      {/* Toast */}
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 px-4 py-2.5 rounded-2xl shadow-xl border bg-emerald-50 text-emerald-800 border-emerald-200 flex items-center gap-2 text-xs font-semibold animate-fade-in">
-          <IconCheck className="w-4 h-4 text-emerald-600" />
-          <span>{toastMessage}</span>
-          <button onClick={() => setToastMessage(null)} className="ml-2 text-zinc-400 hover:text-zinc-700">
+        <div
+          className={`fixed top-5 right-5 z-50 px-4 py-2.5 rounded-2xl shadow-xl border flex items-center gap-2 text-xs font-semibold animate-fade-in ${
+            toastMessage.type === 'error'
+              ? 'bg-red-50 text-red-800 border-red-200'
+              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+          }`}
+        >
+          {toastMessage.type === 'error' ? (
+            <IconAlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+          ) : (
+            <IconCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+          )}
+          <span>{toastMessage.text}</span>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="ml-2 text-zinc-400 hover:text-zinc-700 cursor-pointer"
+          >
             <IconX className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
-      {/* Header Section (Tanpa Icon di samping H1) */}
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">AI Page Builder</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">
+            AI Page Builder
+          </h1>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Buat halaman etalase toko online bisnis Anda dalam hitungan detik dengan bantuan kecerdasan buatan.
+            Buat poster katalog produk siap cetak atau bagikan dalam hitungan detik.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsPreviewModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-zinc-200/90 rounded-xl text-zinc-700 text-xs font-semibold shadow-2xs hover:bg-zinc-50 transition-colors cursor-pointer"
-          >
-            <IconEye className="w-3.5 h-3.5 text-zinc-500" />
-            <span>Lihat Contoh Halaman</span>
-          </button>
-        </div>
+        {uploadedCount > 0 && (
+          <div className="flex items-center gap-2 px-3.5 py-2 bg-blue-50 border border-blue-200/80 rounded-xl text-blue-700 text-xs font-semibold">
+            <IconLayoutGrid className="w-3.5 h-3.5" />
+            <span>{uploadedCount} dari {totalSlots} produk siap</span>
+          </div>
+        )}
       </div>
 
-      {/* Main Two-Column Layout */}
+      {/* Main Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* Left Column: Form Detail Konten (7 Cols) */}
-        <div className="lg:col-span-7 bg-white rounded-2xl border border-zinc-200/80 shadow-2xs p-5 sm:p-6">
-          <div className="mb-5">
-            <h2 className="text-base font-bold text-zinc-900">Detail Konten Halaman</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">Lengkapi instruksi dan informasi produk utama toko online Anda</p>
-          </div>
 
-          <form onSubmit={handleGenerate} className="space-y-4">
-            
-            {/* Prompt AI */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-zinc-700">
-                  Prompt AI (Instruksi Desain)
-                </label>
-                <span className="text-[10px] text-zinc-400">Jelaskan tema & fokus halaman</span>
+        {/* ── Left Column: Form ── */}
+        <div className="lg:col-span-7 space-y-5">
+
+          {/* Product Photo Upload Section */}
+          <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-bold text-zinc-900">Foto Produk</h2>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Upload foto, beri judul &amp; deskripsi singkat tiap produk
+                </p>
               </div>
-              <textarea 
-                rows={4}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Contoh: Buatkan halaman toko jus buah dan camilan dengan tema segar, tombol pemesanan WhatsApp cepat, dan penawaran paket hemat..."
-                className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200/90 rounded-xl text-xs sm:text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 focus:bg-white transition-all resize-none shadow-2xs"
-              />
-
-              {/* Suggestions Pills */}
-              <div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar">
-                <span className="text-[10px] text-zinc-400 shrink-0">Contoh:</span>
-                {PROMPT_SUGGESTIONS.map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setPrompt(item.text)}
-                    className="px-2.5 py-1 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200/70 rounded-lg text-[11px] text-zinc-600 whitespace-nowrap transition-colors cursor-pointer"
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Nama Toko / Brand */}
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
-                Nama Toko / Brand Usaha
-              </label>
-              <input 
-                type="text" 
-                value={shopName}
-                onChange={(e) => setShopName(e.target.value)}
-                placeholder="Misal: Dapur Mama Ria / Segar Bar Fruit" 
-                className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200/90 rounded-xl text-xs sm:text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 focus:bg-white transition-all shadow-2xs"
-              />
-            </div>
-
-            {/* Deskripsi Singkat */}
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
-                Tagline & Deskripsi Singkat
-              </label>
-              <textarea 
-                rows={2}
-                value={shopDesc}
-                onChange={(e) => setShopDesc(e.target.value)}
-                placeholder="Teks sambutan yang akan tampil di bagian banner atas halaman..."
-                className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200/90 rounded-xl text-xs sm:text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 focus:bg-white transition-all resize-none shadow-2xs"
-              />
-            </div>
-
-            {/* Submit Button (Vibrant 3D Push Button) */}
-            <div className="pt-2">
-              <button 
-                type="submit"
-                disabled={isGenerating}
-                className="w-full flex items-center justify-center gap-2 bg-[#2563eb] hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-xs transition-all border-b-4 border-[#1e40af] active:border-b-0 active:translate-y-1 text-xs sm:text-sm cursor-pointer disabled:opacity-60"
+              <button
+                type="button"
+                onClick={addSlot}
+                disabled={productSlots.length >= 8}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200/70 rounded-xl text-zinc-700 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {isGenerating ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>AI Sedang Merancang Halaman...</span>
-                  </>
-                ) : (
-                  <>
-                    <IconSparkles className="w-4 h-4" />
-                    <span>Buat Halaman Sekarang</span>
-                  </>
-                )}
+                <IconPlus className="w-3.5 h-3.5" />
+                Tambah Produk
               </button>
             </div>
 
-          </form>
+            <div className="space-y-3">
+              {productSlots.map((slot, idx) => (
+                <ProductSlotCard
+                  key={slot.id}
+                  slot={slot}
+                  index={idx}
+                  onFileSelect={(file) => handleFileSelect(slot.id, file)}
+                  onDrop={(e) => onDrop(slot.id, e)}
+                  onTitleChange={(v) => handleSlotTitleChange(slot.id, v)}
+                  onDescChange={(v) => handleSlotDescChange(slot.id, v)}
+                  onRemove={productSlots.length > 1 ? () => removeSlot(slot.id) : undefined}
+                />
+              ))}
+            </div>
+
+            {productSlots.length < 8 && (
+              <button
+                type="button"
+                onClick={addSlot}
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-zinc-200 hover:border-zinc-300 rounded-xl text-zinc-400 hover:text-zinc-600 text-xs font-medium transition-colors cursor-pointer"
+              >
+                <IconPlus className="w-3.5 h-3.5" />
+                Tambah produk lagi (maks 8)
+              </button>
+            )}
+          </div>
+
+          {/* Store Info + AI Form */}
+          <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs p-5 sm:p-6">
+            <div className="mb-4">
+              <h2 className="text-base font-bold text-zinc-900">Informasi Toko &amp; Instruksi AI</h2>
+              <p className="text-xs text-zinc-400 mt-0.5">Lengkapi detail toko dan arahkan gaya desain katalog</p>
+            </div>
+
+            <form onSubmit={handleGenerate} className="space-y-4">
+
+              {/* Prompt AI */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-zinc-700">
+                    Instruksi Desain AI
+                  </label>
+                  <span className="text-[10px] text-zinc-400">Opsional — jelaskan gaya visual</span>
+                </div>
+                <textarea
+                  rows={3}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Contoh: Nuansa elegan premium, foto produk terlihat mewah dengan pencahayaan studio bersih..."
+                  className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200/90 rounded-xl text-xs sm:text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 focus:bg-white transition-all resize-none shadow-2xs"
+                />
+                <div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar">
+                  <span className="text-[10px] text-zinc-400 shrink-0">Contoh:</span>
+                  {PROMPT_SUGGESTIONS.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setPrompt(item.text)}
+                      className="px-2.5 py-1 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200/70 rounded-lg text-[11px] text-zinc-600 whitespace-nowrap transition-colors cursor-pointer"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Shop Name */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
+                  Nama Toko / Brand Usaha <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={shopName}
+                  onChange={(e) => setShopName(e.target.value)}
+                  placeholder="Misal: Dapur Mama Ria / Segar Bar Fruit"
+                  className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200/90 rounded-xl text-xs sm:text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 focus:bg-white transition-all shadow-2xs"
+                />
+              </div>
+
+              {/* Tagline */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
+                  Tagline / Deskripsi Singkat
+                </label>
+                <textarea
+                  rows={2}
+                  value={shopDesc}
+                  onChange={(e) => setShopDesc(e.target.value)}
+                  placeholder="Teks sub-judul yang tampil di bawah nama toko pada katalog..."
+                  className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200/90 rounded-xl text-xs sm:text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 focus:bg-white transition-all resize-none shadow-2xs"
+                />
+              </div>
+
+              {/* Submit */}
+              <div className="pt-1">
+                <button
+                  type="submit"
+                  disabled={isGenerating}
+                  className="w-full flex items-center justify-center gap-2 bg-[#2563eb] hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-xs transition-all border-b-4 border-[#1e40af] active:border-b-0 active:translate-y-1 text-xs sm:text-sm cursor-pointer disabled:opacity-60"
+                >
+                  {isGenerating ? (
+                    <>
+                      <IconSparkles
+                        className="w-4 h-4 shrink-0"
+                        style={{ animation: 'spin 1s linear infinite' }}
+                      />
+                      <span>AI Sedang Merancang Katalog...</span>
+                    </>
+                  ) : (
+                    <>
+                      <IconSparkles className="w-4 h-4 shrink-0" />
+                      <span>Buat Halaman Sekarang</span>
+                    </>
+                  )}
+                </button>
+                <p className="text-center text-[11px] text-zinc-400 mt-2">
+                  Proses berlangsung 10–30 detik tergantung jumlah produk.
+                </p>
+              </div>
+
+            </form>
+          </div>
         </div>
 
-        {/* Right Column: Template Picker (5 Cols) */}
+        {/* ── Right Column: Template Preview ── */}
         <div className="lg:col-span-5 bg-white rounded-2xl border border-zinc-200/80 shadow-2xs p-5 sm:p-6 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-base font-bold text-zinc-900">Pilih Desain Template</h2>
-                <p className="text-xs text-zinc-400 mt-0.5">Pilih gaya visual yang cocok untuk produk Anda</p>
+                <h2 className="text-base font-bold text-zinc-900">Gaya Katalog</h2>
+                <p className="text-xs text-zinc-400 mt-0.5">Template yang digunakan untuk katalog Anda</p>
               </div>
-
               <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-zinc-100 text-zinc-700 rounded-lg text-[11px] font-semibold border border-zinc-200/60">
                 <IconDeviceDesktop className="w-3.5 h-3.5 text-zinc-500" />
-                Preview Siap
+                Aktif
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
-              {/* Template 1: Modern Clean */}
-              <div 
-                onClick={() => setSelectedTemplate('template1')}
-                className={`group relative cursor-pointer rounded-2xl border-2 overflow-hidden transition-all ${
-                  selectedTemplate === 'template1' 
-                    ? 'border-[#2563eb] shadow-md ring-2 ring-blue-500/10' 
-                    : 'border-zinc-200/80 hover:border-zinc-300'
-                }`}
-              >
+
+              {/* Template 1: Active */}
+              <div className={`group relative cursor-default rounded-2xl border-2 overflow-hidden border-[#2563eb] shadow-md ring-2 ring-blue-500/10`}>
                 <div className="aspect-square bg-zinc-100 w-full relative overflow-hidden">
-                  <img 
-                    src="/TemplateProduct/Template1.jpeg" 
-                    alt="Template 1" 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/TemplateProduct/Template1.jpeg"
+                    alt="Modern Clean Showcase"
+                    className="w-full h-full object-cover"
                   />
-                  {selectedTemplate === 'template1' && (
-                    <div className="absolute top-2.5 right-2.5 bg-[#2563eb] text-white rounded-full p-1 shadow-md">
-                      <IconCheck className="w-3.5 h-3.5 stroke-[3]" />
-                    </div>
-                  )}
+                  <div className="absolute top-2.5 right-2.5 bg-[#2563eb] text-white rounded-full p-1 shadow-md">
+                    <IconCheck className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
                 </div>
-                <div className={`p-3.5 bg-white border-t transition-colors ${
-                  selectedTemplate === 'template1' ? 'border-blue-100 bg-blue-50/20' : 'border-zinc-100'
-                }`}>
+                <div className="p-3.5 bg-blue-50/20 border-t border-blue-100">
                   <h3 className="font-bold text-zinc-900 text-xs">Modern Clean Showcase</h3>
                   <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-1">
-                    Cocok untuk toko kuliner, fashion, & retail.
+                    Cocok untuk semua kategori produk UMKM.
                   </p>
                 </div>
               </div>
 
-              {/* Template 2: Coming Soon */}
+              {/* Coming soon */}
               <div className="rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/60 flex flex-col items-center justify-center text-center p-4 aspect-square">
                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-2xs text-zinc-400 mb-2 border border-zinc-200/80">
                   <IconPlus className="w-5 h-5" />
@@ -232,86 +924,86 @@ export default function PageBuilder() {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-zinc-100 mt-5 flex items-center justify-between text-[11px] text-zinc-400">
-            <span>Responsif untuk HP & Desktop</span>
-            <span className="font-semibold text-zinc-700">Format Siap Publikasi</span>
+          {/* Info row */}
+          <div className="pt-4 border-t border-zinc-100 mt-5 space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-zinc-400">
+              <span>Format output</span>
+              <span className="font-semibold text-zinc-700">JPG 1200 × 1600 px</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-zinc-400">
+              <span>Produk per katalog</span>
+              <span className="font-semibold text-zinc-700">1 — 8 foto produk</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-zinc-400">
+              <span>Siap cetak / bagikan</span>
+              <span className="font-semibold text-zinc-700">Instagram, WhatsApp, Print</span>
+            </div>
           </div>
         </div>
 
       </div>
 
-      {/* ======================================================== */}
-      {/* MODAL PREVIEW HALAMAN TOKO                               */}
-      {/* ======================================================== */}
-      {isPreviewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in font-jakarta">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-zinc-200/80 transform transition-all">
-            
+      {/* ── Download Modal ── */}
+      {isPreviewModalOpen && downloadUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in font-jakarta">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-zinc-200/80">
+
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100 mb-4">
               <div>
-                <h3 className="text-sm font-bold text-zinc-900 leading-tight">
-                  Pratinjau Halaman Toko Online
-                </h3>
-                <p className="text-[11px] text-zinc-400">Tampilan etalase responsif yang siap Anda bagikan</p>
+                <h3 className="text-sm font-bold text-zinc-900">Katalog Siap Diunduh</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  File JPG beresolusi tinggi siap cetak &amp; bagikan
+                </p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsPreviewModalOpen(false)}
-                className="p-1 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100"
+                className="p-1 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 cursor-pointer"
               >
                 <IconX className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Mock Page Preview */}
-            <div className="rounded-xl border border-zinc-200/80 overflow-hidden bg-zinc-50 p-4 space-y-4">
-              {/* Header mockup */}
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-200/70">
-                <div className="font-bold text-zinc-900 text-sm">{shopName || 'Nama Toko Anda'}</div>
-                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Buka</span>
-              </div>
-
-              {/* Hero Banner mockup */}
-              <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 text-white rounded-xl p-4">
-                <div className="text-xs font-bold">{shopName || 'Katalog Resmi Kami'}</div>
-                <p className="text-[11px] text-zinc-300 mt-1">
-                  {shopDesc || 'Pesan langsung produk berkualitas terbaik kami dengan mudah & cepat.'}
-                </p>
-              </div>
-
-              {/* Sample Product Grid mockup */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white p-2.5 rounded-xl border border-zinc-200/70 text-xs">
-                  <div className="h-16 bg-zinc-100 rounded-lg mb-2 flex items-center justify-center text-[10px] text-zinc-400 font-medium">Foto Produk 1</div>
-                  <div className="font-bold text-zinc-900 truncate">Paket Hemat Spesial</div>
-                  <div className="text-blue-600 font-bold text-[11px] mt-0.5">Rp 25.000</div>
-                </div>
-                <div className="bg-white p-2.5 rounded-xl border border-zinc-200/70 text-xs">
-                  <div className="h-16 bg-zinc-100 rounded-lg mb-2 flex items-center justify-center text-[10px] text-zinc-400 font-medium">Foto Produk 2</div>
-                  <div className="font-bold text-zinc-900 truncate">Menu Terlaris</div>
-                  <div className="text-blue-600 font-bold text-[11px] mt-0.5">Rp 18.000</div>
-                </div>
-              </div>
+            {/* Preview thumbnail */}
+            <div className="rounded-xl overflow-hidden border border-zinc-200/80 mb-4 bg-zinc-50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={downloadUrl}
+                alt="Katalog produk"
+                className="w-full max-h-72 object-contain"
+              />
             </div>
 
-            {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2 mt-5 pt-3 border-t border-zinc-100">
+            {/* Meta */}
+            <div className="flex items-center gap-3 mb-5 p-3 bg-zinc-50 rounded-xl border border-zinc-100">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <IconPhoto className="w-5 h-5 text-blue-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-zinc-900 truncate">
+                  katalog-{shopName.toLowerCase().replace(/\s+/g, '-')}.jpg
+                </p>
+                <p className="text-[11px] text-zinc-400">1200 × 1600 px · High Quality JPEG</p>
+              </div>
+              <span className="ml-auto px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100 shrink-0">
+                Siap
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsPreviewModalOpen(false)}
-                className="px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-800 font-medium rounded-xl hover:bg-zinc-100 transition-colors cursor-pointer"
+                className="px-3 py-2 text-xs text-zinc-500 hover:text-zinc-800 font-medium rounded-xl hover:bg-zinc-100 transition-colors cursor-pointer"
               >
                 Tutup
               </button>
               <button
-                onClick={() => {
-                  setToastMessage('Tautan toko online siap dibagikan ke WhatsApp dan Media Sosial!');
-                  setIsPreviewModalOpen(false);
-                  setTimeout(() => setToastMessage(null), 3000);
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#18181b] hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                onClick={downloadCatalog}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all border-b-4 border-[#1e40af] active:border-b-0 active:translate-y-1 cursor-pointer"
               >
-                <span>Bagikan Tautan Toko</span>
-                <IconArrowRight className="w-3.5 h-3.5" />
+                <IconDownload className="w-4 h-4" />
+                <span>Unduh Katalog (.jpg)</span>
               </button>
             </div>
 
@@ -319,6 +1011,141 @@ export default function PageBuilder() {
         </div>
       )}
 
+      {/* Spin animation */}
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── Product Slot Card Component ──────────────────────────────────────────────
+
+function ProductSlotCard({
+  slot,
+  index,
+  onFileSelect,
+  onDrop,
+  onTitleChange,
+  onDescChange,
+  onRemove,
+}: {
+  slot: ProductSlot;
+  index: number;
+  onFileSelect: (file: File) => void;
+  onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
+  onTitleChange: (v: string) => void;
+  onDescChange: (v: string) => void;
+  onRemove?: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  return (
+    <div className="border border-zinc-200/80 rounded-xl overflow-hidden bg-zinc-50/40">
+      <div className="flex items-center gap-3 p-3 bg-white border-b border-zinc-100">
+        <span className="w-5 h-5 rounded-md bg-zinc-100 border border-zinc-200/70 flex items-center justify-center text-[11px] font-bold text-zinc-500 shrink-0">
+          {index + 1}
+        </span>
+        <span className="text-xs font-semibold text-zinc-700 flex-1 truncate">
+          {slot.title || `Produk ${index + 1}`}
+        </span>
+        <div className="flex items-center gap-1.5">
+          {slot.uploading && (
+            <span className="text-[10px] text-blue-600 font-medium animate-pulse">Mengunggah...</span>
+          )}
+          {slot.uploadedUrl && !slot.uploading && (
+            <span className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
+              <IconCheck className="w-2.5 h-2.5 text-emerald-600 stroke-[3]" />
+            </span>
+          )}
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="p-1 text-zinc-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+              title="Hapus produk ini"
+            >
+              <IconTrash className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="p-3 flex gap-3">
+        {/* Upload area */}
+        <div
+          className={`w-28 h-28 shrink-0 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors overflow-hidden relative ${
+            isDragOver
+              ? 'border-blue-400 bg-blue-50'
+              : slot.uploadedUrl
+              ? 'border-zinc-200 bg-zinc-50'
+              : 'border-zinc-200 hover:border-zinc-400 bg-white hover:bg-zinc-50'
+          }`}
+          onClick={() => !slot.uploading && inputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+          onDragLeave={() => { setIsDragOver(false); }}
+          onDrop={(e) => { setIsDragOver(false); onDrop(e); }}
+        >
+          {slot.uploading ? (
+            <div className="flex flex-col items-center gap-1.5">
+              <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-500 rounded-full" style={{ animation: 'spin 0.8s linear infinite' }} />
+              <span className="text-[10px] text-blue-500 font-medium">Upload...</span>
+            </div>
+          ) : slot.previewUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={slot.previewUrl} alt="preview" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+                <IconUpload className="w-5 h-5 text-white" />
+              </div>
+            </>
+          ) : (
+            <>
+              <IconPhoto className="w-6 h-6 text-zinc-300 mb-1" />
+              <span className="text-[10px] text-zinc-400 text-center px-1">Klik atau drop foto</span>
+            </>
+          )}
+
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onFileSelect(f);
+              e.target.value = '';
+            }}
+          />
+        </div>
+
+        {/* Fields */}
+        <div className="flex-1 flex flex-col gap-2 min-w-0">
+          {slot.error && (
+            <p className="text-[11px] text-red-500 font-medium flex items-center gap-1">
+              <IconAlertCircle className="w-3 h-3 shrink-0" />
+              {slot.error}
+            </p>
+          )}
+          <input
+            type="text"
+            value={slot.title}
+            onChange={(e) => onTitleChange(e.target.value)}
+            placeholder="Judul produk (maks 40 karakter)"
+            maxLength={40}
+            className="w-full px-3 py-2 bg-white border border-zinc-200/90 rounded-lg text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 transition-all"
+          />
+          <textarea
+            rows={3}
+            value={slot.description}
+            onChange={(e) => onDescChange(e.target.value)}
+            placeholder="Deskripsi singkat — keunggulan, harga, promo, ukuran, dsb."
+            maxLength={120}
+            className="w-full px-3 py-2 bg-white border border-zinc-200/90 rounded-lg text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 transition-all resize-none"
+          />
+        </div>
+      </div>
     </div>
   );
 }
