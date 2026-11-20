@@ -2,13 +2,12 @@
 import React from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Plus_Jakarta_Sans, Poppins } from 'next/font/google';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { IconDiamond, IconUsers, IconChartBar, IconReportAnalytics, IconWallet, IconBrain, IconSparkles, IconPencil } from '@tabler/icons-react';
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
-const poppins = Poppins({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
+const jakarta = { className: 'font-jakarta' };
+const poppins = { className: 'font-poppins' };
 
 const features = [
   {

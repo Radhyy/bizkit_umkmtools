@@ -6,7 +6,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus_Jakarta_Sans, Poppins } from 'next/font/google';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import {
@@ -25,8 +24,8 @@ import {
   IconRefresh
 } from '@tabler/icons-react';
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
-const poppins = Poppins({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
+const jakarta = { className: 'font-jakarta' };
+const poppins = { className: 'font-poppins' };
 
 declare global {
   interface Window {

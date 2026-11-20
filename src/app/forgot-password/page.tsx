@@ -2,12 +2,11 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Poppins, Plus_Jakarta_Sans } from "next/font/google";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
-const poppins = Poppins({ subsets: ["latin"], weight: ["600", "700"] });
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
+const poppins = { className: "font-poppins" };
+const jakarta = { className: "font-jakarta" };
 
 export default function ForgotPasswordPage() {
   const router = useRouter();

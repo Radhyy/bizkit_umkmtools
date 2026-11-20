@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Poppins, Plus_Jakarta_Sans } from 'next/font/google';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   IconArrowRight,
@@ -31,8 +30,8 @@ import {
   IconBulb,
 } from '@tabler/icons-react';
 
-const poppins = Poppins({ subsets: ['latin'], weight: ['600', '700', '800'] });
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
+const poppins = { className: 'font-poppins' };
+const jakarta = { className: 'font-jakarta' };
 
 const KATEGORI_OPTIONS = [
   { id: 'Kuliner & Makanan', label: 'Kuliner & Minuman', desc: 'Makanan berat, camilan, cafe & minuman kekinian', icon: IconCup },

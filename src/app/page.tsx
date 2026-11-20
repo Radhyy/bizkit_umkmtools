@@ -4,12 +4,11 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Poppins, Plus_Jakarta_Sans } from 'next/font/google';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
-const poppins = Poppins({ subsets: ['latin'], weight: ['600', '700', '800'] });
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600'] });
+const poppins = { className: 'font-poppins' };
+const jakarta = { className: 'font-jakarta' };
 
 export default function Home() {
   const [activeTestimonial, setActiveTestimonial] = useState(2);
