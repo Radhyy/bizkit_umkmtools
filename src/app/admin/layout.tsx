@@ -163,40 +163,60 @@ export default function AdminLayout({
 
       {/* Sidebar Admin */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 ${isCollapsed ? 'lg:w-[78px]' : 'w-[250px]'} bg-white border-r border-zinc-200/70 flex flex-col pt-5 pb-4 px-3 shrink-0 transform transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed inset-y-0 left-0 z-50 ${isCollapsed ? 'lg:w-[70px] px-2.5 pt-4' : 'w-[250px] px-3 pt-5'} bg-white border-r border-zinc-200/70 flex flex-col pb-4 shrink-0 transform transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Top Header */}
-        <div className="flex items-center justify-between px-2 mb-4">
-          <Link href="/admin" className="flex items-center gap-2.5 group">
-            <Image 
-              src="/PP-BizKit.png" 
-              alt="Bizkit Logo" 
-              width={32} 
-              height={32} 
-              className="w-8 h-8 object-cover rounded-[10px] shadow-sm shrink-0 transition-transform group-hover:scale-105" 
-              priority
-            />
-            {!isCollapsed && (
+        {isCollapsed ? (
+          <div className="flex flex-col items-center gap-2 mb-4">
+            <Link href="/admin" className="p-1 rounded-xl hover:bg-zinc-100 transition-colors" title="Bizkit Admin">
+              <Image 
+                src="/PP-BizKit.png" 
+                alt="Bizkit Logo" 
+                width={34} 
+                height={34} 
+                className="w-[34px] h-[34px] object-cover rounded-[10px] shadow-2xs shrink-0 transition-transform hover:scale-105" 
+                priority
+              />
+            </Link>
+            <button 
+              onClick={() => setIsCollapsed(false)}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+              title="Buka Sidebar"
+            >
+              <IconLayoutSidebar className="w-[18px] h-[18px]" stroke={1.75} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between px-2 mb-4">
+            <Link href="/admin" className="flex items-center gap-2.5 group">
+              <Image 
+                src="/PP-BizKit.png" 
+                alt="Bizkit Logo" 
+                width={32} 
+                height={32} 
+                className="w-8 h-8 object-cover rounded-[10px] shadow-sm shrink-0 transition-transform group-hover:scale-105" 
+                priority
+              />
               <span className="text-xl font-bold text-slate-900 tracking-tight lowercase">
                 bizkit
               </span>
-            )}
-          </Link>
+            </Link>
 
-          <button 
-            onClick={() => {
-              if (window.innerWidth < 1024) {
-                setIsMobileMenuOpen(false);
-              } else {
-                setIsCollapsed(!isCollapsed);
-              }
-            }}
-            className="text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 p-1.5 rounded-lg transition-colors"
-            title={isCollapsed ? "Buka Sidebar" : "Perkecil Sidebar"}
-          >
-            <IconLayoutSidebar className="w-[18px] h-[18px]" stroke={1.75} />
-          </button>
-        </div>
+            <button 
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  setIsMobileMenuOpen(false);
+                } else {
+                  setIsCollapsed(true);
+                }
+              }}
+              className="text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 p-1.5 rounded-lg transition-colors cursor-pointer"
+              title="Perkecil Sidebar"
+            >
+              <IconLayoutSidebar className="w-[18px] h-[18px]" stroke={1.75} />
+            </button>
+          </div>
+        )}
 
         {/* Search Bar */}
         {!isCollapsed && (
@@ -227,13 +247,27 @@ export default function AdminLayout({
                 key={item.href}
                 href={item.href}
                 title={isCollapsed ? item.label : undefined}
-                className={`group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium transition-all ${
-                  isActive
-                    ? 'bg-[#18181b] text-white shadow-xs'
-                    : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
-                } ${isCollapsed ? 'justify-center px-2' : ''}`}
+                className={`group flex items-center transition-all ${
+                  isCollapsed
+                    ? `w-10 h-10 rounded-xl justify-center mx-auto ${
+                        isActive
+                          ? 'bg-[#18181b] text-white shadow-xs'
+                          : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                      }`
+                    : `gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium ${
+                        isActive
+                          ? 'bg-[#18181b] text-white shadow-xs'
+                          : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
+                      }`
+                }`}
               >
-                <span className={`shrink-0 transition-colors ${isActive ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-700'}`}>
+                <span className={`shrink-0 transition-colors ${
+                  isActive 
+                    ? 'text-white' 
+                    : isCollapsed 
+                      ? 'text-zinc-500 group-hover:text-zinc-900' 
+                      : 'text-zinc-400 group-hover:text-zinc-700'
+                }`}>
                   <Icon className="w-[18px] h-[18px]" stroke={isActive ? 2 : 1.75} />
                 </span>
                 {!isCollapsed && <span className="truncate">{item.label}</span>}
@@ -242,12 +276,13 @@ export default function AdminLayout({
           })}
 
           <div className="pt-2">
-            {!isCollapsed && (
+            {!isCollapsed ? (
               <p className="px-3 py-1.5 text-[11px] font-normal text-zinc-400 tracking-wide">
                 Analyze
               </p>
+            ) : (
+              <div className="w-6 h-px bg-zinc-200/80 mx-auto my-2" />
             )}
-            {isCollapsed && <div className="h-px bg-zinc-100 my-2" />}
             {adminSystemItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -255,9 +290,17 @@ export default function AdminLayout({
                   key={item.href}
                   href={item.href}
                   title={isCollapsed ? item.label : undefined}
-                  className={`group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium transition-all text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80 ${isCollapsed ? 'justify-center px-2' : ''}`}
+                  className={`group flex items-center transition-all ${
+                    isCollapsed
+                      ? 'w-10 h-10 rounded-xl justify-center mx-auto text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                      : 'gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
+                  }`}
                 >
-                  <span className="shrink-0 text-zinc-400 group-hover:text-zinc-700">
+                  <span className={`shrink-0 transition-colors ${
+                    isCollapsed 
+                      ? 'text-zinc-500 group-hover:text-zinc-900' 
+                      : 'text-zinc-400 group-hover:text-zinc-700'
+                  }`}>
                     <Icon className="w-[18px] h-[18px]" stroke={1.75} />
                   </span>
                   {!isCollapsed && <span className="truncate">{item.label}</span>}
@@ -268,19 +311,35 @@ export default function AdminLayout({
         </div>
 
         {/* Bottom Section */}
-        <div className="pt-2 mt-auto border-t border-zinc-100 flex flex-col gap-0.5">
+        <div className={`pt-2 mt-auto border-t border-zinc-100 flex flex-col ${isCollapsed ? 'items-center gap-1' : 'gap-0.5'}`}>
           {/* Notifications */}
           <Link
             href="/admin/notifikasi"
-            className={`group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium transition-all ${
-              pathname === '/admin/notifikasi'
-                ? 'bg-zinc-900 text-white'
-                : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
+            className={`group flex items-center transition-all ${
+              isCollapsed
+                ? `relative w-10 h-10 rounded-xl justify-center mx-auto ${
+                    pathname === '/admin/notifikasi'
+                      ? 'bg-zinc-900 text-white'
+                      : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                  }`
+                : `gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium ${
+                    pathname === '/admin/notifikasi'
+                      ? 'bg-zinc-900 text-white'
+                      : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
+                  }`
             }`}
             title="Notifications"
           >
-            <IconBell className={`w-[18px] h-[18px] shrink-0 ${pathname === '/admin/notifikasi' ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-700'}`} stroke={1.75} />
-            {!isCollapsed && (
+            <IconBell className={`w-[18px] h-[18px] shrink-0 ${
+              pathname === '/admin/notifikasi' 
+                ? 'text-white' 
+                : isCollapsed 
+                  ? 'text-zinc-500 group-hover:text-zinc-900' 
+                  : 'text-zinc-400 group-hover:text-zinc-700'
+            }`} stroke={1.75} />
+            {isCollapsed ? (
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#f97316] ring-2 ring-white" />
+            ) : (
               <>
                 <span className="truncate">Notifications</span>
                 <span className="w-4 h-4 rounded-full bg-[#f97316] text-white text-[10px] font-bold flex items-center justify-center shrink-0 ml-auto leading-none">
@@ -293,24 +352,44 @@ export default function AdminLayout({
           {/* Settings */}
           <Link
             href="/admin/pengaturan"
-            className={`group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium transition-all ${
-              pathname === '/admin/pengaturan'
-                ? 'bg-zinc-900 text-white'
-                : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
+            className={`group flex items-center transition-all ${
+              isCollapsed
+                ? `w-10 h-10 rounded-xl justify-center mx-auto ${
+                    pathname === '/admin/pengaturan'
+                      ? 'bg-zinc-900 text-white'
+                      : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                  }`
+                : `gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium ${
+                    pathname === '/admin/pengaturan'
+                      ? 'bg-zinc-900 text-white'
+                      : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
+                  }`
             }`}
             title="Settings"
           >
-            <IconSettings className={`w-[18px] h-[18px] shrink-0 ${pathname === '/admin/pengaturan' ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-700'}`} stroke={1.75} />
+            <IconSettings className={`w-[18px] h-[18px] shrink-0 ${
+              pathname === '/admin/pengaturan' 
+                ? 'text-white' 
+                : isCollapsed 
+                  ? 'text-zinc-500 group-hover:text-zinc-900' 
+                  : 'text-zinc-400 group-hover:text-zinc-700'
+            }`} stroke={1.75} />
             {!isCollapsed && <span className="truncate">Settings</span>}
           </Link>
 
           {/* Home / Help */}
           <Link
             href="/"
-            className="group flex items-center gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80 transition-all"
+            className={`group flex items-center transition-all ${
+              isCollapsed
+                ? 'w-10 h-10 rounded-xl justify-center mx-auto text-zinc-500 hover:text-blue-600 hover:bg-blue-50'
+                : 'gap-3 px-3 py-2 rounded-2xl text-[13px] font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
+            }`}
             title="Help & Beranda"
           >
-            <IconHome className="w-[18px] h-[18px] shrink-0 text-zinc-400 group-hover:text-zinc-700" stroke={1.75} />
+            <IconHome className={`w-[18px] h-[18px] shrink-0 ${
+              isCollapsed ? 'text-zinc-500 group-hover:text-blue-600' : 'text-zinc-400 group-hover:text-zinc-700'
+            }`} stroke={1.75} />
             {!isCollapsed && <span className="truncate">Help</span>}
           </Link>
 
@@ -345,25 +424,47 @@ export default function AdminLayout({
           )}
 
           {/* Profile Card Admin */}
-          <div className="pt-1">
-            <div className="flex items-center justify-between p-1.5 rounded-2xl hover:bg-zinc-100/80 transition-colors cursor-pointer group">
-              <div className="flex items-center gap-2.5 min-w-0">
-                {currentUser?.avatarUrl ? (
-                  <div className="w-8 h-8 rounded-xl overflow-hidden border border-zinc-200/80 shrink-0 shadow-2xs bg-white flex items-center justify-center p-0.5">
-                    <img 
-                      src={currentUser.avatarUrl} 
-                      alt="Avatar" 
-                      className="w-full h-full object-cover rounded-[10px]" 
-                    />
+          {isCollapsed ? (
+            <div 
+              onClick={handleLogout}
+              title={`Keluar (${currentUser?.name || "Admin"})`}
+              className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto my-1 p-0.5 hover:ring-2 hover:ring-zinc-300 transition-all cursor-pointer group"
+            >
+              {currentUser?.avatarUrl ? (
+                <div className="w-8 h-8 rounded-xl overflow-hidden border border-zinc-200/80 shrink-0 shadow-2xs bg-white flex items-center justify-center p-0.5">
+                  <img 
+                    src={currentUser.avatarUrl} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover rounded-[10px]" 
+                  />
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 p-0.5 shrink-0 shadow-2xs flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-white text-[11px] font-bold">
+                    {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
                   </div>
-                ) : (
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 p-0.5 shrink-0 shadow-2xs flex items-center justify-center overflow-hidden">
-                    <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-white text-[11px] font-bold">
-                      {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="pt-1">
+              <div className="flex items-center justify-between p-1.5 rounded-2xl hover:bg-zinc-100/80 transition-colors cursor-pointer group">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {currentUser?.avatarUrl ? (
+                    <div className="w-8 h-8 rounded-xl overflow-hidden border border-zinc-200/80 shrink-0 shadow-2xs bg-white flex items-center justify-center p-0.5">
+                      <img 
+                        src={currentUser.avatarUrl} 
+                        alt="Avatar" 
+                        className="w-full h-full object-cover rounded-[10px]" 
+                      />
                     </div>
-                  </div>
-                )}
-                {!isCollapsed && (
+                  ) : (
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 p-0.5 shrink-0 shadow-2xs flex items-center justify-center overflow-hidden">
+                      <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-white text-[11px] font-bold">
+                        {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex flex-col min-w-0">
                     <span className="text-[13px] font-semibold text-zinc-900 leading-tight truncate">
                       {currentUser?.name || "Admin Bizkit"}
@@ -372,9 +473,7 @@ export default function AdminLayout({
                       Super Administrator
                     </span>
                   </div>
-                )}
-              </div>
-              {!isCollapsed && (
+                </div>
                 <button 
                   onClick={handleLogout}
                   title="Logout"
@@ -382,9 +481,9 @@ export default function AdminLayout({
                 >
                   <IconLogout className="w-4 h-4" />
                 </button>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </aside>
 
