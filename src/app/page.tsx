@@ -62,11 +62,11 @@ export default function Home() {
         {/* Floating Badges */}
         <div className="hidden lg:flex absolute top-12 left-[-2%] xl:left-[2%] bg-white/95 shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-3 pr-5 rounded-2xl items-center gap-3 animate-[float_6s_ease-in-out_infinite]">
           <div className="flex items-center justify-center -ml-1">
-            <Image src="/Hero/Icon/IconCentangHijau.png" alt="Dipercaya" width={40} height={40} className="object-contain" />
+            <Image src="/Hero/Icon/IconCentangHijau.png" alt="Cocok Untuk Berbagai UMKM" width={40} height={40} className="object-contain" />
           </div>
           <div className="text-left leading-tight">
-            <p className="text-[13px] font-medium text-slate-500">Dipercaya oleh</p>
-            <p className="text-[15px] font-bold text-[#16a34a] tracking-tight">100+ UMKM</p>
+            <p className="text-[13px] font-medium text-slate-500">Cocok Untuk</p>
+            <p className="text-[15px] font-bold text-[#16a34a] tracking-tight">Berbagai UMKM</p>
           </div>
         </div>
 
