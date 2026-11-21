@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import crypto from 'crypto';
+import { uploadToS3 } from '@/lib/s3';
 
 export const runtime = 'nodejs';
 
@@ -11,7 +12,7 @@ const ALLOWED_TYPES = [
   'image/gif',
   'image/avif',
 ];
-const MAX_SIZE_BYTES = 8 * 1024 * 1024; // 8 MB per file
+const MAX_SIZE_BYTES = 12 * 1024 * 1024; // 12 MB per file
 const MAX_FILES = 8;
 
 export async function POST(req: Request) {
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
     const results: Array<{
       id: string;
       url: string;
+      s3Url?: string;
       name: string;
       title: string;
       description: string;
@@ -56,7 +58,7 @@ export async function POST(req: Request) {
 
       if (file.size > MAX_SIZE_BYTES) {
         return NextResponse.json(
-          { error: `Ukuran ${file.name} melebihi batas maksimal 8MB.` },
+          { error: `Ukuran ${file.name} melebihi batas maksimal 12MB.` },
           { status: 400 }
         );
       }
@@ -68,19 +70,33 @@ export async function POST(req: Request) {
       const dataUri = `data:${mimeType};base64,${base64Data}`;
 
       const id = 'prod_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
-      const publicUrl = `/api/catalog/image/${id}`;
+      let s3Url: string | undefined = undefined;
 
-      // Simpan langsung ke database PostgreSQL tabel CatalogProduct
+      // 1. Unggah ke S3 KilatStorage jika kredensial S3 tersedia
+      try {
+        if (process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY) {
+          const s3Res = await uploadToS3(buffer, file.name, mimeType, 'catalog-products');
+          s3Url = s3Res.url;
+        }
+      } catch (s3Err) {
+        console.warn('[Upload Catalog] Upload ke S3 gagal, menggunakan fallback database:', s3Err);
+      }
+
+      // 2. Simpan URL (S3 URL jika sukses, atau Data URI jika fallback) ke PostgreSQL
+      const finalImageUrl = s3Url || dataUri;
+      const publicServingUrl = `/api/catalog/image/${id}`;
+
       await pool.query(
         `INSERT INTO "CatalogProduct" 
          ("id", "userId", "title", "description", "imageUrl", "mimeType", "fileSize", "createdAt", "updatedAt")
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-        [id, userId, title, description, dataUri, mimeType, file.size]
+        [id, userId, title, description, finalImageUrl, mimeType, file.size]
       );
 
       results.push({
         id,
-        url: publicUrl,
+        url: s3Url || publicServingUrl,
+        s3Url,
         name: file.name,
         title,
         description,
@@ -90,14 +106,14 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       files: results,
-      message: 'Foto produk berhasil disimpan ke database.',
+      message: 'Foto produk berhasil disimpan.',
     });
   } catch (error: unknown) {
     const msg =
       error instanceof Error
         ? error.message
-        : 'Terjadi kesalahan saat mengunggah foto ke database.';
-    console.error('[Upload Catalog DB] Error:', error);
+        : 'Terjadi kesalahan saat mengunggah foto.';
+    console.error('[Upload Catalog] Error:', error);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

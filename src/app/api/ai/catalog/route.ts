@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { groqChatCompletion } from '@/lib/groqClient';
+import pool from '@/lib/db';
+import { generateCatalogImage } from '@/lib/imageGenClient';
 
 export const runtime = 'nodejs';
 
@@ -8,14 +9,90 @@ export const buildImageEnhancementPrompt = (
   specificEnhanceNote: string,
   designStyle?: string
 ) => `
-Professional commercial studio product photography enhancement of ${productTitle}. 
-Keep the exact product shape, packaging, ingredients, and core structure from the original uploaded image, do not hallucinate or replace the main item. 
-Upgrade the lighting to soft, diffused natural daylight with subtle warm highlights and clean soft shadows. 
-Remove any distracting background clutter, harsh glare, low-res noise, or accidental text watermarks. 
-Place the product in a clean, minimalist, aesthetic commercial setting matching the style: "${designStyle || 'Modern Clean Showcase, warm minimalist editorial'}". 
-Specific art direction: ${specificEnhanceNote}. 
-Shot on 85mm lens, f/2.8, crisp focus on product texture, color-graded for a cohesive high-end print catalog, 8k resolution, photorealistic.
+Commercial editorial food and beverage photography of "${productTitle}".
+FRAMING & COMPOSITION: Medium-wide hero shot, show the ENTIRE glass, cup, or packaging completely from top to bottom with generous breathing room around the edges. Do not crop the top or bottom of the product.
+BACKGROUND REPLACEMENT: Completely replace any plain white cutout background or messy surroundings with a cohesive, warm artisanal cafe tabletop setting (textured travertine stone or warm oak wood table, soft warm cream wall in the far background with natural window shadow).
+LIGHTING & STYLE: Warm golden morning sunlight streaming from the side, realistic soft shadows, natural condensation and rich textures. Style: "${designStyle || 'Warm Minimalist Editorial Catalog'}".
+Specific art direction: ${specificEnhanceNote}.
+Preserve the exact shape, layers, and colors of the original product. Shot on 50mm lens, f/2.8, cohesive warm film color grading, 8k photorealistic, no text or watermarks.
 `.trim();
+
+export const buildFullCatalogPosterPrompt = (
+  shopName: string,
+  headerSubtitle: string,
+  footerCta: string,
+  products: Array<{
+    title: string;
+    description?: string;
+    flavorNotes: string;
+    highlight: string;
+    badge?: string;
+  }>,
+  designStyle?: string,
+  theme?: {
+    headerBg?: string;
+    accentColor?: string;
+    canvasBg?: string;
+    textPrimary?: string;
+  },
+  logoRefNumber?: number
+) => {
+  const count = products.length;
+
+  // Dynamic composition rule so the image model never defaults to rigid equal boxes
+  const compositionGuide =
+    count === 1
+      ? 'Single monumental hero product centered on a sculpted pedestal or artisan tabletop, surrounded by generous editorial typography and subtle botanical/ingredient accents.'
+      : count === 2
+      ? 'Split diagonal or side-by-side editorial showcase: two equally prominent hero products staged on a continuous shared surface with alternating text alignment.'
+      : count === 3
+      ? 'Asymmetric magazine spread: Product 1 is the large dominant Hero centerpiece in the upper half with angled natural sunlight; Products 2 and 3 sit harmoniously side-by-side in the lower half on a matching tabletop surface.'
+      : 'Curated lookbook grid: Product 1 featured as a larger top-left or top-center anchor piece, paired with cleanly aligned smaller editorial vignettes below—NO repetitive identical white boxes.';
+
+  const productBlocks = products
+    .map((p, idx) => {
+      const role = idx === 0 ? 'HERO CENTERPIECE (Largest visual focus)' : `SUPPORTING ITEM #${idx + 1}`;
+      const descLine = p.description?.trim()
+        ? `\n- Product Details & Highlights: "${p.description.trim()}"`
+        : '';
+      return `[Item ${idx + 1} - ${role}]
+- Reference Image: Use exact product appearance, shape, container, texture, and colors from uploaded image #${idx + 1}.
+- Product Title: "${p.title}"${descLine}
+- Micro-Tag / Tasting Note: "${p.flavorNotes}"
+- Key Editorial Feature: "${p.highlight}"${p.badge ? `\n- Minimalist Tag / Stamp: "${p.badge}"` : ''}`;
+    })
+    .join('\n\n');
+
+  const logoDirective = logoRefNumber
+    ? `- Brand Logo Integration: Uploaded image #${logoRefNumber} is the official Brand Logo. Prominently place and seamlessly integrate this exact logo emblem/icon at the top masthead directly above or beside "${shopName}". Preserve its precise vector/emblem shape, symbol, and authentic colors without distortion.`
+    : `- Brand Title: Refined, high-contrast modern serif typography displaying "${shopName}".`;
+
+  return `
+Create a high-craft, print-ready vertical commercial catalog poster (3:4 aspect ratio) for the brand "${shopName}".
+
+1. ART DIRECTION & ANTI-SLOP LAYOUT RULES:
+- Aesthetic Direction & User Visual Guidelines: ${designStyle || 'Modern Clean Editorial Showcase, tactile boutique print menu, warm organic minimalism'}.
+- Layout Architecture: ${compositionGuide}
+- STRICTLY NO WEB-UI WIREFRAMES: Do NOT draw white rounded-rectangle app cards, heavy drop-shadow boxes, or generic e-commerce grid borders. Let the photography and typography breathe directly on the textured background canvas.
+- Unified Photography & Lighting: Blend all uploaded reference products into a cohesive, real-world editorial tabletop environment (such as warm travertine stone, brushed oak wood, or textured linen) with consistent golden-hour side lighting, realistic contact shadows, and subtle depth-of-field. Keep every product 100% faithful to its uploaded reference image without distorting logos, labels, or shapes.
+
+2. BRAND MASTHEAD & COLOR PALETTE HIERARCHY:
+${logoDirective}
+- Brand Title & Masthead: "${shopName}" set in refined, high-contrast modern serif typography (${theme?.textPrimary || '#1C1815'}), paired with a clean spaced-out sans-serif subtitle "${headerSubtitle}".
+- Background Canvas: Tactile matte paper finish in ${theme?.canvasBg || '#F4EFE6'} with subtle organic grain and delicate thin editorial hairline dividers (${theme?.accentColor || '#A84A18'}).
+- Product Typography: Crisp, uncluttered editorial hierarchy—bold title, small uppercase flavor micro-tag in ${theme?.accentColor || '#A84A18'}, and concise description lines. Never overlap text onto the main product body.
+
+3. FEATURED PRODUCTS TO INTEGRATE:
+${productBlocks}
+
+4. FOOTER CALLOUT & CONTACT:
+- Subtle, balanced bottom editorial strip featuring clean typography: "${footerCta}".
+
+5. QUALITY & NEGATIVE CONSTRAINTS:
+- Studio-grade graphic design, balanced negative space, crisp razor-sharp typography, authentic Indonesian boutique UMKM brand look.
+- Avoid: gibberish/misspelled letters, extra hallucinated products, cropped/cut-off cups or packaging, plastic-looking CGI glare, generic stock-photo watermarks, or cluttered clip-art.
+`.trim();
+};
 
 export interface CatalogTheme {
   headerBg: string;
@@ -23,6 +100,9 @@ export interface CatalogTheme {
   accentColor: string;
   cardBg: string;
   canvasBg: string;
+  borderColor?: string;
+  textPrimary?: string;
+  textSecondary?: string;
 }
 
 interface ProductItem {
@@ -30,6 +110,32 @@ interface ProductItem {
   imageUrl: string;
   title: string;
   description: string;
+  flavorNotes?: string;
+  badge?: string;
+}
+
+async function resolveImageUrl(url: string, prodId?: string): Promise<string> {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  // If it's a relative catalog image URL
+  const match = url.match(/\/api\/catalog\/image\/([a-zA-Z0-9_-]+)/);
+  const targetId = match ? match[1] : prodId;
+  if (targetId) {
+    try {
+      const dbRes = await pool.query(
+        `SELECT "imageUrl" FROM "CatalogProduct" WHERE "id" = $1 LIMIT 1`,
+        [targetId]
+      );
+      if (dbRes.rows.length > 0 && dbRes.rows[0].imageUrl) {
+        return dbRes.rows[0].imageUrl;
+      }
+    } catch (e) {
+      console.warn('[Catalog AI] Gagal mencari image di DB:', e);
+    }
+  }
+  return url;
 }
 
 export async function POST(req: Request) {
@@ -39,9 +145,10 @@ export async function POST(req: Request) {
       shopName: string;
       tagline?: string;
       prompt?: string;
+      brandLogoUrl?: string | null;
     };
 
-    const { products, shopName, tagline = '', prompt = '' } = body;
+    const { products, shopName, tagline = '', prompt = '', brandLogoUrl = null } = body;
 
     if (!products || products.length === 0) {
       return NextResponse.json(
@@ -66,201 +173,127 @@ export async function POST(req: Request) {
         : count === 2
         ? '2col'
         : count === 3
-        ? '3col'
+        ? 'hero+2col'
         : count <= 6
         ? 'featured+grid'
         : 'hero+2col';
 
-    const productList = products
-      .map(
-        (p, i) =>
-          `Produk #${i + 1}:\n- Judul: ${p.title || 'Produk ' + (i + 1)}\n- Deskripsi Asli: ${p.description || 'Produk pilihan berkualitas'}`
-      )
-      .join('\n\n');
-
-    // Dedicated prompt for "Modern Clean Showcase" catalog style
-    const systemPrompt = `Kamu adalah Senior Brand Designer & Creative Art Director spesialis desain katalog cetak, menu editorial, dan materi promosi visual kelas atas untuk brand UMKM.
-
-    Tugasmu adalah mengubah data mentah produk menjadi konsep katalog "Modern Clean Showcase" yang kohesif, estetik, proporsional, dan jauh dari kesan template kaku.
-
-    Prinsip Utama Desain & Copywriting:
-    1. ANTI-SLOP COPYWRITING: Jangan pernah menyalin mentah input user yang terlalu singkat atau kasual (misal: "enak banget", "creamy bangett"). Ubah menjadi bahasa editorial yang menggugah selera, elegan, dan profesional.
-    2. KEPADATAN TEKS PROPORSIONAL: Pastikan setiap deskripsi produk (highlight) memiliki panjang yang seragam antar-kartu (sekitar 14-20 kata / 2-3 baris teks) agar tidak ada ruang kosong yang jomplang di dalam kartu katalog.
-    3. HARMONI WARNA (COLOR DIRECTION): Tentukan skema warna hex yang harmonis dan relevan dengan kategori produk (misal: nuansa warm cream, espresso, & sage untuk kafe; atau terracotta & sand untuk kuliner), bukan hitam/biru default yang kaku.
-    4. ARAHAN VISUAL FOTO: Buat prompt spesifik untuk memoles foto produk mentah agar memiliki pencahayaan studio yang bersih, tajam, dan seragam tanpa mengubah bentuk asli produk.
-
-    Kembalikan respon HANYA dalam bentuk JSON valid murni tanpa markdown, tanpa blok kode \`\`\`json, dan tanpa teks pengantar.`;
-
-    const userPrompt = `Konteks Brand:
-    - Nama Toko / Brand: ${shopName}
-    - Tagline Awal: ${tagline || 'Tidak ada'}
-    - Preferensi / Instruksi Desain Penjual: ${prompt || 'Modern Clean Showcase, bersih, hangat, dan elegan'}
-    - Total Produk: ${count}
-        
-    Data Produk Mentah:
-    ${productList}
-        
-    Instruksi Pengerjaan:
-    1. Pilih layout paling proporsional untuk ${count} produk dari opsi: ["single", "2col", "3col", "featured+grid", "hero+2col"].
-    2. Tentukan palet warna katalog (theme) dalam format HEX yang sangat estetik dan sesuai dengan karakter produk.
-    3. Poles headerSubtitle agar terasa seperti tajuk majalah/katalog profesional (maksimal 10 kata, hindari tanda seru berlebihan).
-    4. Untuk setiap produk (indeks 0 hingga ${count - 1}):
-       - title: Nama produk yang rapi, kapitalisasi tepat, dan terdengar premium (maksimal 5 kata).
-       - highlight: Deskripsi penggugah selera yang menjelaskan rasa, tekstur, atau bahan utama. Wajib 14–20 kata agar tata letak kartu penuh secara proporsional.
-       - badge: Label singkat 1-2 kata yang relevan (contoh: "Signature", "Best Seller", "Barista Pick", "Favorit", "Freshly Made") atau string kosong "" jika tidak semua kartu butuh badge agar tidak monoton.
-       - imageEnhancePrompt: Prompt bahasa Inggris singkat untuk model Image-to-Image agar foto produk ini dipoles pencahayaannya, dibersihkan noise/watermark-nya, dan diselaraskan tone-nya dengan produk lain tanpa mengubah bentuk produk aslinya.
-        
-    Format JSON Wajib:
-    {
-      "layout": "${defaultLayout}",
-      "theme": {
-        "headerBg": "#1C1917",
-        "headerText": "#FAF8F5",
-        "accentColor": "#B45309",
-        "cardBg": "#FFFFFF",
-        "canvasBg": "#F5F2EB"
-      },
-      "headerSubtitle": "...",
-      "products": [
-        {
-          "index": 0,
-          "title": "...",
-          "highlight": "...",
-          "badge": "...",
-          "imageEnhancePrompt": "..."
-        }
-      ]
-    }`;
-
-    const defaultTheme: CatalogTheme = {
-      headerBg: '#1C1917',
-      headerText: '#FAF8F5',
-      accentColor: '#B45309',
-      cardBg: '#FFFFFF',
-      canvasBg: '#F5F2EB',
+    const activeTheme: CatalogTheme = {
+      headerBg: '#1C1815',
+      headerText: '#F9F6F0',
+      accentColor: '#A84A18',
+      canvasBg: '#F3EDE2',
+      cardBg: 'transparent',
+      borderColor: '#D6CEC2',
+      textPrimary: '#1C1815',
+      textSecondary: '#574E46',
     };
 
-    let layoutData: {
-      layout: string;
-      headerSubtitle: string;
-      theme: CatalogTheme;
-      products: Array<{
-        index: number;
-        title: string;
-        highlight: string;
-        badge: string;
-        imageEnhancePrompt: string;
-      }>;
-    } = {
-      layout: defaultLayout,
-      headerSubtitle: tagline || 'Katalog Pilihan Terbaik',
-      theme: defaultTheme,
-      products: products.map((p, i) => {
-        const title = p.title || `Produk Pilihan ${i + 1}`;
-        return {
-          index: i,
-          title,
-          highlight: p.description || 'Kualitas premium dengan cita rasa dan pengerjaan terbaik.',
-          badge: i === 0 ? 'Best Seller' : i === 1 ? 'Favorit' : '',
-          imageEnhancePrompt: buildImageEnhancementPrompt(
-            title,
-            'Clean commercial studio lighting with soft diffused shadows and crisp product focus',
-            prompt
-          ),
-        };
-      }),
-    };
+    const headerSubtitle = tagline?.trim() || 'Katalog Pilihan Eksklusif';
+    const footerCta = 'Tersedia untuk dine-in & delivery • Hubungi kami untuk pemesanan';
 
-    try {
-      const aiRes = await groqChatCompletion(
-        [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        {
-          temperature: 0.6,
-          max_tokens: 1200,
-        }
-      );
+    // Map product data into formatted structure for image generation
+    const posterProducts = products.map((p, idx) => {
+      const title = p.title?.trim() || `Produk ${idx + 1}`;
+      const description = p.description?.trim() || '';
+      const highlight =
+        description ||
+        `Pilihan racikan berkualitas tinggi dengan cita rasa khas dan bahan baku premium.`;
+      const flavorNotes =
+        p.flavorNotes?.trim() ||
+        (idx === 0
+          ? 'SIGNATURE • ARTISANAL • EXCLUSIVE'
+          : idx === 1
+          ? 'BEST SELLER • RICH FLAVOR'
+          : 'CURATED SELECTION • HANDCRAFTED');
+      const badge =
+        p.badge?.trim() ||
+        (idx === 0 ? 'BEST SELLER' : idx === 1 ? 'HOUSE FAVORITE' : '');
 
-      let raw = aiRes.text.trim();
-      if (raw.startsWith('```')) {
-        raw = raw
-          .replace(/^```json\s*/i, '')
-          .replace(/^```\s*/i, '')
-          .replace(/```$/i, '')
-          .trim();
-      }
-
-      const parsed = JSON.parse(raw) as {
-        layout?: string;
-        theme?: {
-          headerBg?: string;
-          headerText?: string;
-          accentColor?: string;
-          cardBg?: string;
-          canvasBg?: string;
-        };
-        headerSubtitle?: string;
-        products?: Array<{
-          index?: number;
-          title?: string;
-          tagline?: string;
-          highlight?: string;
-          badge?: string;
-          imageEnhancePrompt?: string;
-        }>;
+      return {
+        title,
+        description,
+        flavorNotes,
+        highlight,
+        badge,
       };
+    });
 
-      if (parsed && Array.isArray(parsed.products) && parsed.products.length > 0) {
-        const activeTheme: CatalogTheme = {
-          headerBg: parsed.theme?.headerBg || defaultTheme.headerBg,
-          headerText: parsed.theme?.headerText || defaultTheme.headerText,
-          accentColor: parsed.theme?.accentColor || defaultTheme.accentColor,
-          cardBg: parsed.theme?.cardBg || defaultTheme.cardBg,
-          canvasBg: parsed.theme?.canvasBg || defaultTheme.canvasBg,
-        };
+    // 1. Resolve all uploaded product reference images in order (#1, #2, #3, ...)
+    const resolvedProductImages = await Promise.all(
+      products.map((p) => resolveImageUrl(p.imageUrl, p.id))
+    );
+    const validProductImages = resolvedProductImages.filter((img): img is string =>
+      Boolean(img && img.trim().length > 0)
+    );
 
-        layoutData = {
-          layout: parsed.layout || defaultLayout,
-          headerSubtitle: parsed.headerSubtitle || tagline || 'Katalog Pilihan Terbaik',
-          theme: activeTheme,
-          products: products.map((p, i) => {
-            const matched = parsed.products?.find((item) => item.index === i) || parsed.products?.[i];
-            const title = matched?.title?.trim() || matched?.tagline?.trim() || p.title || `Produk ${i + 1}`;
-            const specificEnhance = matched?.imageEnhancePrompt?.trim() || 'Soft natural studio illumination, crisp textures, premium pedestal';
-            return {
-              index: i,
-              title,
-              highlight: matched?.highlight?.trim() || p.description || 'Pilihan berkualitas tinggi dengan rasa dan kualitas unggulan.',
-              badge: matched?.badge?.trim() || (i === 0 ? 'Best Seller' : ''),
-              imageEnhancePrompt: buildImageEnhancementPrompt(title, specificEnhance, prompt),
-            };
-          }),
-        };
+    // 2. Resolve brand logo reference image if provided
+    let validLogoImage: string | null = null;
+    if (brandLogoUrl) {
+      const resolvedLogo = await resolveImageUrl(brandLogoUrl);
+      if (resolvedLogo && resolvedLogo.trim().length > 0) {
+        validLogoImage = resolvedLogo;
       }
-    } catch (aiErr) {
-      console.warn('[Catalog AI] Fallback digunakan karena AI response error:', aiErr);
     }
+
+    // Combine references: products first (#1, #2, ...), logo last (if available)
+    const referenceImages: string[] = [...validProductImages];
+    let logoRefNumber: number | undefined = undefined;
+    if (validLogoImage) {
+      referenceImages.push(validLogoImage);
+      logoRefNumber = referenceImages.length; // e.g. #[count + 1]
+    }
+
+    // 3. Generate Full Catalog Poster prompt including logo, titles, descriptions & custom art direction
+    const fullPosterPrompt = buildFullCatalogPosterPrompt(
+      shopName,
+      headerSubtitle,
+      footerCta,
+      posterProducts,
+      prompt || 'Modern Clean Editorial Showcase, tactile boutique print menu, warm organic minimalism',
+      activeTheme,
+      logoRefNumber
+    );
+
+    // 4. Call Image Generation Model via dwiai endpoint
+    const imageGenResult = await generateCatalogImage({
+      prompt: fullPosterPrompt,
+      aspect_ratio: '3:4',
+      size: '1024x1365',
+      images: referenceImages,
+    });
 
     return NextResponse.json({
       success: true,
+      imageUrl: imageGenResult.imageUrl,
+      imageBase64: imageGenResult.imageBase64 || imageGenResult.imageUrl,
+      model: imageGenResult.model,
+      keyUsed: imageGenResult.keyUsed,
       catalogData: {
         shopName,
-        tagline: layoutData.headerSubtitle || tagline,
-        layout: layoutData.layout,
-        headerSubtitle: layoutData.headerSubtitle,
-        theme: layoutData.theme,
+        tagline: headerSubtitle,
+        layout: defaultLayout,
+        headerSubtitle,
+        footerCta,
+        theme: activeTheme,
+        fullPosterPrompt,
+        imageUrl: imageGenResult.imageUrl,
+        brandLogoUrl: validLogoImage || brandLogoUrl || null,
         products: products.map((p, i) => {
-          const item = layoutData.products[i];
-          const title = item?.title || p.title || `Produk ${i + 1}`;
+          const item = posterProducts[i];
           return {
             ...p,
-            title,
-            tagline: title,
-            highlight: item?.highlight || p.description || 'Kualitas premium dengan pengerjaan terbaik.',
-            badge: item?.badge || (i === 0 ? 'Best Seller' : ''),
-            imageEnhancePrompt: item?.imageEnhancePrompt || '',
+            isFeatured: i === 0,
+            title: item.title,
+            tagline: item.title,
+            flavorNotes: item.flavorNotes,
+            highlight: item.highlight,
+            badge: item.badge,
+            imageEnhancePrompt: buildImageEnhancementPrompt(
+              item.title,
+              item.highlight,
+              prompt
+            ),
           };
         }),
       },
@@ -268,6 +301,6 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Gagal memproses katalog AI.';
     console.error('[Catalog Generate] Error:', error);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }

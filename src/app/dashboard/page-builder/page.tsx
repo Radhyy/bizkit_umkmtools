@@ -12,6 +12,8 @@ import {
   IconTrash,
   IconAlertCircle,
   IconLayoutGrid,
+  IconCloudUpload,
+  IconBuildingStore,
 } from '@tabler/icons-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -40,6 +42,8 @@ interface CatalogProductData {
   imageUrl: string;
   title: string;
   description: string;
+  flavorNotes?: string;
+  isFeatured?: boolean;
   tagline?: string;
   highlight: string;
   badge: string;
@@ -51,7 +55,10 @@ interface CatalogData {
   tagline: string;
   layout: string;
   headerSubtitle: string;
+  footerCta?: string;
+  fullPosterPrompt?: string;
   theme?: CatalogTheme;
+  brandLogoUrl?: string | null;
   products: CatalogProductData[];
 }
 
@@ -162,42 +169,15 @@ async function renderCatalogToCanvas(
   const TEXT_MUTED = '#57534E';
   const CARD_BORDER = '#E7E5E4';
 
-  // 1. Background Canvas
-  ctx.fillStyle = CANVAS_BG;
-  ctx.fillRect(0, 0, W, H);
-
-  // 2. Header Band
-  const headerH = 190;
-  ctx.fillStyle = HEADER_BG;
-  ctx.fillRect(0, 0, W, headerH);
-
-  // Accent Strip tipis di bawah Header
-  ctx.fillStyle = ACCENT_COLOR;
-  ctx.fillRect(0, headerH, W, 5);
-
-  // Header: Nama Toko / Brand (Font Editorial Serif Modern)
-  ctx.fillStyle = HEADER_TEXT;
-  ctx.font = `bold 54px "DM Serif Display", "Playfair Display", Georgia, serif`;
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'center';
-  ctx.fillText(catalog.shopName || 'Katalog Produk', W / 2, 78);
-
-  // Header: Subtitle / Tagline (Font Sans-Serif Bersih)
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.78)';
-  ctx.font = `500 20px "Plus Jakarta Sans", -apple-system, sans-serif`;
-  ctx.fillText(catalog.headerSubtitle || catalog.tagline || '', W / 2, 138);
-
-  const products = catalog.products;
-  const count = products.length;
-
-  // ── Layout Engine ─────────────────────────────────────────────────────────
-  const CONTENT_TOP = headerH + 5 + 32;
-  const CONTENT_BOTTOM = H - 68;
-  const CONTENT_H = CONTENT_BOTTOM - CONTENT_TOP;
-  const PAD = 36;
-  const INNER_W = W - PAD * 2;
-  const GAP = 24;
-  const RADIUS = 18;
+  async function loadImage(url: string): Promise<HTMLImageElement | null> {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
 
   function roundRect(
     x: number, y: number, w: number, h: number, r: number,
@@ -218,16 +198,201 @@ async function renderCatalogToCanvas(
     if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); }
   }
 
-  async function loadImage(url: string): Promise<HTMLImageElement | null> {
-    return new Promise((resolve) => {
-      const img = new window.Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = url;
-    });
+  function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      const test = current ? current + ' ' + word : word;
+      if (ctx.measureText(test).width > maxW && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
   }
 
+  // Muat Logo Brand jika ada
+  const logoImg = catalog.brandLogoUrl ? await loadImage(catalog.brandLogoUrl) : null;
+  const headerH = logoImg ? 220 : 185;
+
+  // 1. Background Canvas
+  ctx.fillStyle = CANVAS_BG;
+  ctx.fillRect(0, 0, W, H);
+
+  // 2. Header Band
+  ctx.fillStyle = HEADER_BG;
+  ctx.fillRect(0, 0, W, headerH);
+
+  // Accent Strip tipis di bawah Header
+  ctx.fillStyle = ACCENT_COLOR;
+  ctx.fillRect(0, headerH, W, 5);
+
+  if (logoImg) {
+    // Render Logo Brand di Tengah Header
+    const maxLogoH = 48;
+    const maxLogoW = 160;
+    const ratio = Math.min(maxLogoW / logoImg.width, maxLogoH / logoImg.height);
+    const logoW = logoImg.width * ratio;
+    const logoH = logoImg.height * ratio;
+    ctx.drawImage(logoImg, (W - logoW) / 2, 22, logoW, logoH);
+
+    // Header: Nama Toko / Brand (Font Editorial Serif Modern)
+    ctx.fillStyle = HEADER_TEXT;
+    ctx.font = `bold 48px "DM Serif Display", "Playfair Display", Georgia, serif`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillText(catalog.shopName || 'Katalog Produk', W / 2, 22 + logoH + 34);
+
+    // Header: Subtitle / Tagline (Font Sans-Serif Bersih)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.80)';
+    ctx.font = `500 18px "Plus Jakarta Sans", -apple-system, sans-serif`;
+    ctx.fillText(catalog.headerSubtitle || catalog.tagline || '', W / 2, 22 + logoH + 72);
+  } else {
+    // Header: Nama Toko / Brand
+    ctx.fillStyle = HEADER_TEXT;
+    ctx.font = `bold 54px "DM Serif Display", "Playfair Display", Georgia, serif`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillText(catalog.shopName || 'Katalog Produk', W / 2, 74);
+
+    // Header: Subtitle / Tagline
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.78)';
+    ctx.font = `500 20px "Plus Jakarta Sans", -apple-system, sans-serif`;
+    ctx.fillText(catalog.headerSubtitle || catalog.tagline || '', W / 2, 134);
+  }
+
+  const products = catalog.products;
+  const count = products.length;
+
+  // ── Layout Engine ─────────────────────────────────────────────────────────
+  const CONTENT_TOP = headerH + 5 + 30;
+  const CONTENT_BOTTOM = H - 68;
+  const CONTENT_H = CONTENT_BOTTOM - CONTENT_TOP;
+  const PAD = 36;
+  const INNER_W = W - PAD * 2;
+  const GAP = 24;
+  const RADIUS = 18;
+
+  // ── Card Drawing: Horizontal Hero Showcase Card ──────────────────────────
+  function drawHeroHorizontalCard(
+    x: number, y: number, w: number, h: number,
+    product: CatalogProductData,
+    img: HTMLImageElement | null
+  ) {
+    // Drop shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.06)';
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 6;
+    roundRect(x, y, w, h, RADIUS, CARD_BG, CARD_BORDER);
+    ctx.restore();
+
+    // Sisi Kiri: Foto Produk Hero (52% lebar kartu)
+    const imgW = Math.round(w * 0.52);
+    ctx.save();
+    // Clip sisi kiri kartu
+    ctx.beginPath();
+    ctx.moveTo(x + RADIUS, y);
+    ctx.lineTo(x + imgW, y);
+    ctx.lineTo(x + imgW, y + h);
+    ctx.lineTo(x + RADIUS, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - RADIUS);
+    ctx.lineTo(x, y + RADIUS);
+    ctx.quadraticCurveTo(x, y, x + RADIUS, y);
+    ctx.closePath();
+    ctx.clip();
+
+    if (img) {
+      const scale = Math.max(imgW / img.width, h / img.height);
+      const dw = img.width * scale;
+      const dh = img.height * scale;
+      const dx = x + (imgW - dw) / 2;
+      const dy = y + (h - dh) / 2;
+      ctx.drawImage(img, dx, dy, dw, dh);
+    } else {
+      ctx.fillStyle = '#E7E5E4';
+      ctx.fillRect(x, y, imgW, h);
+      ctx.fillStyle = '#78716C';
+      ctx.font = `500 16px "Plus Jakarta Sans", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Hero Showcase', x + imgW / 2, y + h / 2);
+    }
+    ctx.restore();
+
+    // Badge pada foto Hero
+    if (product.badge) {
+      const badgeX = x + 18;
+      const badgeY = y + 18;
+      ctx.font = `700 12px "Plus Jakarta Sans", sans-serif`;
+      const badgeText = product.badge.toUpperCase();
+      const bW = ctx.measureText(badgeText).width + 20;
+      const bH = 26;
+      roundRect(badgeX, badgeY, bW, bH, 6, ACCENT_COLOR);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(badgeText, badgeX + bW / 2, badgeY + bH / 2);
+    }
+
+    // Sisi Kanan: Area Teks Editorial Lega
+    const infoLeft = x + imgW + 28;
+    const infoRight = x + w - 28;
+    const infoW = infoRight - infoLeft;
+    let cy = y + 36;
+
+    // Eyebrow tag
+    ctx.fillStyle = ACCENT_COLOR;
+    ctx.font = `700 12px "Plus Jakarta Sans", sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('FEATURED HIGHLIGHT', infoLeft, cy);
+    cy += 20;
+
+    // Judul Produk dari respons AI
+    const titleFontSize = 26;
+    ctx.font = `bold ${titleFontSize}px "DM Serif Display", "Playfair Display", Georgia, serif`;
+    ctx.fillStyle = TEXT_DARK;
+    const titleText = product.title || product.tagline || 'Produk Unggulan';
+    const titleLines = wrapText(ctx, titleText, infoW);
+    titleLines.slice(0, 2).forEach((line) => {
+      ctx.fillText(line, infoLeft, cy);
+      cy += titleFontSize * 1.25;
+    });
+
+    // Sub-title / Flavor notes dari respons AI
+    if (product.flavorNotes) {
+      cy += 6;
+      ctx.font = `600 13px "Plus Jakarta Sans", sans-serif`;
+      ctx.fillStyle = ACCENT_COLOR;
+      ctx.fillText(product.flavorNotes.toUpperCase(), infoLeft, cy);
+      cy += 18;
+    }
+
+    // Garis aksen pemisah
+    cy += 4;
+    ctx.fillStyle = ACCENT_COLOR;
+    ctx.fillRect(infoLeft, cy, 36, 2.5);
+    cy += 14;
+
+    // Deskripsi highlight lengkap dari respons AI
+    if (product.highlight) {
+      const hlFontSize = 14.5;
+      ctx.font = `400 ${hlFontSize}px "Plus Jakarta Sans", -apple-system, sans-serif`;
+      ctx.fillStyle = TEXT_MUTED;
+      const hlLines = wrapText(ctx, product.highlight, infoW);
+      hlLines.slice(0, 4).forEach((line) => {
+        ctx.fillText(line, infoLeft, cy);
+        cy += hlFontSize * 1.45;
+      });
+    }
+  }
+
+  // ── Card Drawing: Standard Product Card ──────────────────────────────────
   function drawProductCard(
     x: number, y: number, w: number, h: number,
     product: CatalogProductData,
@@ -249,7 +414,6 @@ async function renderCatalogToCanvas(
     ctx.clip();
 
     if (img) {
-      // Object-fit: cover dengan pemusatan gambar
       const scale = Math.max(w / img.width, imgH / img.height);
       const dw = img.width * scale;
       const dh = img.height * scale;
@@ -275,7 +439,7 @@ async function renderCatalogToCanvas(
 
     ctx.restore();
 
-    // Badge promosi dengan warna theme accentColor
+    // Badge promosi
     if (product.badge) {
       const badgeX = x + 16;
       const badgeY = y + 16;
@@ -299,7 +463,7 @@ async function renderCatalogToCanvas(
 
     ctx.textAlign = 'left';
 
-    // Judul Produk (Font Editorial Serif Modern)
+    // Judul Produk dari respons AI
     const titleFontSize = featured ? 24 : 20;
     ctx.font = `bold ${titleFontSize}px "DM Serif Display", "Playfair Display", Georgia, serif`;
     ctx.fillStyle = TEXT_DARK;
@@ -312,15 +476,24 @@ async function renderCatalogToCanvas(
       cy += titleFontSize * 1.25;
     });
 
-    // Garis aksen pemisah tipis yang elegan di bawah judul
-    cy += 6;
-    ctx.fillStyle = ACCENT_COLOR;
-    ctx.fillRect(infoLeft, cy, 32, 2);
-    cy += 12;
+    // Sub-title / Flavor notes jika ada
+    if (product.flavorNotes) {
+      cy += 3;
+      ctx.font = `600 11.5px "Plus Jakarta Sans", sans-serif`;
+      ctx.fillStyle = ACCENT_COLOR;
+      ctx.fillText(product.flavorNotes.toUpperCase(), infoLeft, cy);
+      cy += 14;
+    }
 
-    // Highlight / deskripsi produk dengan line-height nyaman
+    // Garis aksen pemisah tipis yang elegan di bawah judul
+    cy += 5;
+    ctx.fillStyle = ACCENT_COLOR;
+    ctx.fillRect(infoLeft, cy, 30, 2);
+    cy += 11;
+
+    // Highlight / deskripsi produk dari respons AI
     if (product.highlight) {
-      const hlFontSize = featured ? 15 : 13.5;
+      const hlFontSize = featured ? 14.5 : 13;
       ctx.font = `400 ${hlFontSize}px "Plus Jakarta Sans", -apple-system, sans-serif`;
       ctx.fillStyle = TEXT_MUTED;
       const hlLines = wrapText(ctx, product.highlight, infoW);
@@ -331,95 +504,85 @@ async function renderCatalogToCanvas(
     }
   }
 
-  function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
-    const words = text.split(' ');
-    const lines: string[] = [];
-    let current = '';
-    for (const word of words) {
-      const test = current ? current + ' ' + word : word;
-      if (ctx.measureText(test).width > maxW && current) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = test;
-      }
-    }
-    if (current) lines.push(current);
-    return lines;
-  }
-
   // ── Load all images in parallel ─────────────────────────────────────────
   const imgs = await Promise.all(
     products.map((p) => (p.imageUrl ? loadImage(p.imageUrl) : Promise.resolve(null)))
   );
 
-  // ── Draw layout ──────────────────────────────────────────────────────────
+  // ── Draw layout secara proporsional sesuai jumlah produk ────────────────
+  const isHero2Col = catalog.layout === 'hero+2col' || count === 3;
+
   if (count === 1) {
-    // Single: big centered card
-    const cardH = CONTENT_H - 48;
-    const cardW = Math.round(INNER_W * 0.72);
-    const cx = PAD + (INNER_W - cardW) / 2;
-    drawProductCard(cx, CONTENT_TOP, cardW, cardH, products[0], imgs[0], true);
+    // Single: 1 Large Horizontal Showcase Card
+    const cardH = Math.min(CONTENT_H - 40, 680);
+    const cy = CONTENT_TOP + (CONTENT_H - cardH) / 2;
+    drawHeroHorizontalCard(PAD, cy, INNER_W, cardH, products[0], imgs[0]);
 
   } else if (count === 2) {
     // 2-col equal
     const cardW = (INNER_W - GAP) / 2;
-    const cardH = CONTENT_H - 32;
+    const cardH = CONTENT_H - 24;
     [0, 1].forEach((i) => {
       drawProductCard(PAD + i * (cardW + GAP), CONTENT_TOP, cardW, cardH, products[i], imgs[i]);
     });
 
-  } else if (count === 3) {
-    // 3-col equal
-    const cardW = (INNER_W - GAP * 2) / 3;
-    const cardH = CONTENT_H - 32;
-    [0, 1, 2].forEach((i) => {
-      drawProductCard(PAD + i * (cardW + GAP), CONTENT_TOP, cardW, cardH, products[i], imgs[i]);
+  } else if (isHero2Col && count === 3) {
+    // HERO+2COL: 1 Horizontal Hero Card di atas + 2 Kartu seimbang di bawah
+    const heroH = Math.round(CONTENT_H * 0.44); // ~550px
+    drawHeroHorizontalCard(PAD, CONTENT_TOP, INNER_W, heroH, products[0], imgs[0]);
+
+    const bottomTop = CONTENT_TOP + heroH + GAP;
+    const bottomH = CONTENT_BOTTOM - bottomTop;
+    const cardW = (INNER_W - GAP) / 2;
+
+    drawProductCard(PAD, bottomTop, cardW, bottomH, products[1], imgs[1]);
+    drawProductCard(PAD + cardW + GAP, bottomTop, cardW, bottomH, products[2], imgs[2]);
+
+  } else if (count === 4) {
+    // 2x2 Grid: 4 Kartu seimbang dalam 2 baris
+    const rowH = (CONTENT_H - GAP) / 2;
+    const colW = (INNER_W - GAP) / 2;
+    [0, 1, 2, 3].forEach((i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      drawProductCard(
+        PAD + col * (colW + GAP),
+        CONTENT_TOP + row * (rowH + GAP),
+        colW,
+        rowH,
+        products[i],
+        imgs[i]
+      );
     });
 
   } else if (count <= 6) {
-    // Featured (top-left big) + rest in 2-col grid right / bottom
-    const featW = Math.round(INNER_W * 0.56);
-    const featH = Math.round(CONTENT_H * 0.52);
-    drawProductCard(PAD, CONTENT_TOP, featW, featH, products[0], imgs[0], true);
+    // Hero top + sisa produk dalam grid 2 kolom di bawah
+    const heroH = Math.round(CONTENT_H * 0.40);
+    drawHeroHorizontalCard(PAD, CONTENT_TOP, INNER_W, heroH, products[0], imgs[0]);
 
-    // Right column of 2 products beside featured
-    const rightCount = Math.min(2, count - 1);
-    const rightW = INNER_W - featW - GAP;
-    const rightH = (featH - GAP * (rightCount - 1)) / rightCount;
-    for (let i = 0; i < rightCount; i++) {
+    const rowTop = CONTENT_TOP + heroH + GAP;
+    const remaining = count - 1;
+    const rowCount = Math.ceil(remaining / 2);
+    const rowH = (CONTENT_BOTTOM - rowTop - GAP * (rowCount - 1)) / rowCount;
+    const colW = (INNER_W - GAP) / 2;
+
+    for (let i = 0; i < remaining; i++) {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
       drawProductCard(
-        PAD + featW + GAP,
-        CONTENT_TOP + i * (rightH + GAP),
-        rightW,
-        rightH,
+        PAD + col * (colW + GAP),
+        rowTop + row * (rowH + GAP),
+        colW,
+        rowH,
         products[i + 1],
         imgs[i + 1]
       );
     }
 
-    // Bottom row: remaining products
-    const remaining = count - 1 - rightCount;
-    if (remaining > 0) {
-      const rowTop = CONTENT_TOP + featH + GAP;
-      const rowH = CONTENT_BOTTOM - rowTop;
-      const cardW = (INNER_W - GAP * (remaining - 1)) / remaining;
-      for (let i = 0; i < remaining; i++) {
-        drawProductCard(
-          PAD + i * (cardW + GAP),
-          rowTop,
-          cardW,
-          rowH,
-          products[1 + rightCount + i],
-          imgs[1 + rightCount + i]
-        );
-      }
-    }
-
   } else {
-    // 7–8: hero (full width, shorter) + 2 rows below
-    const heroH = Math.round(CONTENT_H * 0.36);
-    drawProductCard(PAD, CONTENT_TOP, INNER_W, heroH, products[0], imgs[0], true);
+    // 7–8: hero banner di atas + 2 baris produk di bawah
+    const heroH = Math.round(CONTENT_H * 0.32);
+    drawHeroHorizontalCard(PAD, CONTENT_TOP, INNER_W, heroH, products[0], imgs[0]);
 
     const rowTop = CONTENT_TOP + heroH + GAP;
     const remaining = products.slice(1);
@@ -442,17 +605,22 @@ async function renderCatalogToCanvas(
   }
 
   // ── Footer ─────────────────────────────────────────────────────────────────
-  const footerY = H - 62;
+  const footerY = H - 64;
   ctx.fillStyle = CANVAS_BG;
-  ctx.fillRect(0, footerY, W, 62);
+  ctx.fillRect(0, footerY, W, 64);
   ctx.fillStyle = '#D6D3D1';
   ctx.fillRect(PAD, footerY, INNER_W, 1);
 
-  ctx.fillStyle = TEXT_MUTED;
-  ctx.font = `500 14px "Plus Jakarta Sans", sans-serif`;
+  ctx.fillStyle = TEXT_DARK;
+  ctx.font = `600 13.5px "Plus Jakarta Sans", sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`© ${catalog.shopName} · Modern Clean Showcase · Dibuat dengan Bizkit`, W / 2, footerY + 31);
+  const ctaText = catalog.footerCta || 'Tersedia untuk dine-in & delivery • Pesan sekarang sebelum kehabisan';
+  ctx.fillText(ctaText, W / 2, footerY + 23);
+
+  ctx.fillStyle = TEXT_MUTED;
+  ctx.font = `400 11.5px "Plus Jakarta Sans", sans-serif`;
+  ctx.fillText(`© ${catalog.shopName} · Modern Editorial Showcase · Dibuat dengan Bizkit`, W / 2, footerY + 44);
 }
 
 // ─── Main Page Component ──────────────────────────────────────────────────────
@@ -465,9 +633,21 @@ export default function PageBuilder() {
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [s3PosterUrl, setS3PosterUrl] = useState<string | null>(null);
+  const [isSavingS3, setIsSavingS3] = useState(false);
   const [productSlots, setProductSlots] = useState<ProductSlot[]>([emptySlot()]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const [brandLogo, setBrandLogo] = useState<{
+    file: File | null;
+    previewUrl: string | null;
+    uploadedUrl: string | null;
+    uploading: boolean;
+    error: string | null;
+  }>({ file: null, previewUrl: null, uploadedUrl: null, uploading: false, error: null });
+  const [isLogoDragOver, setIsLogoDragOver] = useState(false);
 
   const PROMPT_SUGGESTIONS = [
     { label: 'Kuliner & Minuman', text: 'Modern Clean Showcase dengan nuansa segar dan appetizing, tonjolkan visual produk utama dengan pencahayaan elegan.' },
@@ -596,6 +776,46 @@ export default function PageBuilder() {
     if (file) handleFileSelect(slotId, file);
   }
 
+  // ─── Logo upload ──────────────────────────────────────────────────────────
+
+  const handleLogoSelect = useCallback(async (file: File) => {
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/gif'];
+    if (!ALLOWED.includes(file.type)) {
+      setBrandLogo((prev) => ({ ...prev, error: 'Format tidak didukung. Gunakan JPG, PNG, WEBP, atau SVG.' }));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setBrandLogo((prev) => ({ ...prev, error: 'Ukuran logo maks 5 MB.' }));
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setBrandLogo({ file, previewUrl, uploadedUrl: null, uploading: true, error: null });
+
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'logos');
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || 'Upload logo gagal.');
+      setBrandLogo((prev) => ({ ...prev, uploadedUrl: data.url, uploading: false }));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upload logo gagal.';
+      setBrandLogo((prev) => ({ ...prev, uploading: false, error: msg }));
+    }
+  }, []);
+
+  const handleLogoDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setIsLogoDragOver(false);
+      const file = e.dataTransfer.files?.[0];
+      if (file) handleLogoSelect(file);
+    },
+    [handleLogoSelect]
+  );
+
   // ─── Generate catalog ─────────────────────────────────────────────────────
 
   async function handleGenerate(e: React.FormEvent) {
@@ -635,6 +855,7 @@ export default function PageBuilder() {
           shopName,
           tagline: shopDesc,
           prompt,
+          brandLogoUrl: brandLogo.uploadedUrl || brandLogo.previewUrl || null,
         }),
       });
 
@@ -643,16 +864,52 @@ export default function PageBuilder() {
         throw new Error(aiData.error || 'Gagal memproses AI.');
       }
 
-      const catalogData: CatalogData = aiData.catalogData;
+      const aiImageUrl = aiData.imageUrl || aiData.imageBase64 || aiData.catalogData?.imageUrl;
+      let dataUrl: string;
 
-      // 2. Render to canvas
-      if (!canvasRef.current) throw new Error('Canvas tidak tersedia.');
-      await renderCatalogToCanvas(catalogData, canvasRef.current);
+      if (aiImageUrl) {
+        dataUrl = aiImageUrl;
+      } else {
+        const catalogData: CatalogData = {
+          ...aiData.catalogData,
+          brandLogoUrl: brandLogo.uploadedUrl ?? null,
+        };
 
-      // 3. Export to JPG data URL
-      const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.95);
+        // 2. Render to canvas (fallback)
+        if (!canvasRef.current) throw new Error('Canvas tidak tersedia.');
+        await renderCatalogToCanvas(catalogData, canvasRef.current);
+
+        // 3. Export to JPG data URL
+        dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.95);
+      }
+
       setDownloadUrl(dataUrl);
+      setS3PosterUrl(null);
       setIsPreviewModalOpen(true);
+
+      // 4. Otomatis upload file gambar poster (.jpg) ke Cloud S3 Storage
+      setIsSavingS3(true);
+      fetch('/api/catalog/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: dataUrl,
+          shopName,
+          folder: 'catalog-posters',
+        }),
+      })
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.success && resData.url) {
+            setS3PosterUrl(resData.url);
+          }
+        })
+        .catch((s3Err) => {
+          console.warn('[Auto Upload S3] Gagal menyimpan ke S3:', s3Err);
+        })
+        .finally(() => {
+          setIsSavingS3(false);
+        });
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : 'Terjadi kesalahan saat membuat katalog.';
@@ -662,12 +919,28 @@ export default function PageBuilder() {
     }
   }
 
-  function downloadCatalog() {
+  async function downloadCatalog() {
     if (!downloadUrl) return;
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = `katalog-${shopName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.jpg`;
-    a.click();
+    try {
+      const filename = `katalog-${shopName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.jpg`;
+      if (downloadUrl.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = filename;
+        a.click();
+      } else {
+        const res = await fetch(downloadUrl);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+      }
+    } catch {
+      window.open(downloadUrl, '_blank');
+    }
   }
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -785,6 +1058,119 @@ export default function PageBuilder() {
             </div>
 
             <form onSubmit={handleGenerate} className="space-y-4">
+
+              {/* Brand Logo Upload */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-zinc-700">
+                    Logo Brand <span className="text-zinc-400 font-normal">(Opsional)</span>
+                  </label>
+                  <span className="text-[10px] text-zinc-400">Drag & drop atau pilih file</span>
+                </div>
+                <div
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                    isLogoDragOver
+                      ? 'border-blue-400 bg-blue-50/70 ring-2 ring-blue-500/20 shadow-xs'
+                      : 'bg-zinc-50 border-zinc-200/90'
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (!brandLogo.uploading) setIsLogoDragOver(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setIsLogoDragOver(false);
+                  }}
+                  onDrop={handleLogoDrop}
+                >
+                  {/* Logo thumbnail / upload trigger */}
+                  <div
+                    className={`w-16 h-16 shrink-0 rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden relative transition-colors ${
+                      brandLogo.uploading
+                        ? 'border-blue-300 bg-blue-50'
+                        : isLogoDragOver
+                        ? 'border-blue-500 bg-blue-100/60'
+                        : brandLogo.previewUrl
+                        ? 'border-zinc-200 bg-white'
+                        : 'border-zinc-200 hover:border-zinc-400 bg-white'
+                    }`}
+                    onClick={() => !brandLogo.uploading && logoInputRef.current?.click()}
+                    title="Upload atau drop logo brand"
+                  >
+                    {brandLogo.uploading ? (
+                      <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-500 rounded-full" style={{ animation: 'spin 0.8s linear infinite' }} />
+                    ) : isLogoDragOver ? (
+                      <IconUpload className="w-6 h-6 text-blue-600 animate-bounce" />
+                    ) : brandLogo.previewUrl ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={brandLogo.previewUrl} alt="Logo preview" className="w-full h-full object-contain p-1" />
+                        <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+                          <IconUpload className="w-4 h-4 text-white" />
+                        </div>
+                      </>
+                    ) : (
+                      <IconBuildingStore className="w-6 h-6 text-zinc-300" />
+                    )}
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/svg+xml,image/gif"
+                      className="sr-only"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleLogoSelect(f);
+                        e.target.value = '';
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    {brandLogo.error ? (
+                      <p className="text-[11px] text-red-500 font-medium flex items-center gap-1 mb-1">
+                        <IconAlertCircle className="w-3 h-3 shrink-0" />
+                        {brandLogo.error}
+                      </p>
+                    ) : null}
+                    {isLogoDragOver ? (
+                      <p className="text-[11px] text-blue-600 font-semibold mb-1">
+                        Lepaskan file untuk mengunggah logo...
+                      </p>
+                    ) : brandLogo.uploadedUrl ? (
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                          <IconCheck className="w-2.5 h-2.5 text-emerald-600 stroke-[3]" />
+                        </span>
+                        <span className="text-[11px] text-emerald-700 font-semibold truncate">Logo berhasil diunggah</span>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-zinc-500 mb-1">
+                        Tarik &amp; lepas logo ke sini atau klik pilih file.
+                      </p>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => !brandLogo.uploading && logoInputRef.current?.click()}
+                        className="px-2.5 py-1 bg-white hover:bg-zinc-100 border border-zinc-200 rounded-lg text-[11px] text-zinc-600 font-semibold transition-colors cursor-pointer"
+                      >
+                        {brandLogo.previewUrl ? 'Ganti Logo' : 'Pilih Logo'}
+                      </button>
+                      {brandLogo.previewUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setBrandLogo({ file: null, previewUrl: null, uploadedUrl: null, uploading: false, error: null })}
+                          className="p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="Hapus logo"
+                        >
+                          <IconTrash className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-zinc-400 mt-1">JPG, PNG, WEBP, SVG · Maks 5 MB</p>
+                  </div>
+                </div>
+              </div>
 
               {/* Prompt AI */}
               <div>
@@ -979,15 +1365,40 @@ export default function PageBuilder() {
               <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
                 <IconPhoto className="w-5 h-5 text-blue-500" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-zinc-900 truncate">
                   katalog-{shopName.toLowerCase().replace(/\s+/g, '-')}.jpg
                 </p>
-                <p className="text-[11px] text-zinc-400">1200 × 1600 px · High Quality JPEG</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[11px] text-zinc-400">1200 × 1600 px · High Quality JPEG</span>
+                  {s3PosterUrl && (
+                    <a
+                      href={s3PosterUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-blue-600 hover:text-blue-700 underline truncate max-w-[140px]"
+                      title={s3PosterUrl}
+                    >
+                      Buka di Cloud S3
+                    </a>
+                  )}
+                </div>
               </div>
-              <span className="ml-auto px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100 shrink-0">
-                Siap
-              </span>
+              {isSavingS3 ? (
+                <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-semibold rounded-full border border-blue-100 shrink-0 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                  Upload S3...
+                </span>
+              ) : s3PosterUrl ? (
+                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100 shrink-0 flex items-center gap-1" title="Tersimpan di KilatStorage S3">
+                  <IconCloudUpload className="w-3 h-3 text-emerald-600" />
+                  S3 Cloud
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100 shrink-0">
+                  Siap
+                </span>
+              )}
             </div>
 
             {/* Actions */}
