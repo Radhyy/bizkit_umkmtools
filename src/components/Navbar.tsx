@@ -129,9 +129,6 @@ export default function Navbar() {
         <Link href="/harga" className={`px-5 py-2 text-sm rounded-full transition-colors ${pathname === "/harga" ? "bg-blue-50 text-blue-600 font-semibold" : "font-medium text-slate-600 hover:text-slate-900 hover:bg-white/50"}`}>
           Harga
         </Link>
-        <a href="#" className="px-5 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-full transition-colors">
-          Tentang
-        </a>
         <a href="#footer" onClick={() => setActiveNav("kontak")} className={`px-5 py-2 text-sm font-semibold rounded-full transition-colors ${activeNav === "kontak" ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:text-slate-900 hover:bg-white/50 font-medium"}`}>
           Kontak
         </a>
